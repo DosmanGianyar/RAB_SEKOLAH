@@ -405,9 +405,118 @@
           <span style="font-weight: 700; font-size: 0.88rem;">Total Usulan RAB:</span>
           <span style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 800; color: #fff;" id="detailTotalBiaya">Rp 0</span>
         </div>
+
+        <!-- FASE 3: Riwayat Audit Trail Transparan -->
+        <div style="margin-top: 20px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+          <h4 style="font-size: 0.88rem; font-weight: 700; color: #a5b4fc; margin-bottom: 8px;">
+            Riwayat Pemeriksaan & Otorisasi (Audit Trail)
+          </h4>
+          <div class="audit-timeline" id="detailAuditTimeline">
+            <!-- Injected via JS -->
+          </div>
+        </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" id="detailModalFooter">
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeDetailModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal FASE 3: Penelaahan & Koreksi Anggaran oleh Bendahara -->
+  <div class="modal-overlay" id="modalReviewBendahara">
+    <div class="modal-box" style="max-width: 820px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" style="color: var(--amber);">Penelaahan Anggaran (Bendahara)</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);" id="reviewNomorSurat">Nomor Surat</div>
+        </div>
+        <button class="btn btn-secondary btn-icon-only btn-sm" onclick="closeReviewModal()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+        <!-- Ringkasan Usulan -->
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px; font-size: 0.82rem;">
+          <div style="font-weight: 700; color: #fff; font-size: 0.95rem;" id="reviewNamaKegiatan">Nama Kegiatan</div>
+          <div style="color: var(--text-muted); margin-top: 3px;" id="reviewSubHeader">Pemohon • Pos Anggaran</div>
+        </div>
+
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Periksa volume dan harga satuan belanja. Anda dapat menyesuaikan nominal agar sesuai standar harga sekolah atau menolak baris yang tidak relevan:
+        </p>
+
+        <!-- Dynamic Review Items Container -->
+        <div id="reviewItemsListContainer">
+          <!-- Populated via JS -->
+        </div>
+
+        <!-- 2-Tier Approval Threshold Banner -->
+        <div id="reviewThresholdBanner" class="threshold-banner multi-tier">
+          <div class="threshold-icon">🛡️</div>
+          <div id="reviewThresholdText">
+            <strong>Otorisasi Bertingkat ($\ge$ Rp 1.000.000):</strong> Usulan dana ini akan otomatis diteruskan ke portal Kepala Sekolah untuk pengesahan final.
+          </div>
+        </div>
+
+        <!-- Form Catatan Bendahara -->
+        <div class="form-group" style="margin-top: 14px;">
+          <label class="form-label">Catatan Telaah / Pesan Koreksi Bendahara (Opsional)</label>
+          <textarea class="form-textarea" id="reviewCatatanBendahara" rows="2" placeholder="Cth: Disesuaikan dengan standar konsumsi rapat sekolah Rp 20.000..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button type="button" class="btn btn-secondary btn-sm" style="color: var(--rose);" onclick="handleBendaharaAction('REVISI')">
+          ↩ Kembalikan ke Guru (Revisi)
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeReviewModal()">Batal</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnSubmitReview" onclick="handleBendaharaAction('SETUJUI')">
+            Setujui & Teruskan
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal FASE 3: Otorisasi & Pengesahan oleh Kepala Sekolah -->
+  <div class="modal-overlay" id="modalApprovalKepsek">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" style="color: #c084fc;">Otorisasi Final (Kepala Sekolah)</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);" id="kepsekNomorSurat">Nomor Surat</div>
+        </div>
+        <button class="btn btn-secondary btn-icon-only btn-sm" onclick="closeKepsekModal()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+          <div style="font-size: 1.05rem; font-weight: 700; color: #fff;" id="kepsekNamaKegiatan">Nama Kegiatan</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin: 4px 0 10px;" id="kepsekSubHeader">Pemohon • Pos Anggaran</div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(79, 70, 229, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: var(--radius-md); padding: 10px 14px; margin-top: 8px;">
+            <span style="font-size: 0.82rem; color: #c7d2fe;">Dana yang Disetujui Bendahara:</span>
+            <span style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800; color: #fff;" id="kepsekTotalDanaDisetujui">Rp 0</span>
+          </div>
+        </div>
+
+        <h4 style="font-size: 0.88rem; font-weight: 700; margin-bottom: 8px;">Rincian Belanja Disetujui Bendahara</h4>
+        <div id="kepsekItemsPreviewList" style="font-size: 0.82rem; margin-bottom: 16px;">
+          <!-- Populated via JS -->
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan Arahan Pimpinan (Opsional)</label>
+          <textarea class="form-textarea" id="kepsekCatatan" rows="2" placeholder="Cth: Anggaran disetujui, laksanakan kegiatan dengan tertib administrasi..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button type="button" class="btn btn-secondary btn-sm" style="color: var(--rose);" onclick="handleKepsekAction('REVISI')">
+          ↩ Minta Revisi ke Guru
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeKepsekModal()">Tutup</button>
+          <button type="button" class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="handleKepsekAction('APPROVE')">
+            ✓ Sahkan & Setujui Dana
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -1165,3 +1165,134 @@ body {
   border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
+.status-pill.MENUNGGU_PERSETUJUAN_KEPSEK {
+  background: rgba(147, 51, 234, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(147, 51, 234, 0.3);
+}
+
+/* ==========================================================================
+   FASE 3: BENDAHARA REVIEW, TIERED APPROVAL, & AUDIT TRAIL
+   ========================================================================== */
+
+/* Review Line Item Card */
+.review-item-card {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.review-item-original {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-inputs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .review-inputs-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .review-inputs-grid .full-mobile {
+    grid-column: span 2;
+  }
+}
+
+/* Threshold Info Box */
+.threshold-banner {
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.threshold-banner.fast-track {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #a7f3d0;
+}
+
+.threshold-banner.multi-tier {
+  background: rgba(147, 51, 234, 0.12);
+  border: 1px solid rgba(147, 51, 234, 0.3);
+  color: #e9d5ff;
+}
+
+.threshold-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+/* Audit Trail Timeline */
+.audit-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.audit-entry {
+  position: relative;
+  padding-left: 24px;
+}
+
+.audit-entry::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  bottom: -14px;
+  width: 2px;
+  background: var(--border-subtle);
+}
+
+.audit-entry:last-child::before {
+  display: none;
+}
+
+.audit-dot {
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2px solid var(--bg-surface);
+}
+
+.audit-time {
+  font-size: 0.7rem;
+  color: var(--text-subtle);
+}
+
+.audit-text {
+  font-size: 0.8rem;
+  color: var(--text-main);
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+.audit-author {
+  font-weight: 700;
+  color: #818cf8;
+}
+
+

@@ -12,7 +12,10 @@ const {
   getSystemSummary,
   createPengajuan,
   getPengajuanList,
-  getPengajuanById
+  getPengajuanById,
+  reviewProposalByBendahara,
+  decisionProposalByKepsek,
+  getAuditLogs
 } = require('./db');
 
 const app = express();
@@ -163,6 +166,79 @@ app.post('/api/pengajuan', (req, res) => {
     });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// --- FASE 3: Review Bendahara & Otorisasi Bertingkat Endpoints ---
+
+// Review & Koreksi oleh Bendahara
+app.post('/api/pengajuan/:id/review', (req, res) => {
+  try {
+    const { items_koreksi, catatan_bendahara, tindakan } = req.body;
+    const activeUser = getUserById(currentActiveUserId);
+    
+    // Verifikasi peran
+    if (activeUser && activeUser.role !== 'BENDAHARA' && activeUser.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak menelaah anggaran.' });
+    }
+
+    const updated = reviewProposalByBendahara({
+      proposal_id: Number(req.params.id),
+      user_id: currentActiveUserId,
+      items_koreksi,
+      catatan_bendahara,
+      tindakan // 'SETUJUI' atau 'REVISI'
+    });
+
+    let msg = 'Penelaahan anggaran berhasil diproses.';
+    if (updated.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
+      msg = `Hasil koreksi (Rp ${updated.total_dana_disetujui.toLocaleString('id-ID')}) >= Rp 1.000.000. Proposal otomatis diteruskan ke Kepala Sekolah.`;
+    } else if (updated.status === 'DISETUJUI') {
+      msg = `Proposal disetujui langsung oleh Bendahara (Nominal Rp ${updated.total_dana_disetujui.toLocaleString('id-ID')} < Rp 1.000.000).`;
+    } else if (updated.status === 'PERLU_REVISI') {
+      msg = 'Proposal dikembalikan ke Guru untuk revisi.';
+    }
+
+    res.json({ success: true, data: updated, message: msg });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// Keputusan Otorisasi Final oleh Kepala Sekolah
+app.post('/api/pengajuan/:id/kepsek-decision', (req, res) => {
+  try {
+    const { tindakan, catatan_kepsek } = req.body;
+    const activeUser = getUserById(currentActiveUserId);
+
+    if (activeUser && activeUser.role !== 'KEPALA_SEKOLAH' && activeUser.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Hanya Kepala Sekolah yang berhak memberikan otorisasi final.' });
+    }
+
+    const updated = decisionProposalByKepsek({
+      proposal_id: Number(req.params.id),
+      user_id: currentActiveUserId,
+      tindakan, // 'APPROVE' atau 'REVISI'
+      catatan_kepsek
+    });
+
+    const msg = tindakan === 'APPROVE'
+      ? `Usulan anggaran "${updated.nama_kegiatan}" telah DISETUJUI & DISAHKAN oleh Kepala Sekolah.`
+      : `Proposal dikembalikan oleh Kepala Sekolah untuk revisi.`;
+
+    res.json({ success: true, data: updated, message: msg });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// Get Audit Trail Logs for Proposal
+app.get('/api/pengajuan/:id/audit', (req, res) => {
+  try {
+    const logs = getAuditLogs(Number(req.params.id));
+    res.json({ success: true, data: logs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

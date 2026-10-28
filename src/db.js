@@ -393,6 +393,185 @@ function getPengajuanById(id) {
   };
 }
 
+function reviewProposalByBendahara({ proposal_id, user_id, items_koreksi, catatan_bendahara, tindakan }) {
+  const proposal = getPengajuanById(proposal_id);
+  if (!proposal) {
+    throw new Error('Proposal tidak ditemukan.');
+  }
+
+  if (proposal.status !== 'MENUNGGU_REVIEW' && proposal.status !== 'PERLU_REVISI') {
+    throw new Error(`Proposal berstatus ${proposal.status} dan tidak dalam antrean review bendahara.`);
+  }
+
+  const user = getUserById(user_id);
+  const reviewerName = user ? user.nama_lengkap : 'Bendahara';
+
+  // Skenario A: Kembalikan untuk Revisi
+  if (tindakan === 'REVISI') {
+    db.prepare(`
+      UPDATE pengajuan_kegiatan
+      SET status = 'PERLU_REVISI',
+          catatan_bendahara = ?
+      WHERE id = ?
+    `).run(catatan_bendahara || 'Perlu penyesuaian anggaran.', proposal_id);
+
+    // Lepaskan pagu yang sebelumnya dicadangkan
+    db.prepare(`
+      UPDATE pos_anggaran
+      SET pagu_tercadangkan = MAX(0, pagu_tercadangkan - ?)
+      WHERE id = ?
+    `).run(proposal.total_dana_diajukan, proposal.pos_anggaran_id);
+
+    // Audit log
+    db.prepare(`
+      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
+      VALUES (?, ?, ?)
+    `).run(
+      proposal_id,
+      user_id,
+      `${reviewerName} mengembalikan proposal untuk revisi. Catatan: "${catatan_bendahara || '-'}"`
+    );
+
+    return getPengajuanById(proposal_id);
+  }
+
+  // Skenario B: Proses Setujui / Koreksi Baris
+  let totalDisetujui = 0;
+  const updateItemStmt = db.prepare(`
+    UPDATE rincian_rab_item
+    SET volume_disetujui = ?,
+        harga_satuan_disetujui = ?,
+        subtotal_disetujui = ?,
+        catatan_koreksi = ?,
+        status_item = ?
+    WHERE id = ? AND pengajuan_id = ?
+  `);
+
+  if (items_koreksi && Array.isArray(items_koreksi)) {
+    for (const it of items_koreksi) {
+      const vol = Number(it.volume_disetujui) || 0;
+      const harga = Number(it.harga_satuan_disetujui) || 0;
+      const subtotal = vol * harga;
+      totalDisetujui += subtotal;
+
+      updateItemStmt.run(
+        vol,
+        harga,
+        subtotal,
+        it.catatan_koreksi || '',
+        it.status_item || 'DITERIMA',
+        it.id,
+        proposal_id
+      );
+    }
+  } else {
+    // Jika tidak ada koreksi spesifik, pakai angka awal
+    totalDisetujui = proposal.total_dana_diajukan;
+  }
+
+  // Update penyesuaian pagu tercadangkan di pos anggaran
+  const selisih = totalDisetujui - proposal.total_dana_diajukan;
+  db.prepare(`
+    UPDATE pos_anggaran
+    SET pagu_tercadangkan = MAX(0, pagu_tercadangkan + ?)
+    WHERE id = ?
+  `).run(selisih, proposal.pos_anggaran_id);
+
+  // 2-Tier Approval Threshold Check (Ambang Batas Rp 1.000.000)
+  let statusBaru = 'DISETUJUI';
+  let auditAktivitas = '';
+
+  if (totalDisetujui >= 1000000) {
+    statusBaru = 'MENUNGGU_PERSETUJUAN_KEPSEK';
+    auditAktivitas = `${reviewerName} menelaah rincian belanja (Total Disetujui: Rp ${totalDisetujui.toLocaleString('id-ID')}). Karena nominal >= Rp 1.000.000, diteruskan ke Kepala Sekolah untuk otorisasi final.`;
+  } else {
+    statusBaru = 'DISETUJUI';
+    auditAktivitas = `${reviewerName} menyetujui langsung usulan belanja sebesar Rp ${totalDisetujui.toLocaleString('id-ID')} (Jalur Cepat: Di bawah Rp 1.000.000).`;
+  }
+
+  db.prepare(`
+    UPDATE pengajuan_kegiatan
+    SET total_dana_disetujui = ?,
+        status = ?,
+        catatan_bendahara = ?
+    WHERE id = ?
+  `).run(totalDisetujui, statusBaru, catatan_bendahara || '', proposal_id);
+
+  db.prepare(`
+    INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
+    VALUES (?, ?, ?)
+  `).run(proposal_id, user_id, auditAktivitas);
+
+  return getPengajuanById(proposal_id);
+}
+
+function decisionProposalByKepsek({ proposal_id, user_id, tindakan, catatan_kepsek }) {
+  const proposal = getPengajuanById(proposal_id);
+  if (!proposal) {
+    throw new Error('Proposal tidak ditemukan.');
+  }
+
+  if (proposal.status !== 'MENUNGGU_PERSETUJUAN_KEPSEK') {
+    throw new Error(`Proposal berstatus ${proposal.status} dan tidak sedang menunggu persetujuan Kepala Sekolah.`);
+  }
+
+  const user = getUserById(user_id);
+  const kepsekName = user ? user.nama_lengkap : 'Kepala Sekolah';
+
+  if (tindakan === 'REVISI') {
+    db.prepare(`
+      UPDATE pengajuan_kegiatan
+      SET status = 'PERLU_REVISI',
+          catatan_bendahara = COALESCE(catatan_bendahara || ' | ', '') || 'Catatan Kepsek: ' || ?
+      WHERE id = ?
+    `).run(catatan_kepsek || 'Ditolak/Perlu Revisi oleh Kepala Sekolah', proposal_id);
+
+    // Lepaskan pagu tercadangkan
+    db.prepare(`
+      UPDATE pos_anggaran
+      SET pagu_tercadangkan = MAX(0, pagu_tercadangkan - ?)
+      WHERE id = ?
+    `).run(proposal.total_dana_disetujui, proposal.pos_anggaran_id);
+
+    db.prepare(`
+      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
+      VALUES (?, ?, ?)
+    `).run(
+      proposal_id,
+      user_id,
+      `${kepsekName} mengembalikan proposal untuk revisi: "${catatan_kepsek || '-'}"`
+    );
+  } else {
+    // APPROVE
+    db.prepare(`
+      UPDATE pengajuan_kegiatan
+      SET status = 'DISETUJUI'
+      WHERE id = ?
+    `).run(proposal_id);
+
+    db.prepare(`
+      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
+      VALUES (?, ?, ?)
+    `).run(
+      proposal_id,
+      user_id,
+      `${kepsekName} memberikan OTORISASI FINAL & MENGESAHKAN anggaran sebesar Rp ${proposal.total_dana_disetujui.toLocaleString('id-ID')}`
+    );
+  }
+
+  return getPengajuanById(proposal_id);
+}
+
+function getAuditLogs(proposal_id) {
+  return db.prepare(`
+    SELECT a.*, u.nama_lengkap AS user_nama, u.role AS user_role
+    FROM audit_log_koreksi a
+    LEFT JOIN users u ON a.user_id = u.id
+    WHERE a.pengajuan_id = ?
+    ORDER BY a.id ASC
+  `).all(proposal_id);
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -405,5 +584,9 @@ module.exports = {
   getSystemSummary,
   createPengajuan,
   getPengajuanList,
-  getPengajuanById
+  getPengajuanById,
+  reviewProposalByBendahara,
+  decisionProposalByKepsek,
+  getAuditLogs
 };
+

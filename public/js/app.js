@@ -597,10 +597,38 @@ function renderProposalsList(proposals) {
     let statusLabel = p.status.replace(/_/g, ' ');
     if (p.status === 'MENUNGGU_REVIEW') statusLabel = 'Menunggu Review Bendahara';
     if (p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') statusLabel = 'Menunggu Persetujuan Kepsek';
-    if (p.status === 'DISETUJUI') statusLabel = 'Disetujui';
+    if (p.status === 'DISETUJUI') statusLabel = 'Disetujui (Siap Dicairkan)';
     if (p.status === 'PERLU_REVISI') statusLabel = 'Perlu Revisi';
     if (p.status === 'DICAIRKAN') statusLabel = 'Dana Telah Dicairkan';
     if (p.status === 'SELESAI') statusLabel = 'Selesai & LPJ Terverifikasi';
+
+    // Role-based quick action button on card
+    let roleActionBtn = '';
+    const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+    const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ADMIN');
+
+    if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
+      roleActionBtn = `
+        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #d97706, #f59e0b); color: #fff;" onclick="event.stopPropagation(); openReviewModal(${p.id})">
+          ✏️ Telaah & Koreksi
+        </button>
+      `;
+    } else if (isKepsek && p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
+      roleActionBtn = `
+        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="event.stopPropagation(); openKepsekModal(${p.id})">
+          🛡️ Beri Otorisasi Final
+        </button>
+      `;
+    }
+
+    let revisionNoteHtml = '';
+    if (p.status === 'PERLU_REVISI' && p.catatan_bendahara) {
+      revisionNoteHtml = `
+        <div style="background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.78rem; color: #fecdd3; margin-top: 8px;">
+          <strong>Catatan Revisi:</strong> ${p.catatan_bendahara}
+        </div>
+      `;
+    }
 
     const card = document.createElement('div');
     card.className = 'proposal-item-card';
@@ -642,13 +670,18 @@ function renderProposalsList(proposals) {
         </span>
       </div>
 
-      <div class="proposal-bottom-row">
+      ${revisionNoteHtml}
+
+      <div class="proposal-bottom-row" style="margin-top: 10px;">
         <div style="font-size: 0.75rem; color: var(--text-subtle);">
           Diajukan: ${p.created_at}
         </div>
-        <div>
-          <span style="font-size: 0.72rem; color: var(--text-muted); margin-right: 6px;">Total Ajuan:</span>
-          <span class="proposal-cost-val">${formatRupiah(p.total_dana_diajukan)}</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div>
+            <span style="font-size: 0.72rem; color: var(--text-muted); margin-right: 4px;">Nominal:</span>
+            <span class="proposal-cost-val">${formatRupiah(p.total_dana_disetujui || p.total_dana_diajukan)}</span>
+          </div>
+          ${roleActionBtn}
         </div>
       </div>
     `;
@@ -664,6 +697,7 @@ async function openProposalDetail(id) {
   document.getElementById('detailNomorSurat').textContent = 'Memuat...';
   document.getElementById('detailNamaKegiatan').textContent = 'Mengambil rincian RAB...';
   document.getElementById('detailItemsTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Memuat item belanja...</td></tr>';
+  document.getElementById('detailAuditTimeline').innerHTML = '<div style="color:var(--text-subtle); font-size:0.8rem;">Memuat riwayat pemeriksaan...</div>';
 
   try {
     const res = await fetch(`/api/pengajuan/${id}`);
@@ -676,7 +710,7 @@ async function openProposalDetail(id) {
       document.getElementById('detailPosAnggaran').textContent = `${p.nama_pos} (T.A. ${p.tahun_ajaran})`;
       document.getElementById('detailTanggal').textContent = `${p.tanggal_mulai || '-'} s/d ${p.tanggal_selesai || '-'}`;
       document.getElementById('detailLatarBelakang').textContent = p.latar_belakang || '-';
-      document.getElementById('detailTotalBiaya').textContent = formatRupiah(p.total_dana_diajukan);
+      document.getElementById('detailTotalBiaya').textContent = formatRupiah(p.total_dana_disetujui || p.total_dana_diajukan);
 
       document.getElementById('detailStatusBadge').innerHTML = `
         <span class="status-pill ${p.status}">${p.status.replace(/_/g, ' ')}</span>
@@ -689,18 +723,62 @@ async function openProposalDetail(id) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Tidak ada rincian belanja.</td></tr>';
       } else {
         p.items.forEach((item, idx) => {
+          const subtotalFinal = item.subtotal_disetujui !== null ? item.subtotal_disetujui : item.subtotal_ajuan;
+          const hargaFinal = item.harga_satuan_disetujui !== null ? item.harga_satuan_disetujui : item.harga_satuan_ajuan;
+          const volFinal = item.volume_disetujui !== null ? item.volume_disetujui : item.volume_ajuan;
+
+          let koreksiNote = '';
+          if (item.catatan_koreksi) {
+            koreksiNote = `<div style="font-size:0.7rem; color:var(--amber); margin-top:2px;">⚠️ ${item.catatan_koreksi}</div>`;
+          }
+
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid var(--border-subtle)';
           tr.innerHTML = `
             <td style="padding: 10px 6px; color: var(--text-muted);">${idx + 1}</td>
             <td style="padding: 10px 6px;"><span class="badge-counter" style="font-size:0.68rem;">${item.kategori_belanja}</span></td>
-            <td style="padding: 10px 6px; font-weight: 600; color: #fff;">${item.deskripsi_item}</td>
-            <td style="padding: 10px 6px; text-align: center;">${item.volume_ajuan} ${item.satuan}</td>
-            <td style="padding: 10px 6px; text-align: right;">${formatRupiah(item.harga_satuan_ajuan)}</td>
-            <td style="padding: 10px 6px; text-align: right; font-weight: 700; color: #818cf8;">${formatRupiah(item.subtotal_ajuan)}</td>
+            <td style="padding: 10px 6px; font-weight: 600; color: #fff;">
+              ${item.deskripsi_item}
+              ${koreksiNote}
+            </td>
+            <td style="padding: 10px 6px; text-align: center;">${volFinal} ${item.satuan}</td>
+            <td style="padding: 10px 6px; text-align: right;">${formatRupiah(hargaFinal)}</td>
+            <td style="padding: 10px 6px; text-align: right; font-weight: 700; color: #818cf8;">${formatRupiah(subtotalFinal)}</td>
           `;
           tbody.appendChild(tr);
         });
+      }
+
+      // Load Audit Trail Timeline
+      loadAuditTimeline(id);
+
+      // Render Footer Action Buttons based on User Role
+      const footer = document.getElementById('detailModalFooter');
+      footer.innerHTML = `<button type="button" class="btn btn-secondary btn-sm" onclick="closeDetailModal()">Tutup</button>`;
+
+      const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+      const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ADMIN');
+
+      if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
+        const btnReview = document.createElement('button');
+        btnReview.className = 'btn btn-primary btn-sm';
+        btnReview.style.background = 'linear-gradient(135deg, #d97706, #f59e0b)';
+        btnReview.innerHTML = '✏️ Buka Modul Telaah & Koreksi';
+        btnReview.onclick = () => {
+          closeDetailModal();
+          openReviewModal(p.id);
+        };
+        footer.appendChild(btnReview);
+      } else if (isKepsek && p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
+        const btnKepsek = document.createElement('button');
+        btnKepsek.className = 'btn btn-primary btn-sm';
+        btnKepsek.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+        btnKepsek.innerHTML = '🛡️ Berikan Otorisasi Pengesahan';
+        btnKepsek.onclick = () => {
+          closeDetailModal();
+          openKepsekModal(p.id);
+        };
+        footer.appendChild(btnKepsek);
       }
     }
   } catch (err) {
@@ -708,8 +786,297 @@ async function openProposalDetail(id) {
   }
 }
 
+async function loadAuditTimeline(proposalId) {
+  const container = document.getElementById('detailAuditTimeline');
+  try {
+    const res = await fetch(`/api/pengajuan/${proposalId}/audit`);
+    const data = await res.json();
+    if (data.success && data.data && data.data.length > 0) {
+      container.innerHTML = '';
+      data.data.forEach(log => {
+        const entry = document.createElement('div');
+        entry.className = 'audit-entry';
+        entry.innerHTML = `
+          <div class="audit-dot"></div>
+          <div class="audit-time">${log.waktu_dibuat}</div>
+          <div class="audit-text">
+            <span class="audit-author">${log.user_nama || 'Sistem'}:</span>
+            ${log.aktivitas}
+          </div>
+        `;
+        container.appendChild(entry);
+      });
+    } else {
+      container.innerHTML = '<div style="color:var(--text-subtle); font-size:0.78rem;">Belum ada catatan aktivitas.</div>';
+    }
+  } catch (err) {
+    container.innerHTML = '<div style="color:var(--text-subtle); font-size:0.78rem;">-</div>';
+  }
+}
+
 function closeDetailModal() {
   document.getElementById('modalDetailProposal').classList.remove('active');
+}
+
+// --- FASE 3: MODAL REVIEW BENDAHARA & 2-TIER AMBANG BATAS ---
+let activeReviewProposal = null;
+
+async function openReviewModal(id) {
+  const modal = document.getElementById('modalReviewBendahara');
+  modal.classList.add('active');
+
+  const container = document.getElementById('reviewItemsListContainer');
+  container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted);">Memuat berkas usulan...</div>';
+
+  try {
+    const res = await fetch(`/api/pengajuan/${id}`);
+    const data = await res.json();
+    if (data.success && data.data) {
+      activeReviewProposal = data.data;
+      const p = activeReviewProposal;
+
+      document.getElementById('reviewNomorSurat').textContent = p.nomor_surat_ajuan;
+      document.getElementById('reviewNamaKegiatan').textContent = p.nama_kegiatan;
+      document.getElementById('reviewSubHeader').textContent = `Diajukan oleh: ${p.pemohon_nama} • Pos: ${p.nama_pos}`;
+      document.getElementById('reviewCatatanBendahara').value = p.catatan_bendahara || '';
+
+      renderReviewItems(p.items);
+      recalculateReviewTotal();
+    }
+  } catch (err) {
+    container.innerHTML = '<div style="color:var(--rose);">Gagal memuat rincian usulan.</div>';
+  }
+}
+
+function renderReviewItems(items) {
+  const container = document.getElementById('reviewItemsListContainer');
+  container.innerHTML = '';
+
+  items.forEach((item, idx) => {
+    const volDefault = item.volume_disetujui !== null ? item.volume_disetujui : item.volume_ajuan;
+    const hargaDefault = item.harga_satuan_disetujui !== null ? item.harga_satuan_disetujui : item.harga_satuan_ajuan;
+
+    const card = document.createElement('div');
+    card.className = 'review-item-card';
+    card.dataset.itemId = item.id;
+    card.innerHTML = `
+      <div class="review-item-original">
+        <div>
+          <span style="font-weight:700; color:#fff;">#${idx + 1}. ${item.deskripsi_item}</span>
+          <span class="badge-counter" style="font-size:0.65rem; margin-left:6px;">${item.kategori_belanja}</span>
+        </div>
+        <div>
+          Usulan Awal: <strong>${item.volume_ajuan} ${item.satuan} × ${formatRupiah(item.harga_satuan_ajuan)}</strong> = 
+          <strong style="color:var(--primary);">${formatRupiah(item.subtotal_ajuan)}</strong>
+        </div>
+      </div>
+
+      <div class="review-inputs-grid">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-size:0.7rem;">Volume Disetujui</label>
+          <input type="number" class="form-input review-vol" value="${volDefault}" min="0" step="1" oninput="recalculateReviewTotal()">
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-size:0.7rem;">Harga Satuan Disetujui (Rp)</label>
+          <input type="number" class="form-input review-harga" value="${hargaDefault}" min="0" step="500" oninput="recalculateReviewTotal()">
+        </div>
+
+        <div class="form-group full-mobile" style="margin-bottom:0;">
+          <label class="form-label" style="font-size:0.7rem;">Catatan Koreksi (Jika Diubah/Dipotong)</label>
+          <input type="text" class="form-input review-note" placeholder="Cth: Disesuaikan standar rapat Rp 20.000" value="${item.catatan_koreksi || ''}">
+        </div>
+      </div>
+
+      <div style="margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.72rem; color:var(--text-subtle);">Satuan: ${item.satuan}</span>
+        <div>
+          <span style="font-size:0.72rem; color:var(--text-muted); margin-right:4px;">Subtotal Disetujui:</span>
+          <span class="review-subtotal-val" style="font-weight:700; color:#818cf8; font-family:'Outfit',sans-serif;">Rp 0</span>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+function recalculateReviewTotal() {
+  const container = document.getElementById('reviewItemsListContainer');
+  const cards = container.querySelectorAll('.review-item-card');
+  let totalDisetujui = 0;
+
+  cards.forEach(card => {
+    const vol = Number(card.querySelector('.review-vol').value) || 0;
+    const harga = Number(card.querySelector('.review-harga').value) || 0;
+    const subtotal = vol * harga;
+    totalDisetujui += subtotal;
+    card.querySelector('.review-subtotal-val').textContent = formatRupiah(subtotal);
+  });
+
+  const banner = document.getElementById('reviewThresholdBanner');
+  const bannerText = document.getElementById('reviewThresholdText');
+  const btnSubmit = document.getElementById('btnSubmitReview');
+
+  // 2-Tier Approval Threshold (Ambang Batas Rp 1.000.000)
+  if (totalDisetujui >= 1000000) {
+    banner.className = 'threshold-banner multi-tier';
+    banner.querySelector('.threshold-icon').textContent = '🛡️';
+    bannerText.innerHTML = `
+      <strong>Otorisasi Bertingkat (Total: ${formatRupiah(totalDisetujui)} $\ge$ Rp 1.000.000):</strong>
+      <br>Karena nominal anggaran berskala besar, proposal ini akan otomatis diteruskan ke portal <strong>Kepala Sekolah</strong> untuk otorisasi final.
+    `;
+    btnSubmit.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M5 12h14M12 5l7 7-7 7"></path>
+      </svg>
+      Teruskan ke Kepala Sekolah
+    `;
+  } else {
+    banner.className = 'threshold-banner fast-track';
+    banner.querySelector('.threshold-icon').textContent = '⚡';
+    bannerText.innerHTML = `
+      <strong>Jalur Cepat (Total: ${formatRupiah(totalDisetujui)} < Rp 1.000.000):</strong>
+      <br>Nominal berada di bawah ambang batas Rp 1.000.000. Bendahara dapat <strong>menyetujui langsung</strong> tanpa perlu menunggu Kepala Sekolah.
+    `;
+    btnSubmit.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 6L9 17l-5-5"></path>
+      </svg>
+      Setujui Langsung (Bendahara)
+    `;
+  }
+}
+
+async function handleBendaharaAction(tindakan) {
+  if (!activeReviewProposal) return;
+
+  const catatan_bendahara = document.getElementById('reviewCatatanBendahara').value.trim();
+  const cards = document.querySelectorAll('#reviewItemsListContainer .review-item-card');
+  const items_koreksi = [];
+
+  cards.forEach(card => {
+    const id = Number(card.dataset.itemId);
+    const volume_disetujui = Number(card.querySelector('.review-vol').value) || 0;
+    const harga_satuan_disetujui = Number(card.querySelector('.review-harga').value) || 0;
+    const catatan_koreksi = card.querySelector('.review-note').value.trim();
+    items_koreksi.push({
+      id,
+      volume_disetujui,
+      harga_satuan_disetujui,
+      catatan_koreksi,
+      status_item: (volume_disetujui <= 0 || harga_satuan_disetujui <= 0) ? 'DITOLAK' : 'DISESUAIKAN'
+    });
+  });
+
+  try {
+    const res = await fetch(`/api/pengajuan/${activeReviewProposal.id}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tindakan, // 'SETUJUI' atau 'REVISI'
+        catatan_bendahara,
+        items_koreksi
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      closeReviewModal();
+      showNotification(`✨ ${data.message}`);
+      await loadSummaryStats();
+      await loadPosAnggaran();
+      await loadProposalsList();
+    } else {
+      alert(data.message || 'Gagal memproses review bendahara.');
+    }
+  } catch (err) {
+    console.error('Error submitting review:', err);
+    alert('Terjadi kesalahan koneksi.');
+  }
+}
+
+function closeReviewModal() {
+  document.getElementById('modalReviewBendahara').classList.remove('active');
+  activeReviewProposal = null;
+}
+
+// --- FASE 3: MODAL OTORISASI KEPALA SEKOLAH ---
+let activeKepsekProposal = null;
+
+async function openKepsekModal(id) {
+  const modal = document.getElementById('modalApprovalKepsek');
+  modal.classList.add('active');
+
+  const container = document.getElementById('kepsekItemsPreviewList');
+  container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Memuat berkas telaah...</div>';
+
+  try {
+    const res = await fetch(`/api/pengajuan/${id}`);
+    const data = await res.json();
+    if (data.success && data.data) {
+      activeKepsekProposal = data.data;
+      const p = activeKepsekProposal;
+
+      document.getElementById('kepsekNomorSurat').textContent = p.nomor_surat_ajuan;
+      document.getElementById('kepsekNamaKegiatan').textContent = p.nama_kegiatan;
+      document.getElementById('kepsekSubHeader').textContent = `Pemohon: ${p.pemohon_nama} (${p.pemohon_unit}) • Pos: ${p.nama_pos}`;
+      document.getElementById('kepsekTotalDanaDisetujui').textContent = formatRupiah(p.total_dana_disetujui);
+      document.getElementById('kepsekCatatan').value = '';
+
+      container.innerHTML = '';
+      p.items.forEach((item, idx) => {
+        const itemRow = document.createElement('div');
+        itemRow.style.cssText = 'display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-subtle);';
+        itemRow.innerHTML = `
+          <div>
+            <span style="color:#fff; font-weight:600;">#${idx+1}. ${item.deskripsi_item}</span>
+            <span style="font-size:0.72rem; color:var(--text-muted); margin-left:6px;">(${item.volume_disetujui} ${item.satuan} × ${formatRupiah(item.harga_satuan_disetujui)})</span>
+          </div>
+          <span style="font-weight:700; color:#818cf8; font-family:'Outfit',sans-serif;">${formatRupiah(item.subtotal_disetujui)}</span>
+        `;
+        container.appendChild(itemRow);
+      });
+    }
+  } catch (err) {
+    container.innerHTML = '<div style="color:var(--rose);">Gagal memuat rincian usulan.</div>';
+  }
+}
+
+async function handleKepsekAction(tindakan) {
+  if (!activeKepsekProposal) return;
+
+  const catatan_kepsek = document.getElementById('kepsekCatatan').value.trim();
+
+  try {
+    const res = await fetch(`/api/pengajuan/${activeKepsekProposal.id}/kepsek-decision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tindakan, // 'APPROVE' atau 'REVISI'
+        catatan_kepsek
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      closeKepsekModal();
+      showNotification(`🏛️ ${data.message}`);
+      await loadSummaryStats();
+      await loadPosAnggaran();
+      await loadProposalsList();
+    } else {
+      alert(data.message || 'Gagal memproses otorisasi Kepala Sekolah.');
+    }
+  } catch (err) {
+    console.error('Error submitting kepsek decision:', err);
+    alert('Terjadi kesalahan koneksi.');
+  }
+}
+
+function closeKepsekModal() {
+  document.getElementById('modalApprovalKepsek').classList.remove('active');
+  activeKepsekProposal = null;
 }
 
 // --- 6. Add / Edit Pos Anggaran Modal (From Phase 1) ---
