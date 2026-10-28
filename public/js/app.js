@@ -148,7 +148,7 @@ function renderRoleOptions(users) {
       </div>
       <div style="flex: 1;">
         <div style="display: flex; align-items: center; justify-content: space-between;">
-          <span style="font-weight: 700; font-size: 0.9rem; color: #fff;">${u.nama_lengkap}</span>
+          <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">${u.nama_lengkap}</span>
           <span class="role-badge-tag ${u.role}">${u.role.replace('_', ' ')}</span>
         </div>
         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
@@ -459,7 +459,7 @@ function calculateGrandTotal() {
     alertBox.className = 'live-budget-alert safe';
     alertText.innerHTML = `
       🟢 <strong>Usulan Anggaran Aman:</strong> Total ajuan <strong>${formatRupiah(grandTotal)}</strong> masih dalam batas sisa pagu.
-      <br><span style="font-size:0.75rem; color: #a7f3d0;">Estimasi sisa pagu setelah usulan ini disetujui: ${formatRupiah(sisaSetelah)}</span>
+      <br><span style="font-size:0.75rem; color: #065f46; font-weight:600;">Estimasi sisa pagu setelah usulan ini disetujui: ${formatRupiah(sisaSetelah)}</span>
     `;
     btnSubmit.disabled = false;
   } else {
@@ -581,7 +581,7 @@ function renderProposalsList(proposals) {
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <polyline points="14 2 14 8 20 8"></polyline>
         </svg>
-        <div style="font-weight: 700; font-size: 1.05rem; color: #fff;">Belum Ada Proposal Diajukan</div>
+        <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-main);">Belum Ada Proposal Diajukan</div>
         <p style="font-size: 0.82rem; color: var(--text-muted); margin: 6px 0 16px;">
           Mulai buat proposal usulan kegiatan sekolah pertama Anda sekarang.
         </p>
@@ -624,7 +624,7 @@ function renderProposalsList(proposals) {
     let revisionNoteHtml = '';
     if (p.status === 'PERLU_REVISI' && p.catatan_bendahara) {
       revisionNoteHtml = `
-        <div style="background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.78rem; color: #fecdd3; margin-top: 8px;">
+        <div style="background: var(--rose-bg); border: 1px solid var(--rose-border); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.78rem; color: #9f1239; margin-top: 8px;">
           <strong>Catatan Revisi:</strong> ${p.catatan_bendahara}
         </div>
       `;
@@ -737,13 +737,13 @@ async function openProposalDetail(id) {
           tr.innerHTML = `
             <td style="padding: 10px 6px; color: var(--text-muted);">${idx + 1}</td>
             <td style="padding: 10px 6px;"><span class="badge-counter" style="font-size:0.68rem;">${item.kategori_belanja}</span></td>
-            <td style="padding: 10px 6px; font-weight: 600; color: #fff;">
+            <td style="padding: 10px 6px; font-weight: 600; color: var(--text-main);">
               ${item.deskripsi_item}
               ${koreksiNote}
             </td>
             <td style="padding: 10px 6px; text-align: center;">${volFinal} ${item.satuan}</td>
             <td style="padding: 10px 6px; text-align: right;">${formatRupiah(hargaFinal)}</td>
-            <td style="padding: 10px 6px; text-align: right; font-weight: 700; color: #818cf8;">${formatRupiah(subtotalFinal)}</td>
+            <td style="padding: 10px 6px; text-align: right; font-weight: 700; color: var(--primary);">${formatRupiah(subtotalFinal)}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -862,7 +862,7 @@ function renderReviewItems(items) {
     card.innerHTML = `
       <div class="review-item-original">
         <div>
-          <span style="font-weight:700; color:#fff;">#${idx + 1}. ${item.deskripsi_item}</span>
+          <span style="font-weight:700; color:var(--text-main);">#${idx + 1}. ${item.deskripsi_item}</span>
           <span class="badge-counter" style="font-size:0.65rem; margin-left:6px;">${item.kategori_belanja}</span>
         </div>
         <div>
@@ -892,7 +892,7 @@ function renderReviewItems(items) {
         <span style="font-size:0.72rem; color:var(--text-subtle);">Satuan: ${item.satuan}</span>
         <div>
           <span style="font-size:0.72rem; color:var(--text-muted); margin-right:4px;">Subtotal Disetujui:</span>
-          <span class="review-subtotal-val" style="font-weight:700; color:#818cf8; font-family:'Outfit',sans-serif;">Rp 0</span>
+          <span class="review-subtotal-val" style="font-weight:700; color:var(--primary); font-family:'Outfit',sans-serif;">Rp 0</span>
         </div>
       </div>
     `;
@@ -1030,10 +1030,10 @@ async function openKepsekModal(id) {
         itemRow.style.cssText = 'display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-subtle);';
         itemRow.innerHTML = `
           <div>
-            <span style="color:#fff; font-weight:600;">#${idx+1}. ${item.deskripsi_item}</span>
+            <span style="color:var(--text-main); font-weight:600;">#${idx+1}. ${item.deskripsi_item}</span>
             <span style="font-size:0.72rem; color:var(--text-muted); margin-left:6px;">(${item.volume_disetujui} ${item.satuan} × ${formatRupiah(item.harga_satuan_disetujui)})</span>
           </div>
-          <span style="font-weight:700; color:#818cf8; font-family:'Outfit',sans-serif;">${formatRupiah(item.subtotal_disetujui)}</span>
+          <span style="font-weight:700; color:var(--primary); font-family:'Outfit',sans-serif;">${formatRupiah(item.subtotal_disetujui)}</span>
         `;
         container.appendChild(itemRow);
       });
@@ -1152,15 +1152,15 @@ function showNotification(msg) {
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(17, 24, 39, 0.95);
-    border: 1px solid var(--primary);
-    color: #fff;
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #ffffff;
     padding: 12px 22px;
     border-radius: var(--radius-full);
     font-size: 0.85rem;
     font-weight: 600;
     z-index: 999;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;

@@ -356,15 +356,15 @@
       </div>
       <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
         <!-- Header Info Grid -->
-        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem;">
             <div>
               <span style="color: var(--text-muted);">Pemohon:</span>
-              <div style="font-weight: 700; color: #fff;" id="detailPemohon">-</div>
+              <div style="font-weight: 700; color: var(--text-main);" id="detailPemohon">-</div>
             </div>
             <div>
               <span style="color: var(--text-muted);">Pos Anggaran:</span>
-              <div style="font-weight: 700; color: #818cf8;" id="detailPosAnggaran">-</div>
+              <div style="font-weight: 700; color: var(--primary);" id="detailPosAnggaran">-</div>
             </div>
             <div>
               <span style="color: var(--text-muted);">Status Saat Ini:</span>
@@ -372,27 +372,27 @@
             </div>
             <div>
               <span style="color: var(--text-muted);">Jadwal Pelaksanaan:</span>
-              <div style="font-weight: 600;" id="detailTanggal">-</div>
+              <div style="font-weight: 600; color: var(--text-main);" id="detailTanggal">-</div>
             </div>
           </div>
           <div style="margin-top: 10px; font-size: 0.8rem; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
             <span style="color: var(--text-muted);">Latar Belakang:</span>
-            <div id="detailLatarBelakang" style="color: var(--text-main); margin-top: 2px;">-</div>
+            <div id="detailLatarBelakang" style="color: var(--text-body); margin-top: 2px;">-</div>
           </div>
         </div>
 
         <!-- Tabel Rincian Belanja -->
-        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 10px;">Rincian Item Belanja RAB</h4>
+        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; color: var(--text-main);">Rincian Item Belanja RAB</h4>
         <div style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
             <thead>
-              <tr style="border-bottom: 1px solid var(--border-card); color: var(--text-muted); text-align: left;">
-                <th style="padding: 8px 6px;">#</th>
-                <th style="padding: 8px 6px;">Kategori</th>
-                <th style="padding: 8px 6px;">Deskripsi Item</th>
-                <th style="padding: 8px 6px; text-align: center;">Vol</th>
-                <th style="padding: 8px 6px; text-align: right;">Harga Satuan</th>
-                <th style="padding: 8px 6px; text-align: right;">Subtotal</th>
+              <tr style="border-bottom: 1px solid var(--border-card); color: var(--text-muted); text-align: left; background: #f8fafc;">
+                <th style="padding: 10px 8px;">#</th>
+                <th style="padding: 10px 8px;">Kategori</th>
+                <th style="padding: 10px 8px;">Deskripsi Item</th>
+                <th style="padding: 10px 8px; text-align: center;">Vol</th>
+                <th style="padding: 10px 8px; text-align: right;">Harga Satuan</th>
+                <th style="padding: 10px 8px; text-align: right;">Subtotal</th>
               </tr>
             </thead>
             <tbody id="detailItemsTableBody">
@@ -401,14 +401,14 @@
           </table>
         </div>
 
-        <div style="margin-top: 16px; padding: 12px 14px; background: rgba(0,0,0,0.4); border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 700; font-size: 0.88rem;">Total Usulan RAB:</span>
-          <span style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 800; color: #fff;" id="detailTotalBiaya">Rp 0</span>
+        <div style="margin-top: 16px; padding: 14px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 700; font-size: 0.88rem; color: #1e40af;">Total Usulan RAB:</span>
+          <span style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800; color: #1e3a8a;" id="detailTotalBiaya">Rp 0</span>
         </div>
 
         <!-- FASE 3: Riwayat Audit Trail Transparan -->
         <div style="margin-top: 20px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
-          <h4 style="font-size: 0.88rem; font-weight: 700; color: #a5b4fc; margin-bottom: 8px;">
+          <h4 style="font-size: 0.88rem; font-weight: 800; color: var(--primary); margin-bottom: 8px;">
             Riwayat Pemeriksaan & Otorisasi (Audit Trail)
           </h4>
           <div class="audit-timeline" id="detailAuditTimeline">
@@ -434,12 +434,12 @@
       </div>
       <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
         <!-- Ringkasan Usulan -->
-        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px; font-size: 0.82rem;">
-          <div style="font-weight: 700; color: #fff; font-size: 0.95rem;" id="reviewNamaKegiatan">Nama Kegiatan</div>
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; font-size: 0.82rem;">
+          <div style="font-weight: 800; color: var(--text-main); font-size: 1.05rem;" id="reviewNamaKegiatan">Nama Kegiatan</div>
           <div style="color: var(--text-muted); margin-top: 3px;" id="reviewSubHeader">Pemohon • Pos Anggaran</div>
         </div>
 
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+        <p style="font-size: 0.82rem; color: var(--text-body); margin-bottom: 12px;">
           Periksa volume dan harga satuan belanja. Anda dapat menyesuaikan nominal agar sesuai standar harga sekolah atau menolak baris yang tidak relevan:
         </p>
 
@@ -481,24 +481,24 @@
     <div class="modal-box" style="max-width: 680px;">
       <div class="modal-header">
         <div>
-          <div class="modal-title" style="color: #c084fc;">Otorisasi Final (Kepala Sekolah)</div>
+          <div class="modal-title" style="color: var(--purple);">Otorisasi Final (Kepala Sekolah)</div>
           <div style="font-size: 0.75rem; color: var(--text-muted);" id="kepsekNomorSurat">Nomor Surat</div>
         </div>
         <button class="btn btn-secondary btn-icon-only btn-sm" onclick="closeKepsekModal()">✕</button>
       </div>
       <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
-        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
-          <div style="font-size: 1.05rem; font-weight: 700; color: #fff;" id="kepsekNamaKegiatan">Nama Kegiatan</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted); margin: 4px 0 10px;" id="kepsekSubHeader">Pemohon • Pos Anggaran</div>
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px;">
+          <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-main);" id="kepsekNamaKegiatan">Nama Kegiatan</div>
+          <div style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 12px;" id="kepsekSubHeader">Pemohon • Pos Anggaran</div>
           
-          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(79, 70, 229, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: var(--radius-md); padding: 10px 14px; margin-top: 8px;">
-            <span style="font-size: 0.82rem; color: #c7d2fe;">Dana yang Disetujui Bendahara:</span>
-            <span style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800; color: #fff;" id="kepsekTotalDanaDisetujui">Rp 0</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 12px 16px; margin-top: 8px;">
+            <span style="font-size: 0.84rem; color: #1e40af; font-weight: 700;">Dana yang Disetujui Bendahara:</span>
+            <span style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #1e3a8a;" id="kepsekTotalDanaDisetujui">Rp 0</span>
           </div>
         </div>
 
-        <h4 style="font-size: 0.88rem; font-weight: 700; margin-bottom: 8px;">Rincian Belanja Disetujui Bendahara</h4>
-        <div id="kepsekItemsPreviewList" style="font-size: 0.82rem; margin-bottom: 16px;">
+        <h4 style="font-size: 0.9rem; font-weight: 800; margin-bottom: 10px; color: var(--text-main);">Rincian Belanja Disetujui Bendahara</h4>
+        <div id="kepsekItemsPreviewList" style="font-size: 0.84rem; margin-bottom: 16px;">
           <!-- Populated via JS -->
         </div>
 
