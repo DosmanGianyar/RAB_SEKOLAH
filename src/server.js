@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('node:path');
 const fs = require('node:fs');
+const QRCode = require('qrcode');
 const {
   initDatabase,
   getPosAnggaranList,
@@ -15,8 +16,13 @@ const {
   getPengajuanById,
   reviewProposalByBendahara,
   decisionProposalByKepsek,
+  disburseProposal,
+  getPengajuanByQrToken,
   getAuditLogs
 } = require('./db');
+
+const { renderCetakDisposisi } = require('./views/cetak-disposisi');
+const { renderVerifikasiPublik } = require('./views/verifikasi-publik');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -239,6 +245,126 @@ app.get('/api/pengajuan/:id/audit', (req, res) => {
     res.json({ success: true, data: logs });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ==========================================================================
+// FASE 4: MODUL PENCAIRAN KAS & DISPOSISI BER-QR CODE RESMI
+// ==========================================================================
+
+// 1. Eksekusi Pencairan Kas oleh Bendahara / Admin
+app.post('/api/pengajuan/:id/cairkan', (req, res) => {
+  try {
+    const {
+      metode_pencairan,
+      bank_tujuan,
+      nomor_rekening,
+      penerima_dana,
+      nomor_referensi_transfer,
+      tanggal_pencairan,
+      catatan_pencairan
+    } = req.body;
+
+    const activeUser = getUserById(currentActiveUserId);
+    if (activeUser && activeUser.role !== 'BENDAHARA' && activeUser.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak mencairkan kas.' });
+    }
+
+    if (!metode_pencairan) {
+      return res.status(400).json({ success: false, message: 'Pilihan metode pencairan (TUNAI/TRANSFER_BANK) wajib diisi.' });
+    }
+
+    const updated = disburseProposal({
+      proposal_id: Number(req.params.id),
+      user_id: currentActiveUserId,
+      metode_pencairan,
+      bank_tujuan,
+      nomor_rekening,
+      penerima_dana,
+      nomor_referensi_transfer,
+      tanggal_pencairan,
+      catatan_pencairan
+    });
+
+    res.json({
+      success: true,
+      data: updated,
+      message: `Kas sebesar Rp ${updated.total_dana_disetujui.toLocaleString('id-ID')} berhasil dicairkan dan dibukukan resmi.`
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 2. Endpoint Data QR Code Proposal
+app.get('/api/pengajuan/:id/qr', async (req, res) => {
+  try {
+    const proposal = getPengajuanById(Number(req.params.id));
+    if (!proposal) {
+      return res.status(404).json({ success: false, message: 'Proposal tidak ditemukan.' });
+    }
+
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const verifyUrl = `${protocol}://${host}/verifikasi/${proposal.kode_verifikasi_qr}`;
+
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+      width: 240,
+      margin: 1,
+      color: { dark: '#0f172a', light: '#ffffff' }
+    });
+
+    res.json({ success: true, qrDataUrl, verifyUrl, kode_verifikasi: proposal.kode_verifikasi_qr });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3. Render Lembar Disposisi & Pengesahan RAB Resmi (A4 Print-Ready)
+app.get('/cetak/:id', async (req, res) => {
+  try {
+    const proposal = getPengajuanById(Number(req.params.id));
+    if (!proposal) {
+      return res.status(404).send('Proposal tidak ditemukan.');
+    }
+
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const verifyUrl = `${protocol}://${host}/verifikasi/${proposal.kode_verifikasi_qr}`;
+
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+      width: 240,
+      margin: 1,
+      color: { dark: '#0f172a', light: '#ffffff' }
+    });
+
+    const html = renderCetakDisposisi({
+      proposal,
+      qrDataUrl,
+      hostUrl: `${protocol}://${host}`
+    });
+
+    res.send(html);
+  } catch (err) {
+    res.status(500).send('Terjadi kesalahan saat membuat lembar disposisi: ' + err.message);
+  }
+});
+
+// 4. Portal Publik Verifikasi Keabsahan Dokumen Digital (Scan QR Code)
+app.get('/verifikasi/:token', (req, res) => {
+  try {
+    const { token } = req.params;
+    const proposal = getPengajuanByQrToken(token);
+
+    if (!proposal) {
+      const html = renderVerifikasiPublik({ proposal: null, isValid: false });
+      return res.status(404).send(html);
+    }
+
+    const html = renderVerifikasiPublik({ proposal, isValid: true });
+    res.send(html);
+  } catch (err) {
+    res.status(500).send('Terjadi kesalahan pada server verifikasi.');
   }
 });
 

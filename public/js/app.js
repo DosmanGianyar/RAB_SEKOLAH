@@ -47,6 +47,12 @@ function setupEventListeners() {
   // Form Pengajuan RAB
   document.getElementById('formPengajuanRab').addEventListener('submit', handleSubmitProposal);
 
+  // Form Pencairan Kas (Fase 4)
+  const formCairkan = document.getElementById('formPencairanKas');
+  if (formCairkan) {
+    formCairkan.addEventListener('submit', handlePencairanSubmit);
+  }
+
   // Close modals on overlay click
   window.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay')) {
@@ -619,6 +625,21 @@ function renderProposalsList(proposals) {
           🛡️ Beri Otorisasi Final
         </button>
       `;
+    } else if (isBendahara && p.status === 'DISETUJUI') {
+      roleActionBtn = `
+        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="event.stopPropagation(); openCairkanModal(${p.id})">
+          💵 Cairkan Kas
+        </button>
+      `;
+    }
+
+    let printActionBtn = '';
+    if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'SELESAI') {
+      printActionBtn = `
+        <a href="/cetak/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()">
+          🖨️ Disposisi
+        </a>
+      `;
     }
 
     let revisionNoteHtml = '';
@@ -676,11 +697,12 @@ function renderProposalsList(proposals) {
         <div style="font-size: 0.75rem; color: var(--text-subtle);">
           Diajukan: ${p.created_at}
         </div>
-        <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
           <div>
             <span style="font-size: 0.72rem; color: var(--text-muted); margin-right: 4px;">Nominal:</span>
             <span class="proposal-cost-val">${formatRupiah(p.total_dana_disetujui || p.total_dana_diajukan)}</span>
           </div>
+          ${printActionBtn}
           ${roleActionBtn}
         </div>
       </div>
@@ -715,6 +737,27 @@ async function openProposalDetail(id) {
       document.getElementById('detailStatusBadge').innerHTML = `
         <span class="status-pill ${p.status}">${p.status.replace(/_/g, ' ')}</span>
       `;
+
+      // Banner Info Realisasi Pencairan Kas (Fase 4)
+      const bannerCair = document.getElementById('detailPencairanInfoBanner');
+      if (bannerCair) {
+        if (p.status === 'DICAIRKAN' || p.status === 'SELESAI') {
+          const metodeStr = p.metode_pencairan === 'TRANSFER_BANK'
+            ? `Transfer Bank ${p.bank_tujuan || ''} (No. Rek: ${p.nomor_rekening || '-'}, Ref: ${p.nomor_referensi_transfer || '-'})`
+            : 'Kas Tunai Langsung';
+          bannerCair.style.display = 'block';
+          bannerCair.innerHTML = `
+            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.82rem; color: #065f46;">
+              <div style="font-weight: 800; font-size: 0.88rem; margin-bottom: 4px;">💵 REALISASI KAS: TELAH DICAIRKAN RESMI</div>
+              <div>Dicairkan pada <strong>${p.tanggal_pencairan || '-'}</strong> via <strong>${metodeStr}</strong> kepada <strong>${p.penerima_dana || p.pemohon_nama}</strong>.</div>
+              ${p.catatan_pencairan ? `<div style="font-size: 0.75rem; margin-top: 4px; font-style: italic; color: #047857;">Catatan: "${p.catatan_pencairan}"</div>` : ''}
+            </div>
+          `;
+        } else {
+          bannerCair.style.display = 'none';
+          bannerCair.innerHTML = '';
+        }
+      }
 
       // Render Baris Belanja
       const tbody = document.getElementById('detailItemsTableBody');
@@ -759,6 +802,16 @@ async function openProposalDetail(id) {
       const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
       const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ADMIN');
 
+      // Tombol Cetak Dokumen Resmi untuk status yang sudah disahkan / dicairkan
+      if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'SELESAI') {
+        const btnPrint = document.createElement('a');
+        btnPrint.className = 'btn btn-secondary btn-sm';
+        btnPrint.href = `/cetak/${p.id}`;
+        btnPrint.target = '_blank';
+        btnPrint.innerHTML = '🖨️ Cetak Lembar Disposisi (PDF)';
+        footer.appendChild(btnPrint);
+      }
+
       if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
         const btnReview = document.createElement('button');
         btnReview.className = 'btn btn-primary btn-sm';
@@ -779,6 +832,16 @@ async function openProposalDetail(id) {
           openKepsekModal(p.id);
         };
         footer.appendChild(btnKepsek);
+      } else if (isBendahara && p.status === 'DISETUJUI') {
+        const btnCairkan = document.createElement('button');
+        btnCairkan.className = 'btn btn-primary btn-sm';
+        btnCairkan.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+        btnCairkan.innerHTML = '💵 Cairkan Kas Sekarang';
+        btnCairkan.onclick = () => {
+          closeDetailModal();
+          openCairkanModal(p.id);
+        };
+        footer.appendChild(btnCairkan);
       }
     }
   } catch (err) {
@@ -1179,4 +1242,110 @@ function showNotification(msg) {
     toast.style.transition = 'opacity 0.4s ease';
     setTimeout(() => toast.remove(), 400);
   }, 3000);
+}
+
+// ==========================================================================
+// FASE 4: LOGIKA MODUL PENCAIRAN KAS (CASH DISBURSEMENT)
+// ==========================================================================
+
+let activeCairkanProposal = null;
+
+async function openCairkanModal(proposalId) {
+  const modal = document.getElementById('modalCairkanDana');
+  modal.classList.add('active');
+
+  try {
+    const res = await fetch(`/api/pengajuan/${proposalId}`);
+    const data = await res.json();
+    if (data.success && data.data) {
+      activeCairkanProposal = data.data;
+      const p = activeCairkanProposal;
+
+      document.getElementById('cairkanProposalId').value = p.id;
+      document.getElementById('cairkanNomorSurat').textContent = p.nomor_surat_ajuan;
+      document.getElementById('cairkanNamaKegiatan').textContent = p.nama_kegiatan;
+      document.getElementById('cairkanSubHeader').textContent = `Pemohon: ${p.pemohon_nama} (${p.pemohon_unit}) • Pos: ${p.nama_pos}`;
+      document.getElementById('cairkanTotalDanaDisplay').textContent = formatRupiah(p.total_dana_disetujui);
+
+      // Default data penerima & tanggal
+      document.getElementById('cairkanPenerimaDana').value = p.pemohon_nama;
+      document.getElementById('cairkanTanggal').value = new Date().toISOString().split('T')[0];
+      document.getElementById('cairkanCatatan').value = '';
+      document.getElementById('cairkanNomorRef').value = '';
+      document.getElementById('cairkanNomorRekening').value = '';
+
+      // Reset ke mode Kas Tunai
+      const radioTunai = document.querySelector('input[name="metode_pencairan"][value="TUNAI"]');
+      if (radioTunai) radioTunai.checked = true;
+      handlePaymentMethodChange();
+    }
+  } catch (err) {
+    console.error('Error fetching proposal for disbursement:', err);
+    showNotification('Gagal memuat data proposal untuk pencairan.');
+  }
+}
+
+function closeCairkanModal() {
+  document.getElementById('modalCairkanDana').classList.remove('active');
+  activeCairkanProposal = null;
+}
+
+function handlePaymentMethodChange() {
+  const selectedMetode = document.querySelector('input[name="metode_pencairan"]:checked')?.value || 'TUNAI';
+  const sectionTransfer = document.getElementById('sectionTransferBank');
+  const labelTunai = document.getElementById('labelMethodTunai');
+  const labelTransfer = document.getElementById('labelMethodTransfer');
+
+  if (selectedMetode === 'TRANSFER_BANK') {
+    sectionTransfer.style.display = 'block';
+    labelTransfer.classList.add('active');
+    labelTunai.classList.remove('active');
+  } else {
+    sectionTransfer.style.display = 'none';
+    labelTunai.classList.add('active');
+    labelTransfer.classList.remove('active');
+  }
+}
+
+async function handlePencairanSubmit(e) {
+  e.preventDefault();
+  if (!activeCairkanProposal) return;
+
+  const id = activeCairkanProposal.id;
+  const metode_pencairan = document.querySelector('input[name="metode_pencairan"]:checked')?.value || 'TUNAI';
+  const bank_tujuan = document.getElementById('cairkanBankTujuan').value;
+  const nomor_rekening = document.getElementById('cairkanNomorRekening').value.trim();
+  const nomor_referensi_transfer = document.getElementById('cairkanNomorRef').value.trim();
+  const penerima_dana = document.getElementById('cairkanPenerimaDana').value.trim();
+  const tanggal_pencairan = document.getElementById('cairkanTanggal').value;
+  const catatan_pencairan = document.getElementById('cairkanCatatan').value.trim();
+
+  try {
+    const res = await fetch(`/api/pengajuan/${id}/cairkan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        metode_pencairan,
+        bank_tujuan,
+        nomor_rekening,
+        nomor_referensi_transfer,
+        penerima_dana,
+        tanggal_pencairan,
+        catatan_pencairan
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      closeCairkanModal();
+      showNotification(`✓ ${data.message}`);
+      loadSummaryStats();
+      loadPosAnggaran();
+      loadProposalsList();
+    } else {
+      alert(`Gagal mencairkan kas: ${data.message}`);
+    }
+  } catch (err) {
+    alert(`Terjadi kesalahan jaringan saat mencairkan kas: ${err.message}`);
+  }
 }

@@ -86,6 +86,23 @@ function initDatabase() {
     );
   `);
 
+  // Migrasi aman untuk kolom Fase 4 jika belum ada
+  const tableInfo = db.prepare(`PRAGMA table_info(pengajuan_kegiatan)`).all();
+  const colNames = tableInfo.map(c => c.name);
+
+  if (!colNames.includes('bank_tujuan')) {
+    db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN bank_tujuan TEXT`).run();
+  }
+  if (!colNames.includes('nomor_rekening')) {
+    db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN nomor_rekening TEXT`).run();
+  }
+  if (!colNames.includes('penerima_dana')) {
+    db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN penerima_dana TEXT`).run();
+  }
+  if (!colNames.includes('catatan_pencairan')) {
+    db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN catatan_pencairan TEXT`).run();
+  }
+
   seedInitialData();
 }
 
@@ -572,6 +589,114 @@ function getAuditLogs(proposal_id) {
   `).all(proposal_id);
 }
 
+// FASE 4: Pencairan Kas (Cash Disbursement by Bendahara/Admin)
+function disburseProposal({
+  proposal_id,
+  user_id,
+  metode_pencairan,
+  bank_tujuan,
+  nomor_rekening,
+  penerima_dana,
+  nomor_referensi_transfer,
+  tanggal_pencairan,
+  catatan_pencairan
+}) {
+  const proposal = getPengajuanById(proposal_id);
+  if (!proposal) {
+    throw new Error('Proposal kegiatan tidak ditemukan.');
+  }
+
+  if (proposal.status !== 'DISETUJUI') {
+    throw new Error(`Proposal berstatus "${proposal.status}". Hanya proposal yang telah "DISETUJUI" yang dapat dicairkan dananya.`);
+  }
+
+  const user = getUserById(user_id);
+  const bendaharaName = user ? user.nama_lengkap : 'Bendahara Sekolah';
+  const danaCair = proposal.total_dana_disetujui;
+  const tglCair = tanggal_pencairan || new Date().toISOString().split('T')[0];
+
+  // 1. Update status proposal & info pencairan
+  db.prepare(`
+    UPDATE pengajuan_kegiatan
+    SET status = 'DICAIRKAN',
+        metode_pencairan = ?,
+        bank_tujuan = ?,
+        nomor_rekening = ?,
+        penerima_dana = ?,
+        nomor_referensi_transfer = ?,
+        tanggal_pencairan = ?,
+        catatan_pencairan = ?
+    WHERE id = ?
+  `).run(
+    metode_pencairan,
+    bank_tujuan || null,
+    nomor_rekening || null,
+    penerima_dana || proposal.pemohon_nama,
+    nomor_referensi_transfer || null,
+    tglCair,
+    catatan_pencairan || null,
+    proposal_id
+  );
+
+  // 2. Realisasi Kas: Pindahkan pagu dari tercadangkan ke total_terserap
+  db.prepare(`
+    UPDATE pos_anggaran
+    SET pagu_tercadangkan = MAX(0, pagu_tercadangkan - ?),
+        total_terserap = total_terserap + ?
+    WHERE id = ?
+  `).run(danaCair, danaCair, proposal.pos_anggaran_id);
+
+  // 3. Catat di Audit Trail
+  const detailMetode = metode_pencairan === 'TRANSFER_BANK'
+    ? `Transfer Bank ${bank_tujuan || ''} (No. Rek: ${nomor_rekening || '-'}, Ref: ${nomor_referensi_transfer || '-'})`
+    : `Kas Tunai Langsung (Serah Terima Fisik)`;
+
+  db.prepare(`
+    INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
+    VALUES (?, ?, ?)
+  `).run(
+    proposal_id,
+    user_id,
+    `KAS DICAIRKAN: ${bendaharaName} mencairkan dana sebesar Rp ${danaCair.toLocaleString('id-ID')} kepada ${penerima_dana || proposal.pemohon_nama} via ${detailMetode}. Sisa anggaran pos resmi terserap.`
+  );
+
+  return getPengajuanById(proposal_id);
+}
+
+// FASE 4: Ambil Data Proposal Berdasarkan Token QR Code untuk Verifikasi Publik
+function getPengajuanByQrToken(token) {
+  const proposal = db.prepare(`
+    SELECT p.*, 
+           u.nama_lengkap AS pemohon_nama, 
+           u.nip AS pemohon_nip,
+           u.unit_bagian AS pemohon_unit,
+           pos.nama_pos,
+           pos.tahun_ajaran
+    FROM pengajuan_kegiatan p
+    JOIN users u ON p.user_id = u.id
+    JOIN pos_anggaran pos ON p.pos_anggaran_id = pos.id
+    WHERE p.kode_verifikasi_qr = ?
+  `).get(token);
+
+  if (!proposal) return null;
+
+  proposal.items = db.prepare(`
+    SELECT * FROM rincian_rab_item
+    WHERE pengajuan_id = ?
+    ORDER BY id ASC
+  `).all(proposal.id);
+
+  proposal.audit_logs = db.prepare(`
+    SELECT a.*, u.nama_lengkap AS user_nama, u.role AS user_role
+    FROM audit_log_koreksi a
+    LEFT JOIN users u ON a.user_id = u.id
+    WHERE a.pengajuan_id = ?
+    ORDER BY a.id ASC
+  `).all(proposal.id);
+
+  return proposal;
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -587,6 +712,8 @@ module.exports = {
   getPengajuanById,
   reviewProposalByBendahara,
   decisionProposalByKepsek,
+  disburseProposal,
+  getPengajuanByQrToken,
   getAuditLogs
 };
 

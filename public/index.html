@@ -381,6 +381,9 @@
           </div>
         </div>
 
+        <!-- Banner Info Realisasi Pencairan Kas (Fase 4) -->
+        <div id="detailPencairanInfoBanner" style="display: none; margin-bottom: 14px;"></div>
+
         <!-- Tabel Rincian Belanja -->
         <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; color: var(--text-main);">Rincian Item Belanja RAB</h4>
         <div style="overflow-x: auto;">
@@ -518,6 +521,107 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal FASE 4: Pencairan Kas oleh Bendahara -->
+  <div class="modal-overlay" id="modalCairkanDana">
+    <div class="modal-box" style="max-width: 640px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" style="color: var(--emerald);">Realisasi Pencairan Kas</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);" id="cairkanNomorSurat">Nomor Surat</div>
+        </div>
+        <button class="btn btn-secondary btn-icon-only btn-sm" onclick="closeCairkanModal()">✕</button>
+      </div>
+      <form id="formPencairanKas">
+        <input type="hidden" id="cairkanProposalId">
+        <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+          <!-- Ringkasan Kegiatan & Nominal Dana -->
+          <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+            <div style="font-size: 1.05rem; font-weight: 800; color: var(--text-main);" id="cairkanNamaKegiatan">Nama Kegiatan</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin: 3px 0 10px;" id="cairkanSubHeader">Pemohon • Pos Anggaran</div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 12px 16px;">
+              <span style="font-size: 0.85rem; color: #065f46; font-weight: 700;">Nominal Kas yang Dicairkan:</span>
+              <span style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #047857;" id="cairkanTotalDanaDisplay">Rp 0</span>
+            </div>
+          </div>
+
+          <!-- Pilihan Metode Pencairan -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">Pilih Metode Realisasi Pencairan</label>
+            <div class="payment-method-selector">
+              <label class="method-option active" id="labelMethodTunai">
+                <input type="radio" name="metode_pencairan" value="TUNAI" checked onchange="handlePaymentMethodChange()">
+                <div class="method-content">
+                  <div class="method-title">💵 Kas Tunai Langsung</div>
+                  <div class="method-desc">Serah terima tunai fisik ke pemohon kegiatan</div>
+                </div>
+              </label>
+
+              <label class="method-option" id="labelMethodTransfer">
+                <input type="radio" name="metode_pencairan" value="TRANSFER_BANK" onchange="handlePaymentMethodChange()">
+                <div class="method-content">
+                  <div class="method-title">🏦 Transfer Bank</div>
+                  <div class="method-desc">Kirim via BPD Bali, BRI, Mandiri, BCA, dll.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Bagian Form Khusus Transfer Bank (Kondisional) -->
+          <div id="sectionTransferBank" style="display: none; background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+            <div style="font-weight: 700; font-size: 0.85rem; color: var(--primary); margin-bottom: 10px;">
+              Informasi Rekening Bank Tujuan:
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Bank Tujuan</label>
+                <select class="form-input" id="cairkanBankTujuan">
+                  <option value="Bank BPD Bali">Bank BPD Bali</option>
+                  <option value="Bank BRI">Bank BRI</option>
+                  <option value="Bank Mandiri">Bank Mandiri</option>
+                  <option value="Bank BNI">Bank BNI</option>
+                  <option value="Bank BCA">Bank BCA</option>
+                  <option value="Bank Lainnya">Bank Lainnya</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nomor Rekening</label>
+                <input type="text" class="form-input" id="cairkanNomorRekening" placeholder="Cth: 010.02.02.12345-6">
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Nomor Referensi Transfer / Struk</label>
+              <input type="text" class="form-input" id="cairkanNomorRef" placeholder="Cth: TRX-20261029-9921">
+            </div>
+          </div>
+
+          <!-- Penerima Kas & Tanggal -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Nama Penerima Kas</label>
+              <input type="text" class="form-input" id="cairkanPenerimaDana" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tanggal Pencairan Kas</label>
+              <input type="date" class="form-input" id="cairkanTanggal" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Catatan Serah Terima / Keterangan Pembukuan</label>
+            <textarea class="form-textarea" id="cairkanCatatan" rows="2" placeholder="Cth: Kas diserahkan tunai di ruang TU untuk pembelanjaan spanduk dan konsumsi LDKS..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeCairkanModal()">Batal</button>
+          <button type="submit" class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #059669, #10b981);">
+            💵 Konfirmasi & Bukukan Realisasi Kas
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

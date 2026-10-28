@@ -1342,3 +1342,89 @@ body {
   font-weight: 800;
   color: var(--primary);
 }
+
+/* ==========================================================================
+   FASE 4: MODUL PENCAIRAN KAS & METODE REALISASI
+   ========================================================================== */
+
+.payment-method-selector {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+@media (min-width: 500px) {
+  .payment-method-selector {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.method-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1.5px solid var(--border-card);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.method-option:hover {
+  border-color: var(--primary);
+  background: #f8fafc;
+}
+
+.method-option input[type="radio"] {
+  margin-top: 3px;
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+}
+
+.method-option.active,
+.method-option:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.method-title {
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: var(--text-main);
+}
+
+.method-desc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.status-pill.DICAIRKAN {
+  background: var(--emerald-bg);
+  color: var(--emerald);
+  border: 1px solid var(--emerald-border);
+}
+
+.btn-print-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.btn-print-action:hover {
+  background: var(--primary);
+  color: #ffffff;
+}
