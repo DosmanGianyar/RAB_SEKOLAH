@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>E-RAB Sekolah - Sistem Anggaran & Pencairan Dana</title>
+  <meta name="description" content="Sistem Informasi Pengajuan Anggaran, Otorisasi Bertingkat, Pencairan Dana, dan LPJ Internal Berbasis Web Praktis">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Ambient Glow Background -->
+  <div class="ambient-glow"></div>
+
+  <!-- Sticky Mobile-First Header -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <!-- Brand Logo -->
+      <a href="/" class="brand-badge" id="brandLogo">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">E-RAB SEKOLAH</div>
+          <div class="brand-subtitle">Sistem Anggaran & Pencairan</div>
+        </div>
+      </a>
+
+      <!-- Quick Role Switcher Pill (Simulasi Multi-Peran) -->
+      <div class="role-switcher-pill" id="btnRoleSwitcher" title="Klik untuk ganti peran (Guru, Bendahara, Kepsek)">
+        <div class="user-avatar" id="userAvatarInitial">G</div>
+        <div class="user-info-text">
+          <div class="user-name" id="userNameDisplay">Memuat...</div>
+          <div class="user-role-badge" id="userRoleDisplay">GURU</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--text-muted); margin-left: 2px;">
+          <path d="M6 9l6 6 6-6"></path>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container" style="margin-top: 10px;">
+
+    <!-- Phase 1 Notification Card -->
+    <div class="phase-banner">
+      <div>
+        <div class="phase-pill">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="10"></circle>
+          </svg>
+          FASE 1: Pondasi Sistem & Master Pagu Anggaran
+        </div>
+        <h1 class="phase-title">Transparansi Plafon Anggaran Sekolah</h1>
+        <p class="phase-desc">Mekanisme lampu lalu lintas (Traffic Light) memastikan serapan dana terkendali secara real-time dan bebas pembengkakan.</p>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btnAddPos">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14"></path>
+        </svg>
+        Tambah Pos Anggaran
+      </button>
+    </div>
+
+    <!-- 4 Key Metrics Overview -->
+    <section class="metrics-grid">
+      <!-- Total Plafon -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">Total Plafon Pagu</span>
+          <div class="metric-icon-wrap indigo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="statTotalPagu">Rp 0</div>
+        <div class="metric-sub">Tahun Ajaran 2026/2027</div>
+      </div>
+
+      <!-- Realisasi Kas -->
+      <div class="metric-card amber">
+        <div class="metric-header">
+          <span class="metric-label">Dana Dicairkan</span>
+          <div class="metric-icon-wrap amber">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="statTerserap">Rp 0</div>
+        <div class="metric-sub">Total belanja terserap</div>
+      </div>
+
+      <!-- Pagu Tercadangkan (Pending) -->
+      <div class="metric-card cyan">
+        <div class="metric-header">
+          <span class="metric-label">Tercadangkan (Pending)</span>
+          <div class="metric-icon-wrap cyan">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="statTercadangkan">Rp 0</div>
+        <div class="metric-sub">Dalam review bendahara</div>
+      </div>
+
+      <!-- Sisa Kas Aktif -->
+      <div class="metric-card emerald">
+        <div class="metric-header">
+          <span class="metric-label">Sisa Pagu Tersedia</span>
+          <div class="metric-icon-wrap emerald">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="statSisaAktif" style="color: var(--emerald);">Rp 0</div>
+        <div class="metric-sub">Siap diajukan guru</div>
+      </div>
+    </section>
+
+    <!-- Pos Anggaran List Section -->
+    <section>
+      <div class="section-header">
+        <h2 class="section-title">
+          Daftar Pos Anggaran Sekolah
+          <span class="badge-counter" id="posCountBadge">0 Pos</span>
+        </h2>
+        <div style="font-size: 0.78rem; color: var(--text-muted); display: none;" class="desktop-hint">
+          Sistem otomatis mengunci pengajuan jika kuota pos berwarna merah
+        </div>
+      </div>
+
+      <!-- Cards Container (Mobile-First Vertical Cards) -->
+      <div class="budget-cards-list" id="budgetCardsList">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Mobile Bottom Navigation Bar (Teacher Friendly) -->
+  <nav class="mobile-nav-bar">
+    <a href="#" class="nav-item active" id="navHome">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>Pagu Anggaran</span>
+    </a>
+    <a href="#" class="nav-item" id="navAjukan" onclick="alert('Fitur Pengajuan RAB Dinamis dijadwalkan pada FASE 2. Mari selesaikan Fase 1!')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      <span>Ajukan RAB</span>
+    </a>
+    <a href="#" class="nav-item" id="navRiwayat" onclick="alert('Riwayat Proposal dijadwalkan pada FASE 2 & 3!')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+      </svg>
+      <span>Proposal</span>
+    </a>
+    <a href="#" class="nav-item" id="navAkun" onclick="openRoleModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+      <span>Ganti Akun</span>
+    </a>
+  </nav>
+
+  <!-- Modal: Role Switcher (Simulasi Guru, Bendahara, Kepsek) -->
+  <div class="modal-overlay" id="modalRole">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Pilih Akun Pengguna</div>
+        <button class="btn btn-secondary btn-icon-only btn-sm" id="btnCloseRoleModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+          Pilih akun untuk menguji sistem dari sudut pandang Guru Pemohon, Staf Bendahara Keuangan, atau Kepala Sekolah:
+        </p>
+        <div id="roleOptionsList">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit Pos Anggaran -->
+  <div class="modal-overlay" id="modalPos">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="modalPosTitle">Tambah Pos Anggaran</div>
+        <button class="btn btn-secondary btn-icon-only btn-sm" id="btnClosePosModal">✕</button>
+      </div>
+      <form id="formPosAnggaran">
+        <div class="modal-body">
+          <input type="hidden" id="posIdInput">
+
+          <div class="form-group">
+            <label class="form-label">Nama Pos Anggaran</label>
+            <input type="text" class="form-input" id="inputNamaPos" placeholder="Cth: Kegiatan Kesiswaan & OSIS" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tahun Ajaran</label>
+            <input type="text" class="form-input" id="inputTahunAjaran" value="2026/2027" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pagu Plafon Awal (Rp)</label>
+            <input type="number" class="form-input" id="inputPaguAwal" placeholder="25000000" min="0" step="500000" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Keterangan / Deskripsi Pos</label>
+            <textarea class="form-textarea" id="inputKeterangan" rows="2" placeholder="Tujuan atau peruntukan belanja pos ini..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closePosModal()">Batal</button>
+          <button type="submit" class="btn btn-primary btn-sm">Simpan Pos Anggaran</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -44,6 +44,9 @@ Untuk menjamin kemudahan pembuatan, biaya operasional murah, dan pemeliharaan ja
 1. **Generator Lembar Pengesahan PDF:** Menggunakan library `pdfkit` atau `jspdf` (menghasilkan lembar disposisi rapi siap cetak).
 2. **QR Code Verifikasi Dokumen:** Menggunakan library `qrcode` (membuat barcode verifikasi keabsahan dokumen via kamera HP).
 3. **Penyimpanan Berkas Nota LPJ:** Disimpan di direktori lokal server `/uploads/nota/` yang terindeks rapi per nomor pengajuan.
+4. **Desain Mobile-First Khusus Guru (Smartphone-Prioritized):**
+   * **Layar HP:** Input baris belanja menggunakan kartu sentuh vertikal (*Item Cards*), tombol besar ramah jempol, ringkasan pagu menempel di layar (*sticky summary*), serta tombol kamera instan untuk foto nota LPJ.
+   * **Layar Laptop/PC:** Tampilan otomatis bertransformasi secara mulus (*fluid responsive*) menjadi tabel spreadsheet luas berdampingan.
 
 ---
 

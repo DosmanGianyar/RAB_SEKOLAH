@@ -1,0 +1,15 @@
+{
+  "name": "rab-sekolah",
+  "version": "1.0.0",
+  "description": "Sistem Informasi Pengajuan Anggaran, Otorisasi Bertingkat, Pencairan Dana, dan LPJ Internal Berbasis Web Praktis",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^5.3.0",
+    "multer": "^2.5.0",
+    "qrcode": "^1.5.4"
+  }
+}
