@@ -223,6 +223,176 @@ function getSystemSummary() {
   };
 }
 
+function generateNomorSurat() {
+  const currentYear = new Date().getFullYear();
+  const countRow = db.prepare('SELECT COUNT(*) as count FROM pengajuan_kegiatan').get();
+  const nextNum = (countRow.count + 1).toString().padStart(3, '0');
+  return `RAB/${currentYear}/${nextNum}`;
+}
+
+function createPengajuan({ user_id, pos_anggaran_id, nama_kegiatan, latar_belakang, tanggal_mulai, tanggal_selesai, items }) {
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    throw new Error('Minimal harus ada 1 item belanja dalam rincian RAB.');
+  }
+
+  // 1. Verifikasi Pos Anggaran & Sisa Pagu Aktif (Server-Side Validation)
+  const pos = getPosAnggaranById(pos_anggaran_id);
+  if (!pos) {
+    throw new Error('Pos anggaran tidak ditemukan.');
+  }
+
+  // Hitung total dana diajukan dari baris item
+  let totalAjuan = 0;
+  const processedItems = items.map(item => {
+    const vol = Number(item.volume) || 0;
+    const harga = Number(item.harga_satuan) || 0;
+    const subtotal = vol * harga;
+    totalAjuan += subtotal;
+    return {
+      kategori_belanja: item.kategori || 'Perlengkapan',
+      deskripsi_item: item.deskripsi || '',
+      volume_ajuan: vol,
+      satuan: item.satuan || 'Unit',
+      harga_satuan_ajuan: harga,
+      subtotal_ajuan: subtotal
+    };
+  });
+
+  if (totalAjuan <= 0) {
+    throw new Error('Total dana belanja harus lebih besar dari Rp 0.');
+  }
+
+  if (totalAjuan > pos.sisa_pagu) {
+    throw new Error(`Total usulan (Rp ${totalAjuan.toLocaleString('id-ID')}) melebihi sisa pagu aktif yang tersedia (Rp ${pos.sisa_pagu.toLocaleString('id-ID')}).`);
+  }
+
+  const nomorSurat = generateNomorSurat();
+  const kodeVerifikasi = 'VERIF-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+  // 2. Simpan Header Pengajuan
+  const insertPengajuan = db.prepare(`
+    INSERT INTO pengajuan_kegiatan (
+      user_id, pos_anggaran_id, nomor_surat_ajuan, nama_kegiatan, latar_belakang,
+      tanggal_mulai, tanggal_selesai, total_dana_diajukan, total_dana_disetujui,
+      status, kode_verifikasi_qr
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MENUNGGU_REVIEW', ?)
+  `);
+
+  const resultPengajuan = insertPengajuan.run(
+    user_id,
+    pos_anggaran_id,
+    nomorSurat,
+    nama_kegiatan,
+    latar_belakang || '',
+    tanggal_mulai || '',
+    tanggal_selesai || '',
+    totalAjuan,
+    totalAjuan, // Awalnya sama dengan ajuan sebelum koreksi bendahara
+    kodeVerifikasi
+  );
+
+  const pengajuanId = resultPengajuan.lastInsertRowid;
+
+  // 3. Simpan Baris Rincian Item Belanja
+  const insertItem = db.prepare(`
+    INSERT INTO rincian_rab_item (
+      pengajuan_id, kategori_belanja, deskripsi_item, volume_ajuan, satuan,
+      harga_satuan_ajuan, subtotal_ajuan, volume_disetujui, harga_satuan_disetujui,
+      subtotal_disetujui, status_item
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'MENUNGGU')
+  `);
+
+  for (const item of processedItems) {
+    insertItem.run(
+      pengajuanId,
+      item.kategori_belanja,
+      item.deskripsi_item,
+      item.volume_ajuan,
+      item.satuan,
+      item.harga_satuan_ajuan,
+      item.subtotal_ajuan,
+      item.volume_ajuan, // Disetujui awal sama sebelum koreksi
+      item.harga_satuan_ajuan,
+      item.subtotal_ajuan
+    );
+  }
+
+  // 4. Kunci / Cadangkan Pagu (Reserved Budget) agar sisa langsung terpotong secara aman
+  db.prepare(`
+    UPDATE pos_anggaran
+    SET pagu_tercadangkan = pagu_tercadangkan + ?
+    WHERE id = ?
+  `).run(totalAjuan, pos_anggaran_id);
+
+  // 5. Audit Log
+  const user = getUserById(user_id);
+  db.prepare(`
+    INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
+    VALUES (?, ?, ?)
+  `).run(
+    pengajuanId,
+    user_id,
+    `Proposal "${nama_kegiatan}" diajukan oleh ${user ? user.nama_lengkap : 'Guru'} sebesar Rp ${totalAjuan.toLocaleString('id-ID')}`
+  );
+
+  return getPengajuanById(pengajuanId);
+}
+
+function getPengajuanList(userId = null, role = null) {
+  let sql = `
+    SELECT p.*, 
+           u.nama_lengkap AS pemohon_nama, 
+           u.unit_bagian AS pemohon_unit,
+           u.role AS pemohon_role,
+           pos.nama_pos,
+           pos.tahun_ajaran
+    FROM pengajuan_kegiatan p
+    JOIN users u ON p.user_id = u.id
+    JOIN pos_anggaran pos ON p.pos_anggaran_id = pos.id
+  `;
+
+  const params = [];
+  // Jika Guru, hanya tampilkan usulannya sendiri
+  if (role === 'GURU' && userId) {
+    sql += ` WHERE p.user_id = ? `;
+    params.push(userId);
+  }
+
+  sql += ` ORDER BY p.id DESC `;
+  return db.prepare(sql).all(...params);
+}
+
+function getPengajuanById(id) {
+  const proposal = db.prepare(`
+    SELECT p.*, 
+           u.nama_lengkap AS pemohon_nama, 
+           u.nip AS pemohon_nip,
+           u.unit_bagian AS pemohon_unit,
+           u.role AS pemohon_role,
+           pos.nama_pos,
+           pos.tahun_ajaran,
+           pos.pagu_awal,
+           (pos.pagu_awal - pos.total_terserap - pos.pagu_tercadangkan) AS sisa_pagu_pos
+    FROM pengajuan_kegiatan p
+    JOIN users u ON p.user_id = u.id
+    JOIN pos_anggaran pos ON p.pos_anggaran_id = pos.id
+    WHERE p.id = ?
+  `).get(id);
+
+  if (!proposal) return null;
+
+  const items = db.prepare(`
+    SELECT * FROM rincian_rab_item
+    WHERE pengajuan_id = ?
+    ORDER BY id ASC
+  `).all(id);
+
+  return {
+    ...proposal,
+    items
+  };
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -232,5 +402,8 @@ module.exports = {
   updatePosAnggaran,
   getAllUsers,
   getUserById,
-  getSystemSummary
+  getSystemSummary,
+  createPengajuan,
+  getPengajuanList,
+  getPengajuanById
 };

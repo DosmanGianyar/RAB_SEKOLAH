@@ -767,3 +767,401 @@ body {
 .role-badge-tag.BENDAHARA { background: var(--amber-bg); color: var(--amber); }
 .role-badge-tag.KEPALA_SEKOLAH { background: var(--primary-light); color: #818cf8; }
 .role-badge-tag.ADMIN { background: var(--cyan-bg); color: var(--cyan); }
+
+/* ==========================================================================
+   FASE 2: DYNAMIC PROPOSAL FORM & MOBILE-FIRST ITEM CARDS
+   ========================================================================== */
+
+/* App View Containers */
+.app-view {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.app-view.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Desktop Navigation Header Tabs */
+.desktop-nav-tabs {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 900px) {
+  .desktop-nav-tabs {
+    display: flex;
+  }
+}
+
+.desktop-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.desktop-tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.desktop-tab-btn.active {
+  color: #fff;
+  background: var(--primary);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+/* Form Card Container */
+.form-card {
+  background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 768px) {
+  .form-card {
+    padding: 28px;
+  }
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Dynamic Line Items Section */
+.dynamic-items-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24px 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dynamic-items-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mobile-First Item Card */
+.rab-items-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.item-row-card {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  position: relative;
+  transition: var(--transition);
+}
+
+.item-row-card:hover {
+  border-color: var(--border-card);
+}
+
+.item-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.item-index-badge {
+  background: var(--primary-light);
+  color: #a5b4fc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.btn-remove-row {
+  background: transparent;
+  border: none;
+  color: var(--rose);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.btn-remove-row:hover {
+  background: var(--rose-bg);
+}
+
+/* Item Inputs Grid inside Card */
+.item-card-body-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .item-card-body-grid {
+    grid-template-columns: 2fr 3fr;
+  }
+}
+
+.item-card-calc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.subtotal-display-box {
+  background: rgba(17, 24, 39, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: right;
+}
+
+.subtotal-label {
+  font-size: 0.65rem;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.subtotal-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* Live Budget Validation Alert Bar */
+.live-budget-alert {
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin: 20px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  transition: var(--transition);
+}
+
+.live-budget-alert.safe {
+  background: var(--emerald-bg);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #d1fae5;
+}
+
+.live-budget-alert.overbudget {
+  background: var(--rose-bg);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #ffe4e6;
+}
+
+.live-budget-alert-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.live-budget-alert.safe .live-budget-alert-icon { color: var(--emerald); }
+.live-budget-alert.overbudget .live-budget-alert-icon { color: var(--rose); }
+
+/* Summary & Submit Action Box */
+.proposal-action-box {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (min-width: 768px) {
+  .proposal-action-box {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.grand-total-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.grand-total-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+/* Proposal History Cards */
+.proposals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.proposal-item-card {
+  background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.proposal-item-card:hover {
+  border-color: var(--border-card);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.proposal-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.proposal-number-tag {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #818cf8;
+  letter-spacing: 0.04em;
+}
+
+.proposal-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.proposal-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 10px 0;
+}
+
+.proposal-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.proposal-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.proposal-cost-val {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* Status Badges */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-pill.MENUNGGU_REVIEW {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-pill.DISETUJUI {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--emerald);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-pill.PERLU_REVISI {
+  background: rgba(244, 63, 94, 0.15);
+  color: var(--rose);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.status-pill.DICAIRKAN {
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--cyan);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.status-pill.SELESAI {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+

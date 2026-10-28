@@ -16,7 +16,7 @@
   <header class="app-header">
     <div class="container header-inner">
       <!-- Brand Logo -->
-      <a href="/" class="brand-badge" id="brandLogo">
+      <a href="javascript:void(0)" class="brand-badge" id="brandLogo" onclick="switchView('dashboard')">
         <div class="brand-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
@@ -27,6 +27,33 @@
           <div class="brand-subtitle">Sistem Anggaran & Pencairan</div>
         </div>
       </a>
+
+      <!-- Desktop Navigation Tabs (Visible on Laptop & PC) -->
+      <nav class="desktop-nav-tabs">
+        <button class="desktop-tab-btn active" id="tabDeskDashboard" onclick="switchView('dashboard')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Pagu Anggaran
+        </button>
+        <button class="desktop-tab-btn" id="tabDeskAjukan" onclick="switchView('ajukan')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Ajukan RAB Baru
+        </button>
+        <button class="desktop-tab-btn" id="tabDeskRiwayat" onclick="switchView('riwayat')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          Riwayat Proposal
+        </button>
+      </nav>
 
       <!-- Quick Role Switcher Pill (Simulasi Multi-Peran) -->
       <div class="role-switcher-pill" id="btnRoleSwitcher" title="Klik untuk ganti peran (Guru, Bendahara, Kepsek)">
@@ -43,128 +70,263 @@
   </header>
 
   <!-- Main Content Container -->
-  <main class="container" style="margin-top: 10px;">
+  <main class="container" style="margin-top: 14px;">
 
-    <!-- Phase 1 Notification Card -->
-    <div class="phase-banner">
-      <div>
-        <div class="phase-pill">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="10"></circle>
-          </svg>
-          FASE 1: Pondasi Sistem & Master Pagu Anggaran
+    <!-- ========================================== -->
+    <!-- VIEW 1: DASHBOARD & PLAFON (FASE 1)       -->
+    <!-- ========================================== -->
+    <div class="app-view active" id="viewDashboard">
+      <!-- Phase Banner -->
+      <div class="phase-banner">
+        <div>
+          <div class="phase-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="10"></circle>
+            </svg>
+            Sistem Anggaran Sekolah Terintegrasi
+          </div>
+          <h1 class="phase-title">Plafon Anggaran & Kontrol Serapan</h1>
+          <p class="phase-desc">Mekanisme lampu lalu lintas (Traffic Light) mengunci pengajuan saat pagu menipis untuk mencegah kebocoran anggaran.</p>
         </div>
-        <h1 class="phase-title">Transparansi Plafon Anggaran Sekolah</h1>
-        <p class="phase-desc">Mekanisme lampu lalu lintas (Traffic Light) memastikan serapan dana terkendali secara real-time dan bebas pembengkakan.</p>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-primary btn-sm" onclick="switchView('ajukan')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            Ajukan RAB Baru
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btnAddPos">
+            + Tambah Pos
+          </button>
+        </div>
       </div>
-      <button class="btn btn-primary btn-sm" id="btnAddPos">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M12 5v14M5 12h14"></path>
-        </svg>
-        Tambah Pos Anggaran
-      </button>
+
+      <!-- 4 Key Metrics Overview -->
+      <section class="metrics-grid">
+        <!-- Total Plafon -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-label">Total Plafon Pagu</span>
+            <div class="metric-icon-wrap indigo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <line x1="2" y1="10" x2="22" y2="10"></line>
+              </svg>
+            </div>
+          </div>
+          <div class="metric-value" id="statTotalPagu">Rp 0</div>
+          <div class="metric-sub">Tahun Ajaran 2026/2027</div>
+        </div>
+
+        <!-- Realisasi Kas -->
+        <div class="metric-card amber">
+          <div class="metric-header">
+            <span class="metric-label">Dana Dicairkan</span>
+            <div class="metric-icon-wrap amber">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="metric-value" id="statTerserap">Rp 0</div>
+          <div class="metric-sub">Total belanja terserap</div>
+        </div>
+
+        <!-- Pagu Tercadangkan (Pending) -->
+        <div class="metric-card cyan">
+          <div class="metric-header">
+            <span class="metric-label">Tercadangkan (Pending)</span>
+            <div class="metric-icon-wrap cyan">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="metric-value" id="statTercadangkan">Rp 0</div>
+          <div class="metric-sub">Dalam review bendahara</div>
+        </div>
+
+        <!-- Sisa Kas Aktif -->
+        <div class="metric-card emerald">
+          <div class="metric-header">
+            <span class="metric-label">Sisa Pagu Tersedia</span>
+            <div class="metric-icon-wrap emerald">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="metric-value" id="statSisaAktif" style="color: var(--emerald);">Rp 0</div>
+          <div class="metric-sub">Siap diajukan guru</div>
+        </div>
+      </section>
+
+      <!-- Pos Anggaran List Section -->
+      <section>
+        <div class="section-header">
+          <h2 class="section-title">
+            Daftar Pos Anggaran Sekolah
+            <span class="badge-counter" id="posCountBadge">0 Pos</span>
+          </h2>
+        </div>
+        <div class="budget-cards-list" id="budgetCardsList">
+          <!-- Injected via JavaScript -->
+        </div>
+      </section>
     </div>
 
-    <!-- 4 Key Metrics Overview -->
-    <section class="metrics-grid">
-      <!-- Total Plafon -->
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Total Plafon Pagu</span>
-          <div class="metric-icon-wrap indigo">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-              <line x1="2" y1="10" x2="22" y2="10"></line>
-            </svg>
+    <!-- ========================================== -->
+    <!-- VIEW 2: FORM AJUKAN RAB BARU (FASE 2)     -->
+    <!-- ========================================== -->
+    <div class="app-view" id="viewAjukan">
+      <div class="form-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+          <div>
+            <div class="phase-pill" style="margin-bottom: 6px;">FASE 2: Pengajuan Guru</div>
+            <h2 class="phase-title" style="font-size: 1.35rem;">Formulir Usulan Kegiatan & RAB</h2>
+            <p class="phase-desc">Isi rincian kegiatan dan susun tabel rincian belanja barang/jasa di bawah ini.</p>
           </div>
+          <button class="btn btn-secondary btn-sm" onclick="switchView('dashboard')">
+            ← Kembali
+          </button>
         </div>
-        <div class="metric-value" id="statTotalPagu">Rp 0</div>
-        <div class="metric-sub">Tahun Ajaran 2026/2027</div>
-      </div>
 
-      <!-- Realisasi Kas -->
-      <div class="metric-card amber">
-        <div class="metric-header">
-          <span class="metric-label">Dana Dicairkan</span>
-          <div class="metric-icon-wrap amber">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-              <polyline points="17 6 23 6 23 12"></polyline>
-            </svg>
+        <form id="formPengajuanRab">
+          <!-- Form Header: Informasi Kegiatan -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Pilih Pos Anggaran yang Dibebani *</label>
+              <select class="form-select" id="selectPosAnggaran" required onchange="handlePosSelected()">
+                <option value="">-- Pilih Pos Anggaran --</option>
+                <!-- Populated via JS -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Nama Kegiatan *</label>
+              <input type="text" class="form-input" id="inputNamaKegiatan" placeholder="Cth: Pelatihan Dasar Kepemimpinan Siswa (LDKS)" required>
+            </div>
           </div>
-        </div>
-        <div class="metric-value" id="statTerserap">Rp 0</div>
-        <div class="metric-sub">Total belanja terserap</div>
-      </div>
 
-      <!-- Pagu Tercadangkan (Pending) -->
-      <div class="metric-card cyan">
-        <div class="metric-header">
-          <span class="metric-label">Tercadangkan (Pending)</span>
-          <div class="metric-icon-wrap cyan">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <div class="form-group">
+            <label class="form-label">Latar Belakang / Deskripsi Singkat Kegiatan</label>
+            <textarea class="form-textarea" id="inputLatarBelakang" rows="2" placeholder="Jelaskan secara ringkas maksud dan tujuan kegiatan ini..."></textarea>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Tanggal Mulai Kegiatan *</label>
+              <input type="date" class="form-input" id="inputTglMulai" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tanggal Selesai Kegiatan *</label>
+              <input type="date" class="form-input" id="inputTglSelesai" required>
+            </div>
+          </div>
+
+          <!-- Dynamic Line Items Section (Mobile-First Cards / Spreadsheet) -->
+          <div class="dynamic-items-header">
+            <div>
+              <div class="dynamic-items-title">
+                Rincian Baris Belanja (RAB Dinamis)
+                <span class="badge-counter" id="itemCountBadge">1 Item</span>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                Tambahkan baris belanja barang, konsumsi, transportasi, atau honorarium.
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addItemRow()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              + Tambah Baris
+            </button>
+          </div>
+
+          <!-- Container Kartu Baris Belanja Dinamis -->
+          <div class="rab-items-stack" id="rabItemsContainer">
+            <!-- Dynamic rows injected via JS -->
+          </div>
+
+          <!-- Live Budget Validation Alert (Hijau jika aman, Merah jika overbudget) -->
+          <div id="liveBudgetAlertBox" class="live-budget-alert safe" style="display: none;">
+            <svg class="live-budget-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
+            <div id="liveBudgetAlertText">
+              Pilih pos anggaran terlebih dahulu untuk memantau batas plafon belanja.
+            </div>
           </div>
-        </div>
-        <div class="metric-value" id="statTercadangkan">Rp 0</div>
-        <div class="metric-sub">Dalam review bendahara</div>
-      </div>
 
-      <!-- Sisa Kas Aktif -->
-      <div class="metric-card emerald">
-        <div class="metric-header">
-          <span class="metric-label">Sisa Pagu Tersedia</span>
-          <div class="metric-icon-wrap emerald">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
+          <!-- Action Box: Grand Total & Submit -->
+          <div class="proposal-action-box">
+            <div>
+              <div class="grand-total-label">Total Estimasi Anggaran Diajukan:</div>
+              <div class="grand-total-value" id="displayGrandTotal">Rp 0</div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button type="button" class="btn btn-secondary" onclick="switchView('dashboard')">Batal</button>
+              <button type="submit" class="btn btn-primary" id="btnSubmitProposal">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                </svg>
+                Kirim Usulan RAB
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="metric-value" id="statSisaAktif" style="color: var(--emerald);">Rp 0</div>
-        <div class="metric-sub">Siap diajukan guru</div>
+        </form>
       </div>
-    </section>
+    </div>
 
-    <!-- Pos Anggaran List Section -->
-    <section>
+    <!-- ========================================== -->
+    <!-- VIEW 3: RIWAYAT PROPOSAL (FASE 2)          -->
+    <!-- ========================================== -->
+    <div class="app-view" id="viewRiwayat">
       <div class="section-header">
-        <h2 class="section-title">
-          Daftar Pos Anggaran Sekolah
-          <span class="badge-counter" id="posCountBadge">0 Pos</span>
-        </h2>
-        <div style="font-size: 0.78rem; color: var(--text-muted); display: none;" class="desktop-hint">
-          Sistem otomatis mengunci pengajuan jika kuota pos berwarna merah
+        <div>
+          <h2 class="section-title">
+            Daftar Usulan Kegiatan & RAB
+            <span class="badge-counter" id="proposalCountBadge">0 Proposal</span>
+          </h2>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+            Pantau status verifikasi bendahara dan persetujuan Kepala Sekolah secara real-time.
+          </div>
         </div>
+        <button class="btn btn-primary btn-sm" onclick="switchView('ajukan')">
+          + Buat Usulan Baru
+        </button>
       </div>
 
-      <!-- Cards Container (Mobile-First Vertical Cards) -->
-      <div class="budget-cards-list" id="budgetCardsList">
-        <!-- Injected via JavaScript -->
+      <div class="proposals-list" id="proposalsListContainer">
+        <!-- Injected via JS -->
       </div>
-    </section>
+    </div>
 
   </main>
 
   <!-- Mobile Bottom Navigation Bar (Teacher Friendly) -->
   <nav class="mobile-nav-bar">
-    <a href="#" class="nav-item active" id="navHome">
+    <a href="javascript:void(0)" class="nav-item active" id="navHome" onclick="switchView('dashboard')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
         <polyline points="9 22 9 12 15 12 15 22"></polyline>
       </svg>
       <span>Pagu Anggaran</span>
     </a>
-    <a href="#" class="nav-item" id="navAjukan" onclick="alert('Fitur Pengajuan RAB Dinamis dijadwalkan pada FASE 2. Mari selesaikan Fase 1!')">
+    <a href="javascript:void(0)" class="nav-item" id="navAjukan" onclick="switchView('ajukan')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="12" y1="5" x2="12" y2="19"></line>
         <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>
       <span>Ajukan RAB</span>
     </a>
-    <a href="#" class="nav-item" id="navRiwayat" onclick="alert('Riwayat Proposal dijadwalkan pada FASE 2 & 3!')">
+    <a href="javascript:void(0)" class="nav-item" id="navRiwayat" onclick="switchView('riwayat')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
         <polyline points="14 2 14 8 20 8"></polyline>
@@ -173,7 +335,7 @@
       </svg>
       <span>Proposal</span>
     </a>
-    <a href="#" class="nav-item" id="navAkun" onclick="openRoleModal()">
+    <a href="javascript:void(0)" class="nav-item" id="navAkun" onclick="openRoleModal()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
         <circle cx="12" cy="7" r="4"></circle>
@@ -182,7 +344,75 @@
     </a>
   </nav>
 
-  <!-- Modal: Role Switcher (Simulasi Guru, Bendahara, Kepsek) -->
+  <!-- Modal: Detail Proposal & Baris Belanja -->
+  <div class="modal-overlay" id="modalDetailProposal">
+    <div class="modal-box" style="max-width: 700px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="detailNomorSurat">RAB/2026/001</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);" id="detailNamaKegiatan">Nama Kegiatan</div>
+        </div>
+        <button class="btn btn-secondary btn-icon-only btn-sm" onclick="closeDetailModal()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+        <!-- Header Info Grid -->
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem;">
+            <div>
+              <span style="color: var(--text-muted);">Pemohon:</span>
+              <div style="font-weight: 700; color: #fff;" id="detailPemohon">-</div>
+            </div>
+            <div>
+              <span style="color: var(--text-muted);">Pos Anggaran:</span>
+              <div style="font-weight: 700; color: #818cf8;" id="detailPosAnggaran">-</div>
+            </div>
+            <div>
+              <span style="color: var(--text-muted);">Status Saat Ini:</span>
+              <div id="detailStatusBadge" style="margin-top: 3px;">-</div>
+            </div>
+            <div>
+              <span style="color: var(--text-muted);">Jadwal Pelaksanaan:</span>
+              <div style="font-weight: 600;" id="detailTanggal">-</div>
+            </div>
+          </div>
+          <div style="margin-top: 10px; font-size: 0.8rem; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
+            <span style="color: var(--text-muted);">Latar Belakang:</span>
+            <div id="detailLatarBelakang" style="color: var(--text-main); margin-top: 2px;">-</div>
+          </div>
+        </div>
+
+        <!-- Tabel Rincian Belanja -->
+        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 10px;">Rincian Item Belanja RAB</h4>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-card); color: var(--text-muted); text-align: left;">
+                <th style="padding: 8px 6px;">#</th>
+                <th style="padding: 8px 6px;">Kategori</th>
+                <th style="padding: 8px 6px;">Deskripsi Item</th>
+                <th style="padding: 8px 6px; text-align: center;">Vol</th>
+                <th style="padding: 8px 6px; text-align: right;">Harga Satuan</th>
+                <th style="padding: 8px 6px; text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody id="detailItemsTableBody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 16px; padding: 12px 14px; background: rgba(0,0,0,0.4); border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 700; font-size: 0.88rem;">Total Usulan RAB:</span>
+          <span style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 800; color: #fff;" id="detailTotalBiaya">Rp 0</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeDetailModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Role Switcher -->
   <div class="modal-overlay" id="modalRole">
     <div class="modal-box">
       <div class="modal-header">

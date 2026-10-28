@@ -1,5 +1,6 @@
 node_modules/
 .DS_Store
 *.log
+rab_sekolah.db*
 uploads/nota/*
 !uploads/nota/.gitkeep

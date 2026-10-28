@@ -9,7 +9,10 @@ const {
   updatePosAnggaran,
   getAllUsers,
   getUserById,
-  getSystemSummary
+  getSystemSummary,
+  createPengajuan,
+  getPengajuanList,
+  getPengajuanById
 } = require('./db');
 
 const app = express();
@@ -101,6 +104,65 @@ app.put('/api/pos-anggaran/:id', (req, res) => {
     res.json({ success: true, data: updated, message: 'Pos anggaran berhasil diperbarui' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --- Pengajuan Kegiatan & RAB Endpoints (FASE 2) ---
+
+// List Pengajuan (Filtered for Guru, Global for Bendahara/Kepsek)
+app.get('/api/pengajuan', (req, res) => {
+  try {
+    const activeUser = getUserById(currentActiveUserId) || getUserById(1);
+    const list = getPengajuanList(activeUser.id, activeUser.role);
+    res.json({ success: true, data: list, userRole: activeUser.role });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Detail Pengajuan beserta item baris belanja
+app.get('/api/pengajuan/:id', (req, res) => {
+  try {
+    const data = getPengajuanById(req.params.id);
+    if (!data) {
+      return res.status(404).json({ success: false, message: 'Proposal tidak ditemukan' });
+    }
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Buat Usulan Proposal Kegiatan & Rincian RAB Baru
+app.post('/api/pengajuan', (req, res) => {
+  try {
+    const { pos_anggaran_id, nama_kegiatan, latar_belakang, tanggal_mulai, tanggal_selesai, items } = req.body;
+    
+    if (!pos_anggaran_id || !nama_kegiatan) {
+      return res.status(400).json({ success: false, message: 'Pos anggaran dan nama kegiatan wajib diisi.' });
+    }
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Harap tambahkan minimal 1 baris item belanja.' });
+    }
+
+    const created = createPengajuan({
+      user_id: currentActiveUserId,
+      pos_anggaran_id: Number(pos_anggaran_id),
+      nama_kegiatan,
+      latar_belakang,
+      tanggal_mulai,
+      tanggal_selesai,
+      items
+    });
+
+    res.status(201).json({
+      success: true,
+      data: created,
+      message: `Proposal "${created.nama_kegiatan}" berhasil diajukan dengan nomor ${created.nomor_surat_ajuan}. Pagu otomatis dicadangkan.`
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 
