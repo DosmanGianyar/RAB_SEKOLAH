@@ -12,62 +12,220 @@
   <!-- Ambient Glow Background -->
   <div class="ambient-glow"></div>
 
-  <!-- Sticky Mobile-First Header -->
-  <header class="app-header">
-    <div class="container header-inner">
-      <!-- Brand Logo -->
-      <a href="javascript:void(0)" class="brand-badge" id="brandLogo" onclick="switchView('dashboard')">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
+  <!-- ===================================================================== -->
+  <!-- LAYAR LOGIN RESMI INSTITUSI SEKOLAH (NON-AUTHENTICATED VIEW)           -->
+  <!-- ===================================================================== -->
+  <div id="appLoginScreen" class="login-view-wrapper" style="display: none;">
+    <div class="login-card-container">
+      
+      <!-- Header Institusi Sekolah -->
+      <div class="login-institution-header">
+        <div class="gov-badge">PEMERINTAH PROVINSI BALI • DINAS PENDIDIKAN KEPEMUDAAN DAN OLAHRAGA</div>
+        <div class="login-logo-wrap">
+          <div class="login-brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
         </div>
-        <div>
-          <div class="brand-title">E-RAB SEKOLAH</div>
-          <div class="brand-subtitle">Sistem Anggaran & Pencairan</div>
-        </div>
-      </a>
-
-      <!-- Desktop Navigation Tabs (Visible on Laptop & PC) -->
-      <nav class="desktop-nav-tabs">
-        <button class="desktop-tab-btn active" id="tabDeskDashboard" onclick="switchView('dashboard')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-          Pagu Anggaran
-        </button>
-        <button class="desktop-tab-btn" id="tabDeskAjukan" onclick="switchView('ajukan')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Ajukan RAB Baru
-        </button>
-        <button class="desktop-tab-btn" id="tabDeskRiwayat" onclick="switchView('riwayat')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-          </svg>
-          Riwayat Proposal
-        </button>
-      </nav>
-
-      <!-- Quick Role Switcher Pill (Simulasi Multi-Peran) -->
-      <div class="role-switcher-pill" id="btnRoleSwitcher" title="Klik untuk ganti peran (Guru, Bendahara, Kepsek)">
-        <div class="user-avatar" id="userAvatarInitial">G</div>
-        <div class="user-info-text">
-          <div class="user-name" id="userNameDisplay">Memuat...</div>
-          <div class="user-role-badge" id="userRoleDisplay">GURU</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--text-muted); margin-left: 2px;">
-          <path d="M6 9l6 6 6-6"></path>
-        </svg>
+        <h1 class="login-school-name">SMA NEGERI 1 GIANYAR</h1>
+        <div class="login-app-title">Sistem E-RAB & Disposisi Anggaran</div>
+        <p class="login-subtext">Masuk menggunakan NIP atau Email Akun Resmi Sekolah Anda untuk mengakses layanan perencanaan dan belanja anggaran.</p>
       </div>
+
+      <!-- Alert Error Box -->
+      <div id="loginAlertBox" class="login-alert-box" style="display: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span id="loginAlertMessage">Pesan kesalahan masuk</span>
+      </div>
+
+      <!-- Form Login Akun Resmi -->
+      <form id="formLogin" class="login-form">
+        <div class="login-field-group">
+          <label for="loginIdentifier" class="login-field-label">
+            <span>NIP atau Alamat Email Resmi</span>
+            <span class="required">*</span>
+          </label>
+          <div class="input-with-icon">
+            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input type="text" id="loginIdentifier" class="login-input" placeholder="Contoh: 198507122010011008 atau agus.osis@sekolah.sch.id" required autocomplete="username">
+          </div>
+        </div>
+
+        <div class="login-field-group">
+          <label for="loginPassword" class="login-field-label">
+            <span>Kata Sandi Akun</span>
+            <span class="required">*</span>
+          </label>
+          <div class="input-with-icon">
+            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input type="password" id="loginPassword" class="login-input" placeholder="Masukkan kata sandi akun" required autocomplete="current-password">
+            <button type="button" class="btn-toggle-password" id="btnTogglePassword" title="Tampilkan/Sembunyikan kata sandi">
+              <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+          <div class="login-field-hint">Kata sandi default bawaan: <code>password123</code></div>
+        </div>
+
+        <button type="submit" class="btn-login-submit" id="btnLoginSubmit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+          <span>Masuk ke Akun Saya</span>
+        </button>
+      </form>
+
+      <!-- Quick Persona Login Section (Untuk Uji Coba Mudah) -->
+      <div class="login-quick-section">
+        <div class="login-divider">
+          <span>ATAU MASUK INSTAN DENGAN AKUN DEMO</span>
+        </div>
+        <div class="demo-accounts-grid">
+          <button type="button" class="demo-acc-btn guru" onclick="quickFillAndLogin('agus.osis@sekolah.sch.id', 'password123')">
+            <div class="demo-avatar">A</div>
+            <div class="demo-info">
+              <div class="demo-name">I Putu Agus Pratama, S.Pd</div>
+              <div class="demo-meta"><span class="badge-tag guru">GURU OSIS</span> • NIP: 198507122010011008</div>
+            </div>
+            <svg class="demo-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+
+          <button type="button" class="demo-acc-btn guru" onclick="quickFillAndLogin('lestari.pramuka@sekolah.sch.id', 'password123')">
+            <div class="demo-avatar">L</div>
+            <div class="demo-info">
+              <div class="demo-name">Ni Made Lestari, S.Pd</div>
+              <div class="demo-meta"><span class="badge-tag guru">GURU PRAMUKA</span> • NIP: 198804252014022003</div>
+            </div>
+            <svg class="demo-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+
+          <button type="button" class="demo-acc-btn bendahara" onclick="quickFillAndLogin('ratna.bendahara@sekolah.sch.id', 'password123')">
+            <div class="demo-avatar">R</div>
+            <div class="demo-info">
+              <div class="demo-name">Ibu Ni Made Ratna Dewi, S.E</div>
+              <div class="demo-meta"><span class="badge-tag bendahara">BENDAHARA SEKOLAH</span> • Subag Keuangan</div>
+            </div>
+            <svg class="demo-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+
+          <button type="button" class="demo-acc-btn kepsek" onclick="quickFillAndLogin('kepsek@sekolah.sch.id', 'password123')">
+            <div class="demo-avatar">W</div>
+            <div class="demo-info">
+              <div class="demo-name">Drs. I Wayan Suweta, M.Pd</div>
+              <div class="demo-meta"><span class="badge-tag kepsek">KEPALA SEKOLAH</span> • Otorisasi Final</div>
+            </div>
+            <svg class="demo-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+
+          <button type="button" class="demo-acc-btn admin" onclick="quickFillAndLogin('admin@sekolah.sch.id', 'password123')">
+            <div class="demo-avatar">A</div>
+            <div class="demo-info">
+              <div class="demo-name">Komang Arya Wardana, S.Kom</div>
+              <div class="demo-meta"><span class="badge-tag admin">ADMINISTRATOR</span> • Pengelola Sistem</div>
+            </div>
+            <svg class="demo-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer Hak Cipta -->
+      <div class="login-footer">
+        <div>Sistem E-RAB Digital SMAN 1 Gianyar • Hak Cipta Terlindungi</div>
+        <div style="font-size: 0.72rem; color: var(--text-light); margin-top: 4px;">Penyimpanan sesi terenkripsi dengan proteksi HTTP-only cookie</div>
+      </div>
+
     </div>
-  </header>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- APP AUTHENTICATED SHELL (HANYA AKTIF JIKA PENGGUNA SUDAH LOGIN)       -->
+  <!-- ===================================================================== -->
+  <div id="appAuthenticatedShell" style="display: none;">
+
+    <!-- Sticky Mobile-First Header -->
+    <header class="app-header">
+      <div class="container header-inner">
+        <!-- Brand Logo -->
+        <a href="javascript:void(0)" class="brand-badge" id="brandLogo" onclick="switchView('dashboard')">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-title">E-RAB SEKOLAH</div>
+            <div class="brand-subtitle">Sistem Anggaran & Pencairan</div>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Tabs (Visible on Laptop & PC) -->
+        <nav class="desktop-nav-tabs">
+          <button class="desktop-tab-btn active" id="tabDeskDashboard" onclick="switchView('dashboard')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Pagu Anggaran
+          </button>
+          <button class="desktop-tab-btn" id="tabDeskAjukan" onclick="switchView('ajukan')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Ajukan RAB Baru
+          </button>
+          <button class="desktop-tab-btn" id="tabDeskRiwayat" onclick="switchView('riwayat')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            Riwayat Proposal
+          </button>
+        </nav>
+
+        <!-- User Profile Pill & Tombol Logout Resmi -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <!-- Quick Role Switcher Pill -->
+          <div class="role-switcher-pill" id="btnRoleSwitcher" title="Klik untuk ganti peran (Guru, Bendahara, Kepsek)">
+            <div class="user-avatar" id="userAvatarInitial">G</div>
+            <div class="user-info-text">
+              <div class="user-name" id="userNameDisplay">Memuat...</div>
+              <div class="user-role-badge" id="userRoleDisplay">GURU</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--text-muted); margin-left: 2px;">
+              <path d="M6 9l6 6 6-6"></path>
+            </svg>
+          </div>
+
+          <!-- Tombol Logout Resmi -->
+          <button class="btn-logout-header" id="btnLogout" title="Keluar dari akun">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span class="logout-label">Keluar</span>
+          </button>
+        </div>
+      </div>
+    </header>
 
   <!-- Main Content Container -->
   <main class="container" style="margin-top: 14px;">
@@ -797,6 +955,16 @@
         <div id="roleOptionsList">
           <!-- Populated via JS -->
         </div>
+        <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnModalLogout" style="width: 100%; color: var(--danger); justify-content: center; gap: 8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Keluar dari Sistem (Logout)
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -839,6 +1007,8 @@
       </form>
     </div>
   </div>
+
+  </div> <!-- /#appAuthenticatedShell -->
 
   <script src="/js/app.js"></script>
 </body>

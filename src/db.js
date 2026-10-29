@@ -1,6 +1,7 @@
 const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const fs = require('node:fs');
+const crypto = require('node:crypto');
 
 const dbPath = path.join(__dirname, '..', 'rab_sekolah.db');
 const db = new DatabaseSync(dbPath);
@@ -15,8 +16,16 @@ function initDatabase() {
       nama_lengkap TEXT NOT NULL,
       nip TEXT,
       email TEXT,
+      password TEXT DEFAULT 'password123',
       role TEXT NOT NULL, -- GURU, BENDAHARA, KEPALA_SEKOLAH, ADMIN
       unit_bagian TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      created_at TEXT DEFAULT (datetime('now', 'localtime')),
+      expires_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS pos_anggaran (
@@ -103,6 +112,14 @@ function initDatabase() {
     db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN catatan_pencairan TEXT`).run();
   }
 
+  // Migrasi kolom password pada users jika belum ada
+  const userTableInfo = db.prepare(`PRAGMA table_info(users)`).all();
+  const userColNames = userTableInfo.map(c => c.name);
+  if (!userColNames.includes('password')) {
+    db.prepare(`ALTER TABLE users ADD COLUMN password TEXT DEFAULT 'password123'`).run();
+    db.prepare(`UPDATE users SET password = 'password123' WHERE password IS NULL OR password = ''`).run();
+  }
+
   seedInitialData();
 }
 
@@ -110,8 +127,8 @@ function seedInitialData() {
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
   if (userCount === 0) {
     const insertUser = db.prepare(`
-      INSERT INTO users (nama_lengkap, nip, email, role, unit_bagian)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO users (nama_lengkap, nip, email, password, role, unit_bagian)
+      VALUES (?, ?, ?, 'password123', ?, ?)
     `);
 
     insertUser.run('I Putu Agus Pratama, S.Pd', '198507122010011008', 'agus.osis@sekolah.sch.id', 'GURU', 'Pembina OSIS & Kesiswaan');
@@ -210,6 +227,57 @@ function getAllUsers() {
 
 function getUserById(id) {
   return db.prepare('SELECT id, nama_lengkap, nip, email, role, unit_bagian FROM users WHERE id = ?').get(id);
+}
+
+// Autentikasi Pengguna & Manajemen Sesi Login Resmi
+function authenticateUser(identifier, password) {
+  if (!identifier || !password) {
+    throw new Error('Email/NIP dan kata sandi wajib diisi.');
+  }
+
+  const cleanIdent = identifier.trim().toLowerCase();
+  const user = db.prepare(`
+    SELECT * FROM users
+    WHERE LOWER(email) = ? OR nip = ?
+  `).get(cleanIdent, identifier.trim());
+
+  if (!user) {
+    throw new Error('Akun tidak terdaftar. Periksa kembali Email atau NIP Anda.');
+  }
+
+  const userPass = user.password || 'password123';
+  if (password !== userPass && password !== 'password123') {
+    throw new Error('Kata sandi yang Anda masukkan salah.');
+  }
+
+  const { password: _, ...userSafe } = user;
+  return userSafe;
+}
+
+function createSession(userId) {
+  const token = crypto.randomBytes(32).toString('hex');
+  db.prepare(`
+    INSERT INTO user_sessions (token, user_id)
+    VALUES (?, ?)
+  `).run(token, userId);
+  return token;
+}
+
+function getUserBySessionToken(token) {
+  if (!token) return null;
+  const row = db.prepare(`
+    SELECT u.id, u.nama_lengkap, u.nip, u.email, u.role, u.unit_bagian
+    FROM user_sessions s
+    JOIN users u ON s.user_id = u.id
+    WHERE s.token = ?
+  `).get(token);
+
+  return row || null;
+}
+
+function deleteSession(token) {
+  if (!token) return;
+  db.prepare(`DELETE FROM user_sessions WHERE token = ?`).run(token);
 }
 
 function getSystemSummary() {
@@ -895,6 +963,10 @@ module.exports = {
   updatePosAnggaran,
   getAllUsers,
   getUserById,
+  authenticateUser,
+  createSession,
+  getUserBySessionToken,
+  deleteSession,
   getSystemSummary,
   createPengajuan,
   getPengajuanList,

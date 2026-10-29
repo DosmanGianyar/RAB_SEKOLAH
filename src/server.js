@@ -11,6 +11,10 @@ const {
   updatePosAnggaran,
   getAllUsers,
   getUserById,
+  authenticateUser,
+  createSession,
+  getUserBySessionToken,
+  deleteSession,
   getSystemSummary,
   createPengajuan,
   getPengajuanList,
@@ -71,25 +75,95 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-// Simulasi Active User Session (Mudah ditukar untuk demo multi-role)
-let currentActiveUserId = 1; // Default: Guru OSIS
+// Helper Parser Cookie Native
+function parseCookies(req) {
+  const list = {};
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return list;
 
-// --- API Endpoints ---
+  cookieHeader.split(';').forEach(cookie => {
+    const [name, ...rest] = cookie.split('=');
+    const trimmed = name?.trim();
+    if (!trimmed) return;
+    const value = rest.join('=').trim();
+    list[trimmed] = decodeURIComponent(value);
+  });
+  return list;
+}
 
-// Get current simulated user
-app.get('/api/auth/active-user', (req, res) => {
-  const user = getUserById(currentActiveUserId) || getUserById(1);
-  res.json({ success: true, user });
+// Middleware Sesi Pengguna
+app.use((req, res, next) => {
+  const cookies = parseCookies(req);
+  const token = cookies.session_token;
+
+  if (token) {
+    const user = getUserBySessionToken(token);
+    if (user) {
+      req.user = user;
+    }
+  }
+
+  next();
 });
 
-// Switch active user (Role Switcher instan untuk demo Guru vs Bendahara vs Kepsek)
+// Guard Middleware: Wajib Login
+function requireAuth(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Sesi telah berakhir atau Anda belum masuk. Silakan login kembali.'
+    });
+  }
+  next();
+}
+
+// --- Autentikasi & Manajemen Sesi ---
+
+// 1. Login Resmi (Email / NIP + Password)
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { identifier, password } = req.body;
+    const user = authenticateUser(identifier, password);
+    const token = createSession(user.id);
+
+    res.setHeader('Set-Cookie', `session_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
+    res.json({
+      success: true,
+      user,
+      message: `Selamat datang, ${user.nama_lengkap}!`
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 2. Logout Resmi (Hapus Sesi & Cookie)
+app.post('/api/auth/logout', (req, res) => {
+  const cookies = parseCookies(req);
+  if (cookies.session_token) {
+    deleteSession(cookies.session_token);
+  }
+  res.setHeader('Set-Cookie', 'session_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  res.json({ success: true, message: 'Berhasil keluar dari sistem.' });
+});
+
+// 3. Ambil Data Akun yang Sedang Login
+app.get('/api/auth/active-user', (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, user: null, message: 'Belum ada sesi aktif.' });
+  }
+  res.json({ success: true, user: req.user });
+});
+
+// 4. Quick Switch User (Khusus Demo / Pengujian Instan)
 app.post('/api/auth/switch-user', (req, res) => {
   const { userId } = req.body;
   const user = getUserById(Number(userId));
   if (!user) {
     return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
   }
-  currentActiveUserId = user.id;
+  const token = createSession(user.id);
+  res.setHeader('Set-Cookie', `session_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
   res.json({ success: true, user, message: `Beralih ke akun ${user.nama_lengkap} (${user.role})` });
 });
 
@@ -148,20 +222,18 @@ app.put('/api/pos-anggaran/:id', (req, res) => {
 // --- Pengajuan Kegiatan & RAB Endpoints (FASE 2) ---
 
 // List Pengajuan (Filtered for Guru, Global for Bendahara/Kepsek)
-app.get('/api/pengajuan', (req, res) => {
+app.get('/api/pengajuan', requireAuth, (req, res) => {
   try {
-    const activeUser = getUserById(currentActiveUserId) || getUserById(1);
-    const list = getPengajuanList(activeUser.id, activeUser.role);
-    res.json({ success: true, data: list, userRole: activeUser.role });
+    const list = getPengajuanList(req.user.id, req.user.role);
+    res.json({ success: true, data: list, userRole: req.user.role });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 // Detail Pengajuan beserta item baris belanja
-app.get('/api/pengajuan/:id', (req, res) => {
+app.get('/api/pengajuan/:id', requireAuth, (req, res) => {
   try {
-    const activeUser = getUserById(currentActiveUserId) || getUserById(1);
     const data = getPengajuanById(req.params.id);
     if (!data) {
       return res.status(404).json({ success: false, message: 'Proposal tidak ditemukan' });
@@ -169,7 +241,7 @@ app.get('/api/pengajuan/:id', (req, res) => {
 
     // ISOLASI PRIVASI ANTAR-GURU:
     // Guru dilarang keras membuka data detail usulan milik guru/unit lain
-    if (activeUser.role === 'GURU' && data.user_id !== activeUser.id) {
+    if (req.user.role === 'GURU' && data.user_id !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Akses Ditolak: Berkas RAB ini bersifat privat. Anda hanya berhak mengakses usulan kegiatan yang Anda ajukan sendiri.'
@@ -183,7 +255,7 @@ app.get('/api/pengajuan/:id', (req, res) => {
 });
 
 // Buat Usulan Proposal Kegiatan & Rincian RAB Baru
-app.post('/api/pengajuan', (req, res) => {
+app.post('/api/pengajuan', requireAuth, (req, res) => {
   try {
     const { pos_anggaran_id, nama_kegiatan, latar_belakang, tanggal_mulai, tanggal_selesai, items } = req.body;
     
@@ -196,7 +268,7 @@ app.post('/api/pengajuan', (req, res) => {
     }
 
     const created = createPengajuan({
-      user_id: currentActiveUserId,
+      user_id: req.user.id,
       pos_anggaran_id: Number(pos_anggaran_id),
       nama_kegiatan,
       latar_belakang,
@@ -218,19 +290,18 @@ app.post('/api/pengajuan', (req, res) => {
 // --- FASE 3: Review Bendahara & Otorisasi Bertingkat Endpoints ---
 
 // Review & Koreksi oleh Bendahara
-app.post('/api/pengajuan/:id/review', (req, res) => {
+app.post('/api/pengajuan/:id/review', requireAuth, (req, res) => {
   try {
     const { items_koreksi, catatan_bendahara, tindakan } = req.body;
-    const activeUser = getUserById(currentActiveUserId);
     
     // Verifikasi peran
-    if (activeUser && activeUser.role !== 'BENDAHARA' && activeUser.role !== 'ADMIN') {
+    if (req.user.role !== 'BENDAHARA' && req.user.role !== 'ADMIN') {
       return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak menelaah anggaran.' });
     }
 
     const updated = reviewProposalByBendahara({
       proposal_id: Number(req.params.id),
-      user_id: currentActiveUserId,
+      user_id: req.user.id,
       items_koreksi,
       catatan_bendahara,
       tindakan // 'SETUJUI' atau 'REVISI'
@@ -252,18 +323,17 @@ app.post('/api/pengajuan/:id/review', (req, res) => {
 });
 
 // Keputusan Otorisasi Final oleh Kepala Sekolah
-app.post('/api/pengajuan/:id/kepsek-decision', (req, res) => {
+app.post('/api/pengajuan/:id/kepsek-decision', requireAuth, (req, res) => {
   try {
     const { tindakan, catatan_kepsek } = req.body;
-    const activeUser = getUserById(currentActiveUserId);
 
-    if (activeUser && activeUser.role !== 'KEPALA_SEKOLAH' && activeUser.role !== 'ADMIN') {
+    if (req.user.role !== 'KEPALA_SEKOLAH' && req.user.role !== 'ADMIN') {
       return res.status(403).json({ success: false, message: 'Hanya Kepala Sekolah yang berhak memberikan otorisasi final.' });
     }
 
     const updated = decisionProposalByKepsek({
       proposal_id: Number(req.params.id),
-      user_id: currentActiveUserId,
+      user_id: req.user.id,
       tindakan, // 'APPROVE' atau 'REVISI'
       catatan_kepsek
     });
@@ -279,11 +349,10 @@ app.post('/api/pengajuan/:id/kepsek-decision', (req, res) => {
 });
 
 // Get Audit Trail Logs for Proposal
-app.get('/api/pengajuan/:id/audit', (req, res) => {
+app.get('/api/pengajuan/:id/audit', requireAuth, (req, res) => {
   try {
-    const activeUser = getUserById(currentActiveUserId) || getUserById(1);
     const proposal = getPengajuanById(Number(req.params.id));
-    if (proposal && activeUser.role === 'GURU' && proposal.user_id !== activeUser.id) {
+    if (proposal && req.user.role === 'GURU' && proposal.user_id !== req.user.id) {
       return res.status(403).json({ success: false, message: 'Akses Ditolak: Jejak audit guru lain bersifat rahasia.' });
     }
     const logs = getAuditLogs(Number(req.params.id));
@@ -298,7 +367,7 @@ app.get('/api/pengajuan/:id/audit', (req, res) => {
 // ==========================================================================
 
 // 1. Eksekusi Pencairan Kas oleh Bendahara / Admin
-app.post('/api/pengajuan/:id/cairkan', (req, res) => {
+app.post('/api/pengajuan/:id/cairkan', requireAuth, (req, res) => {
   try {
     const {
       metode_pencairan,
@@ -310,8 +379,7 @@ app.post('/api/pengajuan/:id/cairkan', (req, res) => {
       catatan_pencairan
     } = req.body;
 
-    const activeUser = getUserById(currentActiveUserId);
-    if (activeUser && activeUser.role !== 'BENDAHARA' && activeUser.role !== 'ADMIN') {
+    if (req.user.role !== 'BENDAHARA' && req.user.role !== 'ADMIN') {
       return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak mencairkan kas.' });
     }
 
@@ -321,7 +389,7 @@ app.post('/api/pengajuan/:id/cairkan', (req, res) => {
 
     const updated = disburseProposal({
       proposal_id: Number(req.params.id),
-      user_id: currentActiveUserId,
+      user_id: req.user.id,
       metode_pencairan,
       bank_tujuan,
       nomor_rekening,
@@ -368,14 +436,19 @@ app.get('/api/pengajuan/:id/qr', async (req, res) => {
 // 3. Render Lembar Disposisi & Pengesahan RAB Resmi (A4 Print-Ready)
 app.get('/cetak/:id', async (req, res) => {
   try {
-    const activeUser = getUserById(currentActiveUserId) || getUserById(1);
+    const cookies = parseCookies(req);
+    const user = cookies.session_token ? getUserBySessionToken(cookies.session_token) : null;
+    if (!user) {
+      return res.status(401).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Sesi Berakhir: Silakan login terlebih dahulu untuk mencetak lembar disposisi.</h2>');
+    }
+
     const proposal = getPengajuanById(Number(req.params.id));
     if (!proposal) {
       return res.status(404).send('Proposal tidak ditemukan.');
     }
 
     // Proteksi Cetak: Guru dilarang mencetak disposisi guru lain
-    if (activeUser.role === 'GURU' && proposal.user_id !== activeUser.id) {
+    if (user.role === 'GURU' && proposal.user_id !== user.id) {
       return res.status(403).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Akses Ditolak: Anda hanya berhak mencetak lembar disposisi usulan kegiatan Anda sendiri.</h2>');
     }
 
@@ -424,7 +497,7 @@ app.get('/verifikasi/:token', (req, res) => {
 // ==========================================================================
 
 // 1. Guru Mengajukan LPJ & Mengunggah Nota Fisik
-app.post('/api/pengajuan/:id/lpj', uploadNota.single('file_nota'), (req, res) => {
+app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.single('file_nota'), (req, res) => {
   try {
     const { total_belanja_riil, catatan_lpj } = req.body;
     const file_nota_url = req.file ? `/uploads/nota/${req.file.filename}` : null;
@@ -435,7 +508,7 @@ app.post('/api/pengajuan/:id/lpj', uploadNota.single('file_nota'), (req, res) =>
 
     const updated = submitLpjByGuru({
       pengajuan_id: Number(req.params.id),
-      user_id: currentActiveUserId,
+      user_id: req.user.id,
       total_belanja_riil: Number(total_belanja_riil),
       file_nota_url,
       catatan_lpj
@@ -452,17 +525,16 @@ app.post('/api/pengajuan/:id/lpj', uploadNota.single('file_nota'), (req, res) =>
 });
 
 // 2. Bendahara Memverifikasi LPJ & Rekonsiliasi Kas Pengembalian
-app.post('/api/pengajuan/:id/lpj/verifikasi', (req, res) => {
+app.post('/api/pengajuan/:id/lpj/verifikasi', requireAuth, (req, res) => {
   try {
     const { tindakan, catatan_verifikasi } = req.body;
-    const activeUser = getUserById(currentActiveUserId);
-    if (activeUser && activeUser.role !== 'BENDAHARA' && activeUser.role !== 'ADMIN') {
+    if (req.user.role !== 'BENDAHARA' && req.user.role !== 'ADMIN') {
       return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak memverifikasi berkas LPJ.' });
     }
 
     const updated = verifyLpjByBendahara({
       pengajuan_id: Number(req.params.id),
-      user_id: currentActiveUserId,
+      user_id: req.user.id,
       tindakan, // 'TERIMA' atau 'REVISI'
       catatan_verifikasi
     });

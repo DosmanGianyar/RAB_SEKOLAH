@@ -16,10 +16,8 @@ function formatRupiah(val) {
 
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
-  loadActiveUser();
-  loadSummaryStats();
-  loadPosAnggaran();
   setupEventListeners();
+  loadActiveUser();
 
   // Inisialisasi baris belanja pertama pada form RAB
   addItemRow({
@@ -32,6 +30,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupEventListeners() {
+  // Autentikasi: Form Login & Tombol Logout
+  const formLogin = document.getElementById('formLogin');
+  if (formLogin) {
+    formLogin.addEventListener('submit', handleLoginSubmit);
+  }
+
+  const btnTogglePassword = document.getElementById('btnTogglePassword');
+  if (btnTogglePassword) {
+    btnTogglePassword.addEventListener('click', togglePasswordVisibility);
+  }
+
+  const btnLogout = document.getElementById('btnLogout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', handleLogout);
+  }
+
+  const btnModalLogout = document.getElementById('btnModalLogout');
+  if (btnModalLogout) {
+    btnModalLogout.addEventListener('click', () => {
+      closeRoleModal();
+      handleLogout();
+    });
+  }
+
   // Modal Switch User
   document.getElementById('btnRoleSwitcher').addEventListener('click', openRoleModal);
   document.getElementById('btnCloseRoleModal').addEventListener('click', closeRoleModal);
@@ -105,17 +127,51 @@ function switchView(viewName) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// --- 2. User & Role Management ---
+// --- 2. User & Authentication Management ---
+
 async function loadActiveUser() {
   try {
     const res = await fetch('/api/auth/active-user');
+    if (!res.ok) {
+      showLoginScreen();
+      return;
+    }
     const data = await res.json();
     if (data.success && data.user) {
-      currentUser = data.user;
-      renderUserHeader(currentUser);
+      showAuthenticatedApp(data.user);
+    } else {
+      showLoginScreen();
     }
   } catch (err) {
     console.error('Error fetching active user:', err);
+    showLoginScreen();
+  }
+}
+
+function showLoginScreen() {
+  currentUser = null;
+  const loginScreen = document.getElementById('appLoginScreen');
+  const appShell = document.getElementById('appAuthenticatedShell');
+  if (loginScreen) loginScreen.style.display = 'flex';
+  if (appShell) appShell.style.display = 'none';
+
+  // Sembunyikan alert saat membuka login
+  const alertBox = document.getElementById('loginAlertBox');
+  if (alertBox) alertBox.style.display = 'none';
+}
+
+function showAuthenticatedApp(user) {
+  currentUser = user;
+  const loginScreen = document.getElementById('appLoginScreen');
+  const appShell = document.getElementById('appAuthenticatedShell');
+  if (loginScreen) loginScreen.style.display = 'none';
+  if (appShell) appShell.style.display = 'block';
+
+  renderUserHeader(currentUser);
+  loadSummaryStats();
+  loadPosAnggaran();
+  if (activeViewName === 'riwayat') {
+    loadProposalsList();
   }
 }
 
@@ -124,6 +180,125 @@ function renderUserHeader(user) {
   document.getElementById('userRoleDisplay').textContent = user.role.replace('_', ' ');
   document.getElementById('userAvatarInitial').textContent = user.nama_lengkap.charAt(0);
 }
+
+// Handler Submit Form Login Resmi
+async function handleLoginSubmit(e) {
+  if (e) e.preventDefault();
+  const ident = document.getElementById('loginIdentifier').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  await performLogin(ident, pass);
+}
+
+async function performLogin(identifier, password) {
+  const alertBox = document.getElementById('loginAlertBox');
+  const alertMsg = document.getElementById('loginAlertMessage');
+  const submitBtn = document.getElementById('btnLoginSubmit');
+
+  if (alertBox) alertBox.style.display = 'none';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="spin-icon">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+        <path d="M12 2a10 10 0 0 1 10 10"></path>
+      </svg>
+      <span>Memverifikasi Akun...</span>
+    `;
+  }
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier, password })
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      if (alertBox && alertMsg) {
+        alertMsg.textContent = data.message || 'Gagal masuk. Periksa kembali NIP/Email dan password Anda.';
+        alertBox.style.display = 'flex';
+      }
+      return;
+    }
+
+    // Login Berhasil
+    document.getElementById('loginIdentifier').value = '';
+    document.getElementById('loginPassword').value = '';
+    showAuthenticatedApp(data.user);
+    showNotification(`Selamat datang kembali, ${data.user.nama_lengkap}!`);
+  } catch (err) {
+    if (alertBox && alertMsg) {
+      alertMsg.textContent = 'Terjadi gangguan jaringan atau server tidak merespons.';
+      alertBox.style.display = 'flex';
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+          <polyline points="10 17 15 12 10 7"></polyline>
+          <line x1="15" y1="12" x2="3" y2="12"></line>
+        </svg>
+        <span>Masuk ke Akun Saya</span>
+      `;
+    }
+  }
+}
+
+// 1-Click Quick Demo Login
+async function quickFillAndLogin(ident, pass) {
+  const inputIdent = document.getElementById('loginIdentifier');
+  const inputPass = document.getElementById('loginPassword');
+  if (inputIdent) inputIdent.value = ident;
+  if (inputPass) inputPass.value = pass;
+  await performLogin(ident, pass);
+}
+window.quickFillAndLogin = quickFillAndLogin;
+
+// Toggle Password Visibility
+function togglePasswordVisibility() {
+  const input = document.getElementById('loginPassword');
+  const icon = document.getElementById('eyeIcon');
+  if (!input) return;
+
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icon) {
+      icon.innerHTML = `
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+      `;
+    }
+  } else {
+    input.type = 'password';
+    if (icon) {
+      icon.innerHTML = `
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      `;
+    }
+  }
+}
+window.togglePasswordVisibility = togglePasswordVisibility;
+
+// Logout Handler Resmi
+async function handleLogout() {
+  if (!confirm('Apakah Anda yakin ingin keluar dari sistem E-RAB?')) {
+    return;
+  }
+
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } catch (err) {
+    console.warn('Logout network error:', err);
+  }
+
+  showLoginScreen();
+  showNotification('Anda telah berhasil keluar dari akun.');
+}
+window.handleLogout = handleLogout;
 
 async function openRoleModal() {
   const modal = document.getElementById('modalRole');
@@ -571,6 +746,10 @@ async function loadProposalsList() {
 
   try {
     const res = await fetch('/api/pengajuan');
+    if (res.status === 401) {
+      showLoginScreen();
+      return;
+    }
     const data = await res.json();
     if (data.success && data.data) {
       currentProposals = data.data;
