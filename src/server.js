@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('node:path');
 const fs = require('node:fs');
 const QRCode = require('qrcode');
+const multer = require('multer');
 const {
   initDatabase,
   getPosAnggaranList,
@@ -18,6 +19,8 @@ const {
   decisionProposalByKepsek,
   disburseProposal,
   getPengajuanByQrToken,
+  submitLpjByGuru,
+  verifyLpjByBendahara,
   getAuditLogs
 } = require('./db');
 
@@ -32,6 +35,32 @@ const uploadDir = path.join(__dirname, '..', 'uploads', 'nota');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
+
+// Konfigurasi Multer untuk Unggah Berkas Nota LPJ (Fase 5)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeName = 'nota-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + ext;
+    cb(null, safeName);
+  }
+});
+
+const uploadNota = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // Maksimal 10MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext) || file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Format berkas tidak didukung! Harap unggah foto bukti kuitansi (JPG, PNG, WebP) atau PDF.'));
+    }
+  }
+});
 
 // Inisialisasi Database SQLite
 initDatabase();
@@ -387,6 +416,64 @@ app.get('/verifikasi/:token', (req, res) => {
     res.send(html);
   } catch (err) {
     res.status(500).send('Terjadi kesalahan pada server verifikasi.');
+  }
+});
+
+// ==========================================================================
+// FASE 5: MODUL LPJ (LAPORAN PERTANGGUNGJAWABAN) & REKONSILIASI KAS
+// ==========================================================================
+
+// 1. Guru Mengajukan LPJ & Mengunggah Nota Fisik
+app.post('/api/pengajuan/:id/lpj', uploadNota.single('file_nota'), (req, res) => {
+  try {
+    const { total_belanja_riil, catatan_lpj } = req.body;
+    const file_nota_url = req.file ? `/uploads/nota/${req.file.filename}` : null;
+
+    if (total_belanja_riil === undefined || total_belanja_riil === '') {
+      return res.status(400).json({ success: false, message: 'Nominal total belanja riil wajib diisi.' });
+    }
+
+    const updated = submitLpjByGuru({
+      pengajuan_id: Number(req.params.id),
+      user_id: currentActiveUserId,
+      total_belanja_riil: Number(total_belanja_riil),
+      file_nota_url,
+      catatan_lpj
+    });
+
+    res.json({
+      success: true,
+      data: updated,
+      message: 'Berkas LPJ & bukti nota berhasil diserahkan ke Bendahara.'
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 2. Bendahara Memverifikasi LPJ & Rekonsiliasi Kas Pengembalian
+app.post('/api/pengajuan/:id/lpj/verifikasi', (req, res) => {
+  try {
+    const { tindakan, catatan_verifikasi } = req.body;
+    const activeUser = getUserById(currentActiveUserId);
+    if (activeUser && activeUser.role !== 'BENDAHARA' && activeUser.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak memverifikasi berkas LPJ.' });
+    }
+
+    const updated = verifyLpjByBendahara({
+      pengajuan_id: Number(req.params.id),
+      user_id: currentActiveUserId,
+      tindakan, // 'TERIMA' atau 'REVISI'
+      catatan_verifikasi
+    });
+
+    const msg = tindakan === 'TERIMA'
+      ? 'LPJ telah disahkan! Sisa dana kas telah dikembalikan ke pos anggaran dan status resmi SELESAI.'
+      : 'Berkas LPJ dikembalikan ke guru pemohon untuk perbaikan nota.';
+
+    res.json({ success: true, data: updated, message: msg });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 

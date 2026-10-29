@@ -384,6 +384,9 @@
         <!-- Banner Info Realisasi Pencairan Kas (Fase 4) -->
         <div id="detailPencairanInfoBanner" style="display: none; margin-bottom: 14px;"></div>
 
+        <!-- Banner Info LPJ & Bukti Nota (Fase 5) -->
+        <div id="detailLpjInfoBanner" style="display: none; margin-bottom: 14px;"></div>
+
         <!-- Tabel Rincian Belanja -->
         <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; color: var(--text-main);">Rincian Item Belanja RAB</h4>
         <div style="overflow-x: auto;">
@@ -622,6 +625,161 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal FASE 5: Pembuatan LPJ oleh Guru -->
+  <div class="modal-overlay" id="modalSubmitLpj">
+    <div class="modal-box" style="max-width: 650px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" style="color: var(--primary);">Laporan Pertanggungjawaban (LPJ)</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);" id="lpjNomorSurat">Nomor Surat</div>
+        </div>
+        <button class="btn btn-secondary btn-icon-only btn-sm" onclick="closeSubmitLpjModal()">✕</button>
+      </div>
+      <form id="formSubmitLpj">
+        <input type="hidden" id="lpjProposalId">
+        <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+          <!-- Ringkasan Usulan & Dana Cair -->
+          <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px;">
+            <div style="font-weight: 800; color: var(--text-main); font-size: 1.05rem;" id="lpjNamaKegiatan">Nama Kegiatan</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin: 3px 0 10px;" id="lpjSubHeader">Pemohon • Pos Anggaran</div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 10px 14px;">
+              <span style="font-size: 0.84rem; color: #1e40af; font-weight: 700;">Total Dana Kas Diterima:</span>
+              <span style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800; color: #1e3a8a;" id="lpjTotalDanaCairDisplay">Rp 0</span>
+            </div>
+          </div>
+
+          <!-- Input Realisasi Belanja Riil -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">Total Belanja Riil Berdasarkan Nota Fisik (Rp)</label>
+            <input type="number" class="form-input" id="lpjTotalBelanjaRiil" placeholder="Cth: 3250000" min="0" step="1000" required oninput="recalculateLpjCashback()">
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+              Jumlahkan seluruh nilai nominal kuitansi atau struk belanja yang sah.
+            </div>
+          </div>
+
+          <!-- Kalkulator Kas Otomatis Box -->
+          <div id="lpjCashbackCalcBox" class="lpj-calc-box exact">
+            <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase;" id="lpjCashbackCalcTitle">
+              Kalkulasi Selisih Kas
+            </div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800; margin: 4px 0;" id="lpjCashbackCalcVal">
+              Rp 0
+            </div>
+            <div style="font-size: 0.78rem;" id="lpjCashbackCalcDesc">
+              Masukkan nominal total belanja riil di atas untuk melihat kalkulasi pengembalian sisa kas.
+            </div>
+          </div>
+
+          <!-- Unggah Foto / Berkas Nota Kuitansi -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">Unggah Foto / PDF Bukti Nota Kuitansi</label>
+            <div class="file-upload-area" onclick="document.getElementById('lpjFileInput').click()">
+              <input type="file" id="lpjFileInput" accept="image/*,application/pdf" style="display: none;" onchange="handleLpjFileSelect(event)">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" style="margin-bottom: 6px;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main);">
+                Pilih Foto dari Galeri atau Ambil Foto Kamera HP
+              </div>
+              <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+                Format JPG, PNG, WebP, atau PDF (Maksimal 10MB)
+              </div>
+            </div>
+            <div id="lpjFilePreviewWrap" style="display: none;" class="file-preview-wrap">
+              <span style="font-size: 1.2rem;">📎</span>
+              <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; font-weight: 600;" id="lpjFileName">
+                nota.jpg
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="clearLpjFile(event)" style="padding: 4px 8px; font-size: 0.72rem;">Hapus</button>
+            </div>
+          </div>
+
+          <!-- Catatan Pelaksanaan LPJ -->
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Catatan Pelaksanaan / Ringkasan Realisasi (Opsional)</label>
+            <textarea class="form-textarea" id="lpjCatatan" rows="2" placeholder="Cth: Kegiatan selesai dengan baik. Terdapat sisa anggaran konsumsi sebesar Rp 150.000 disetor kembali ke kas sekolah..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeSubmitLpjModal()">Batal</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="btnSubmitLpj">
+            📋 Serahkan Berkas LPJ ke Bendahara
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal FASE 5: Verifikasi LPJ oleh Bendahara -->
+  <div class="modal-overlay" id="modalVerifikasiLpj">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" style="color: var(--amber);">Verifikasi LPJ & Bukti Nota</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);" id="verifLpjNomorSurat">Nomor Surat</div>
+        </div>
+        <button class="btn btn-secondary btn-icon-only btn-sm" onclick="closeVerifikasiLpjModal()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+        <!-- Ringkasan Usulan & Pemohon -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px;">
+          <div style="font-weight: 800; color: var(--text-main); font-size: 1.05rem;" id="verifLpjNamaKegiatan">Nama Kegiatan</div>
+          <div style="font-size: 0.82rem; color: var(--text-muted); margin: 3px 0 12px;" id="verifLpjSubHeader">Pemohon • Pos Anggaran</div>
+
+          <!-- Perbandingan Angka: Dana Cair vs Belanja Riil vs Sisa Pengembalian -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
+            <div style="background: #ffffff; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px 8px;">
+              <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Dana Kas Cair</div>
+              <div style="font-family: 'Outfit', sans-serif; font-size: 1.05rem; font-weight: 800; color: #1e3a8a; margin-top: 2px;" id="verifLpjDanaCair">Rp 0</div>
+            </div>
+            <div style="background: #ffffff; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px 8px;">
+              <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Belanja Riil</div>
+              <div style="font-family: 'Outfit', sans-serif; font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-top: 2px;" id="verifLpjBelanjaRiil">Rp 0</div>
+            </div>
+            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-sm); padding: 10px 8px;">
+              <div style="font-size: 0.7rem; color: #065f46; text-transform: uppercase; font-weight: 700;">Sisa Pengembalian</div>
+              <div style="font-family: 'Outfit', sans-serif; font-size: 1.05rem; font-weight: 800; color: #047857; margin-top: 2px;" id="verifLpjSisaUang">Rp 0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Berkas Bukti Nota Terlampir -->
+        <div style="margin-bottom: 14px;">
+          <h4 style="font-size: 0.85rem; font-weight: 800; color: var(--text-main); margin-bottom: 6px;">Berkas Bukti Nota / Kuitansi Terlampir</h4>
+          <div id="verifLpjFilePreviewBox" style="background: #ffffff; border: 1px solid var(--border-card); border-radius: var(--radius-md); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Catatan Guru saat penyerahan LPJ -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; font-size: 0.82rem;">
+          <span style="font-weight: 700; color: var(--text-main);">Catatan Guru:</span>
+          <div style="color: var(--text-body); margin-top: 2px;" id="verifLpjCatatanGuru">-</div>
+        </div>
+
+        <!-- Catatan Bendahara -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Catatan Pemeriksaan Bendahara (Opsional jika disahkan / Wajib jika minta revisi)</label>
+          <textarea class="form-textarea" id="verifLpjCatatanBendahara" rows="2" placeholder="Cth: Fisik kuitansi dan uang kembalian Rp 150.000 telah diterima dengan lengkap..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button type="button" class="btn btn-secondary btn-sm" style="color: var(--rose);" onclick="handleBendaharaLpjAction('REVISI')">
+          ↩ Minta Perbaikan LPJ
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeVerifikasiLpjModal()">Tutup</button>
+          <button type="button" class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="handleBendaharaLpjAction('TERIMA')">
+            ✓ Sahkan LPJ & Selesaikan Anggaran
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

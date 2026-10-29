@@ -53,6 +53,12 @@ function setupEventListeners() {
     formCairkan.addEventListener('submit', handlePencairanSubmit);
   }
 
+  // Form Submit LPJ (Fase 5)
+  const formLpj = document.getElementById('formSubmitLpj');
+  if (formLpj) {
+    formLpj.addEventListener('submit', handleSubmitLpj);
+  }
+
   // Close modals on overlay click
   window.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay')) {
@@ -626,13 +632,15 @@ function renderProposalsList(proposals) {
     if (p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') statusLabel = 'Menunggu Persetujuan Kepsek';
     if (p.status === 'DISETUJUI') statusLabel = 'Disetujui (Siap Dicairkan)';
     if (p.status === 'PERLU_REVISI') statusLabel = 'Perlu Revisi';
-    if (p.status === 'DICAIRKAN') statusLabel = 'Dana Telah Dicairkan';
+    if (p.status === 'DICAIRKAN') statusLabel = 'Dana Dicairkan (Siap LPJ)';
+    if (p.status === 'MENUNGGU_VERIFIKASI_LPJ') statusLabel = 'Menunggu Verifikasi LPJ';
     if (p.status === 'SELESAI') statusLabel = 'Selesai & LPJ Terverifikasi';
 
     // Role-based quick action button on card
     let roleActionBtn = '';
     const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
     const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ADMIN');
+    const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
 
     if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
       roleActionBtn = `
@@ -652,10 +660,28 @@ function renderProposalsList(proposals) {
           💵 Cairkan Kas
         </button>
       `;
+    } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
+      roleActionBtn = `
+        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff;" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})">
+          📋 Buat LPJ
+        </button>
+      `;
+    } else if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+      roleActionBtn = `
+        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #d97706, #f59e0b); color: #fff;" onclick="event.stopPropagation(); openVerifikasiLpjModal(${p.id})">
+          🔍 Verifikasi LPJ
+        </button>
+      `;
+    } else if (isOwnerGuru && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+      roleActionBtn = `
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})">
+          ✏️ Edit LPJ
+        </button>
+      `;
     }
 
     let printActionBtn = '';
-    if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'SELESAI') {
+    if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
       printActionBtn = `
         <a href="/cetak/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()">
           🖨️ Disposisi
@@ -780,6 +806,36 @@ async function openProposalDetail(id) {
         }
       }
 
+      // Banner Info LPJ & Bukti Nota (Fase 5)
+      const bannerLpj = document.getElementById('detailLpjInfoBanner');
+      if (bannerLpj) {
+        if (p.lpj) {
+          const l = p.lpj;
+          const fileNotaLink = l.file_nota_url
+            ? `<a href="${l.file_nota_url}" target="_blank" style="color:var(--primary); font-weight:700; text-decoration:underline;">📎 Lihat Berkas Bukti Nota</a>`
+            : '<span style="color:var(--text-muted); font-size:0.75rem;">Nota fisik diserahkan langsung</span>';
+
+          bannerLpj.style.display = 'block';
+          bannerLpj.innerHTML = `
+            <div style="background: #f8fafc; border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.82rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-weight: 800; color: var(--text-main);">📋 PERTANGGUNGJAWABAN BIAYA (LPJ)</span>
+                <span class="status-pill ${p.status}">${l.status_lpj.replace(/_/g, ' ')}</span>
+              </div>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 8px;">
+                <div><span style="color:var(--text-muted); font-size:0.72rem;">Belanja Riil:</span><br><strong>${formatRupiah(l.total_belanja_riil)}</strong></div>
+                <div><span style="color:var(--text-muted); font-size:0.72rem;">Sisa Pengembalian:</span><br><strong style="color:#059669;">${formatRupiah(l.sisa_pengembalian_dana)}</strong></div>
+                <div><span style="color:var(--text-muted); font-size:0.72rem;">Bukti Nota:</span><br>${fileNotaLink}</div>
+              </div>
+              ${l.catatan_lpj ? `<div style="color:var(--text-body); font-style:italic; font-size:0.76rem; border-top:1px dashed var(--border-subtle); padding-top:6px;">Catatan: "${l.catatan_lpj}"</div>` : ''}
+            </div>
+          `;
+        } else {
+          bannerLpj.style.display = 'none';
+          bannerLpj.innerHTML = '';
+        }
+      }
+
       // Render Baris Belanja
       const tbody = document.getElementById('detailItemsTableBody');
       tbody.innerHTML = '';
@@ -822,9 +878,10 @@ async function openProposalDetail(id) {
 
       const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
       const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ADMIN');
+      const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
 
       // Tombol Cetak Dokumen Resmi untuk status yang sudah disahkan / dicairkan
-      if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'SELESAI') {
+      if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
         const btnPrint = document.createElement('a');
         btnPrint.className = 'btn btn-secondary btn-sm';
         btnPrint.href = `/cetak/${p.id}`;
@@ -863,6 +920,35 @@ async function openProposalDetail(id) {
           openCairkanModal(p.id);
         };
         footer.appendChild(btnCairkan);
+      } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
+        const btnLpj = document.createElement('button');
+        btnLpj.className = 'btn btn-primary btn-sm';
+        btnLpj.style.background = 'linear-gradient(135deg, #2563eb, #3b82f6)';
+        btnLpj.innerHTML = '📋 Buat LPJ Realisasi';
+        btnLpj.onclick = () => {
+          closeDetailModal();
+          openSubmitLpjModal(p.id);
+        };
+        footer.appendChild(btnLpj);
+      } else if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+        const btnVerifLpj = document.createElement('button');
+        btnVerifLpj.className = 'btn btn-primary btn-sm';
+        btnVerifLpj.style.background = 'linear-gradient(135deg, #d97706, #f59e0b)';
+        btnVerifLpj.innerHTML = '🔍 Verifikasi LPJ Bendahara';
+        btnVerifLpj.onclick = () => {
+          closeDetailModal();
+          openVerifikasiLpjModal(p.id);
+        };
+        footer.appendChild(btnVerifLpj);
+      } else if (isOwnerGuru && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+        const btnEditLpj = document.createElement('button');
+        btnEditLpj.className = 'btn btn-secondary btn-sm';
+        btnEditLpj.innerHTML = '✏️ Edit Berkas LPJ';
+        btnEditLpj.onclick = () => {
+          closeDetailModal();
+          openSubmitLpjModal(p.id);
+        };
+        footer.appendChild(btnEditLpj);
       }
     }
   } catch (err) {
@@ -1368,5 +1454,237 @@ async function handlePencairanSubmit(e) {
     }
   } catch (err) {
     alert(`Terjadi kesalahan jaringan saat mencairkan kas: ${err.message}`);
+  }
+}
+
+// ==========================================================================
+// FASE 5: MODUL LPJ (LAPORAN PERTANGGUNGJAWABAN) & REKONSILIASI KAS
+// ==========================================================================
+
+let activeLpjProposal = null;
+let selectedLpjFile = null;
+
+async function openSubmitLpjModal(proposalId) {
+  const modal = document.getElementById('modalSubmitLpj');
+  modal.classList.add('active');
+
+  try {
+    const res = await fetch(`/api/pengajuan/${proposalId}`);
+    const data = await res.json();
+    if (data.success && data.data) {
+      activeLpjProposal = data.data;
+      const p = activeLpjProposal;
+
+      document.getElementById('lpjProposalId').value = p.id;
+      document.getElementById('lpjNomorSurat').textContent = p.nomor_surat_ajuan;
+      document.getElementById('lpjNamaKegiatan').textContent = p.nama_kegiatan;
+      document.getElementById('lpjSubHeader').textContent = `Pemohon: ${p.pemohon_nama} (${p.pemohon_unit}) • Pos: ${p.nama_pos}`;
+      document.getElementById('lpjTotalDanaCairDisplay').textContent = formatRupiah(p.total_dana_disetujui);
+
+      // Pre-fill jika sudah pernah dibuat sebelumnya
+      if (p.lpj) {
+        document.getElementById('lpjTotalBelanjaRiil').value = p.lpj.total_belanja_riil;
+        document.getElementById('lpjCatatan').value = p.lpj.catatan_lpj || '';
+        if (p.lpj.file_nota_url) {
+          document.getElementById('lpjFilePreviewWrap').style.display = 'flex';
+          document.getElementById('lpjFileName').textContent = p.lpj.file_nota_url.split('/').pop();
+        }
+      } else {
+        document.getElementById('lpjTotalBelanjaRiil').value = p.total_dana_disetujui;
+        document.getElementById('lpjCatatan').value = '';
+        clearLpjFile();
+      }
+
+      recalculateLpjCashback();
+    }
+  } catch (err) {
+    console.error('Error fetching proposal for LPJ:', err);
+    showNotification('Gagal memuat data proposal.');
+  }
+}
+
+function closeSubmitLpjModal() {
+  document.getElementById('modalSubmitLpj').classList.remove('active');
+  activeLpjProposal = null;
+  selectedLpjFile = null;
+}
+
+function recalculateLpjCashback() {
+  if (!activeLpjProposal) return;
+
+  const danaCair = activeLpjProposal.total_dana_disetujui || 0;
+  const belanjaRiil = Number(document.getElementById('lpjTotalBelanjaRiil').value) || 0;
+  const selisih = danaCair - belanjaRiil;
+
+  const box = document.getElementById('lpjCashbackCalcBox');
+  const title = document.getElementById('lpjCashbackCalcTitle');
+  const val = document.getElementById('lpjCashbackCalcVal');
+  const desc = document.getElementById('lpjCashbackCalcDesc');
+
+  box.className = 'lpj-calc-box';
+
+  if (selisih > 0) {
+    box.classList.add('refund');
+    title.textContent = '💵 Sisa Kas yang Wajib Disetor Kembali ke Sekolah';
+    val.textContent = formatRupiah(selisih);
+    desc.textContent = `Terdapat kelebihan kas sebesar ${formatRupiah(selisih)}. Dana ini wajib disetor tunai/transfer ke Bendahara dan akan otomatis mengembalikan kuota pagu pos anggaran.`;
+  } else if (selisih === 0) {
+    box.classList.add('exact');
+    title.textContent = '✓ Realisasi Kas Pas 100%';
+    val.textContent = 'Rp 0';
+    desc.textContent = 'Total belanja riil sesuai persis dengan nominal pencairan dana. Tidak ada sisa kas pengembalian.';
+  } else {
+    box.classList.add('over');
+    title.textContent = '⚠️ Realisasi Melebihi Dana Kas Cair (Talangan Mandiri)';
+    val.textContent = formatRupiah(Math.abs(selisih));
+    desc.textContent = `Belanja riil melebihi dana kas yang dicairkan sebesar ${formatRupiah(Math.abs(selisih))}. Kelebihan ini merupakan talangan mandiri sesuai ketentuan sekolah.`;
+  }
+}
+
+function handleLpjFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) {
+    selectedLpjFile = file;
+    document.getElementById('lpjFilePreviewWrap').style.display = 'flex';
+    document.getElementById('lpjFileName').textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+  }
+}
+
+function clearLpjFile(event) {
+  if (event) event.stopPropagation();
+  selectedLpjFile = null;
+  const input = document.getElementById('lpjFileInput');
+  if (input) input.value = '';
+  const preview = document.getElementById('lpjFilePreviewWrap');
+  if (preview) preview.style.display = 'none';
+}
+
+async function handleSubmitLpj(e) {
+  e.preventDefault();
+  if (!activeLpjProposal) return;
+
+  const id = activeLpjProposal.id;
+  const belanjaRiil = document.getElementById('lpjTotalBelanjaRiil').value;
+  const catatan = document.getElementById('lpjCatatan').value.trim();
+
+  const formData = new FormData();
+  formData.append('total_belanja_riil', belanjaRiil);
+  formData.append('catatan_lpj', catatan);
+  if (selectedLpjFile) {
+    formData.append('file_nota', selectedLpjFile);
+  }
+
+  const btn = document.getElementById('btnSubmitLpj');
+  btn.disabled = true;
+  btn.textContent = 'Mengunggah & Menyerahkan...';
+
+  try {
+    const res = await fetch(`/api/pengajuan/${id}/lpj`, {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeSubmitLpjModal();
+      showNotification(`✓ ${data.message}`);
+      loadSummaryStats();
+      loadPosAnggaran();
+      loadProposalsList();
+    } else {
+      alert(`Gagal mengirimkan LPJ: ${data.message}`);
+    }
+  } catch (err) {
+    alert(`Terjadi kesalahan jaringan: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📋 Serahkan Berkas LPJ ke Bendahara';
+  }
+}
+
+// Bendahara LPJ Verification Modal
+let activeVerifLpjProposal = null;
+
+async function openVerifikasiLpjModal(proposalId) {
+  const modal = document.getElementById('modalVerifikasiLpj');
+  modal.classList.add('active');
+
+  try {
+    const res = await fetch(`/api/pengajuan/${proposalId}`);
+    const data = await res.json();
+    if (data.success && data.data) {
+      activeVerifLpjProposal = data.data;
+      const p = activeVerifLpjProposal;
+      const lpj = p.lpj;
+
+      document.getElementById('verifLpjNomorSurat').textContent = p.nomor_surat_ajuan;
+      document.getElementById('verifLpjNamaKegiatan').textContent = p.nama_kegiatan;
+      document.getElementById('verifLpjSubHeader').textContent = `Pemohon: ${p.pemohon_nama} (${p.pemohon_unit}) • Pos: ${p.nama_pos}`;
+
+      document.getElementById('verifLpjDanaCair').textContent = formatRupiah(lpj ? lpj.total_dana_cair : p.total_dana_disetujui);
+      document.getElementById('verifLpjBelanjaRiil').textContent = formatRupiah(lpj ? lpj.total_belanja_riil : 0);
+      document.getElementById('verifLpjSisaUang').textContent = formatRupiah(lpj ? lpj.sisa_pengembalian_dana : 0);
+      document.getElementById('verifLpjCatatanGuru').textContent = (lpj && lpj.catatan_lpj) ? lpj.catatan_lpj : '-';
+      document.getElementById('verifLpjCatatanBendahara').value = '';
+
+      const fileBox = document.getElementById('verifLpjFilePreviewBox');
+      if (lpj && lpj.file_nota_url) {
+        fileBox.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.5rem;">📄</span>
+            <div>
+              <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-main);">Berkas Nota / Bukti Kuitansi</div>
+              <div style="font-size: 0.74rem; color: var(--text-muted);">${lpj.file_nota_url.split('/').pop()}</div>
+            </div>
+          </div>
+          <a href="${lpj.file_nota_url}" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
+            👁️ Buka / Unduh Berkas
+          </a>
+        `;
+      } else {
+        fileBox.innerHTML = `
+          <span style="color: var(--text-muted); font-size: 0.82rem;">Tidak ada berkas digital terlampir (Hanya nota fisik fisik diserahkan).</span>
+        `;
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching proposal for LPJ verification:', err);
+    showNotification('Gagal memuat data verifikasi LPJ.');
+  }
+}
+
+function closeVerifikasiLpjModal() {
+  document.getElementById('modalVerifikasiLpj').classList.remove('active');
+  activeVerifLpjProposal = null;
+}
+
+async function handleBendaharaLpjAction(tindakan) {
+  if (!activeVerifLpjProposal) return;
+
+  const id = activeVerifLpjProposal.id;
+  const catatan_verifikasi = document.getElementById('verifLpjCatatanBendahara').value.trim();
+
+  if (tindakan === 'REVISI' && !catatan_verifikasi) {
+    alert('Harap isi catatan pemeriksaan alasan pengembalian/perbaikan LPJ.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/pengajuan/${id}/lpj/verifikasi`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tindakan, catatan_verifikasi })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeVerifikasiLpjModal();
+      showNotification(`✓ ${data.message}`);
+      loadSummaryStats();
+      loadPosAnggaran();
+      loadProposalsList();
+    } else {
+      alert(`Gagal memverifikasi LPJ: ${data.message}`);
+    }
+  } catch (err) {
+    alert(`Terjadi kesalahan jaringan: ${err.message}`);
   }
 }

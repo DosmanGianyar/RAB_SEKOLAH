@@ -404,9 +404,16 @@ function getPengajuanById(id) {
     ORDER BY id ASC
   `).all(id);
 
+  const lpj = db.prepare(`
+    SELECT * FROM lpj_pertanggungjawaban
+    WHERE pengajuan_id = ?
+    ORDER BY id DESC LIMIT 1
+  `).get(id);
+
   return {
     ...proposal,
-    items
+    items,
+    lpj: lpj || null
   };
 }
 
@@ -694,7 +701,189 @@ function getPengajuanByQrToken(token) {
     ORDER BY a.id ASC
   `).all(proposal.id);
 
+  proposal.lpj = db.prepare(`
+    SELECT * FROM lpj_pertanggungjawaban
+    WHERE pengajuan_id = ?
+    ORDER BY id DESC LIMIT 1
+  `).get(proposal.id) || null;
+
   return proposal;
+}
+
+// ==========================================================================
+// FASE 5: MODUL LPJ (LAPORAN PERTANGGUNGJAWABAN) & REKONSILIASI KAS
+// ==========================================================================
+
+// 1. Guru Mengajukan LPJ & Mengunggah Nota
+function submitLpjByGuru({
+  pengajuan_id,
+  user_id,
+  total_belanja_riil,
+  file_nota_url,
+  catatan_lpj
+}) {
+  const proposal = getPengajuanById(pengajuan_id);
+  if (!proposal) {
+    throw new Error('Proposal kegiatan tidak ditemukan.');
+  }
+
+  if (proposal.status !== 'DICAIRKAN' && proposal.status !== 'MENUNGGU_VERIFIKASI_LPJ') {
+    throw new Error(`LPJ hanya dapat diajukan jika dana telah dicairkan (status: DICAIRKAN). Status saat ini: "${proposal.status}".`);
+  }
+
+  const user = getUserById(user_id);
+  if (user && user.role === 'GURU' && proposal.user_id !== user.id) {
+    throw new Error('Akses Ditolak: Anda hanya berhak membuat LPJ dari usulan kegiatan Anda sendiri.');
+  }
+
+  const danaCair = proposal.total_dana_disetujui;
+  const belanjaRiil = Math.max(0, Number(total_belanja_riil) || 0);
+  const sisaPengembalian = Math.max(0, danaCair - belanjaRiil);
+
+  // Periksa apakah LPJ sebelumnya sudah pernah dibuat
+  const existingLpj = db.prepare(`
+    SELECT id, file_nota_url FROM lpj_pertanggungjawaban WHERE pengajuan_id = ?
+  `).get(pengajuan_id);
+
+  const finalFileUrl = file_nota_url || (existingLpj ? existingLpj.file_nota_url : null);
+
+  if (existingLpj) {
+    db.prepare(`
+      UPDATE lpj_pertanggungjawaban
+      SET total_dana_cair = ?,
+          total_belanja_riil = ?,
+          sisa_pengembalian_dana = ?,
+          file_nota_url = ?,
+          catatan_lpj = ?,
+          status_lpj = 'MENUNGGU_VERIFIKASI',
+          created_at = datetime('now', 'localtime')
+      WHERE id = ?
+    `).run(danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '', existingLpj.id);
+  } else {
+    db.prepare(`
+      INSERT INTO lpj_pertanggungjawaban (
+        pengajuan_id, total_dana_cair, total_belanja_riil, sisa_pengembalian_dana,
+        file_nota_url, catatan_lpj, status_lpj
+      ) VALUES (?, ?, ?, ?, ?, ?, 'MENUNGGU_VERIFIKASI')
+    `).run(pengajuan_id, danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '');
+  }
+
+  // Update status proposal menjadi MENUNGGU_VERIFIKASI_LPJ
+  db.prepare(`
+    UPDATE pengajuan_kegiatan
+    SET status = 'MENUNGGU_VERIFIKASI_LPJ'
+    WHERE id = ?
+  `).run(pengajuan_id);
+
+  // Catat di Audit Trail
+  const guruName = user ? user.nama_lengkap : 'Guru Pemohon';
+  let detailInfo = `Belanja Riil: Rp ${belanjaRiil.toLocaleString('id-ID')}`;
+  if (sisaPengembalian > 0) {
+    detailInfo += ` (Sisa kas disetor kembali: Rp ${sisaPengembalian.toLocaleString('id-ID')})`;
+  } else if (belanjaRiil > danaCair) {
+    detailInfo += ` (Kelebihan biaya: Rp ${(belanjaRiil - danaCair).toLocaleString('id-ID')})`;
+  }
+
+  db.prepare(`
+    INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
+    VALUES (?, ?, ?)
+  `).run(
+    pengajuan_id,
+    user_id,
+    `LPJ DIAJUKAN: ${guruName} menyerahkan berkas LPJ fisik/nota. ${detailInfo}.`
+  );
+
+  return getPengajuanById(pengajuan_id);
+}
+
+// 2. Bendahara Memverifikasi LPJ & Rekonsiliasi Kas Pengembalian
+function verifyLpjByBendahara({
+  pengajuan_id,
+  user_id,
+  tindakan, // 'TERIMA' atau 'REVISI'
+  catatan_verifikasi
+}) {
+  const proposal = getPengajuanById(pengajuan_id);
+  if (!proposal) {
+    throw new Error('Proposal kegiatan tidak ditemukan.');
+  }
+
+  if (proposal.status !== 'MENUNGGU_VERIFIKASI_LPJ') {
+    throw new Error(`Proposal berstatus "${proposal.status}". Hanya proposal dalam antrean LPJ yang dapat diverifikasi.`);
+  }
+
+  const user = getUserById(user_id);
+  if (user && user.role !== 'BENDAHARA' && user.role !== 'ADMIN') {
+    throw new Error('Hanya Bendahara atau Admin yang berhak memverifikasi berkas LPJ.');
+  }
+
+  const bendaharaName = user ? user.nama_lengkap : 'Bendahara Sekolah';
+  const lpj = proposal.lpj;
+  if (!lpj) {
+    throw new Error('Data LPJ belum ditemukan pada proposal ini.');
+  }
+
+  if (tindakan === 'REVISI') {
+    // Minta perbaikan ke guru
+    db.prepare(`
+      UPDATE lpj_pertanggungjawaban
+      SET status_lpj = 'PERLU_PERBAIKAN'
+      WHERE id = ?
+    `).run(lpj.id);
+
+    db.prepare(`
+      UPDATE pengajuan_kegiatan
+      SET status = 'DICAIRKAN',
+          catatan_bendahara = ?
+      WHERE id = ?
+    `).run(`Catatan LPJ: ${catatan_verifikasi || 'Bukti nota/nominal belum sesuai'}`, pengajuan_id);
+
+    db.prepare(`
+      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
+      VALUES (?, ?, ?)
+    `).run(
+      pengajuan_id,
+      user_id,
+      `LPJ PERLU PERBAIKAN: ${bendaharaName} meminta revisi LPJ: "${catatan_verifikasi || 'Perbaiki bukti nota'}"`
+    );
+  } else {
+    // TERIMA & SELESAI
+    db.prepare(`
+      UPDATE lpj_pertanggungjawaban
+      SET status_lpj = 'TERVERIFIKASI'
+      WHERE id = ?
+    `).run(lpj.id);
+
+    db.prepare(`
+      UPDATE pengajuan_kegiatan
+      SET status = 'SELESAI'
+      WHERE id = ?
+    `).run(pengajuan_id);
+
+    // Rekonsiliasi Kas: Kembalikan sisa uang kas ke pos anggaran
+    if (lpj.sisa_pengembalian_dana > 0) {
+      db.prepare(`
+        UPDATE pos_anggaran
+        SET total_terserap = MAX(0, total_terserap - ?)
+        WHERE id = ?
+      `).run(lpj.sisa_pengembalian_dana, proposal.pos_anggaran_id);
+    }
+
+    const rekonsiliasiMsg = lpj.sisa_pengembalian_dana > 0
+      ? `Sisa dana kas sebesar Rp ${lpj.sisa_pengembalian_dana.toLocaleString('id-ID')} telah diterima kembali dan dikembalikan ke sisa pagu aktif pos anggaran.`
+      : `Seluruh dana kas terealisasi penuh sesuai nota fisik.`;
+
+    db.prepare(`
+      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
+      VALUES (?, ?, ?)
+    `).run(
+      pengajuan_id,
+      user_id,
+      `LPJ DITERIMA & SELESAI: ${bendaharaName} mengesahkan LPJ & nota belanja. ${rekonsiliasiMsg}`
+    );
+  }
+
+  return getPengajuanById(pengajuan_id);
 }
 
 module.exports = {
@@ -714,6 +903,8 @@ module.exports = {
   decisionProposalByKepsek,
   disburseProposal,
   getPengajuanByQrToken,
+  submitLpjByGuru,
+  verifyLpjByBendahara,
   getAuditLogs
 };
 

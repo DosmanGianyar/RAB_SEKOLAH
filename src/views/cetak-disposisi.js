@@ -50,6 +50,21 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
     `;
   }
 
+  let infoLpjHtml = '';
+  if (proposal.status === 'SELESAI' && proposal.lpj) {
+    infoLpjHtml = `
+      <div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 8.5pt;">
+        <div style="font-weight: 800; color: #5b21b6; margin-bottom: 6px; text-transform: uppercase;">STATUS LPJ: TERVERIFIKASI & SELESAI RESMI</div>
+        <div class="banner-grid" style="color: #6d28d9;">
+          <div><strong>Total Belanja Riil:</strong> ${formatRupiah(proposal.lpj.total_belanja_riil)}</div>
+          <div><strong>Sisa Kas Dikembalikan:</strong> ${formatRupiah(proposal.lpj.sisa_pengembalian_dana)}</div>
+          <div><strong>Status Berkas Nota:</strong> Fisik Kuitansi Telah Diverifikasi</div>
+          <div><strong>Status Anggaran:</strong> Lunas, Rekonsiliasi Kas Tuntas</div>
+        </div>
+      </div>
+    `;
+  }
+
   const tanggalCetak = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -546,6 +561,7 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
 
     <!-- Informasi Realisasi Pencairan (Jika Sudah Dicairkan) -->
     ${infoPencairanHtml}
+    ${infoLpjHtml}
 
     <!-- Bagian Bawah: QR Code Keabsahan & 3 Kolom Tanda Tangan Resmi -->
     <div class="bottom-section">
