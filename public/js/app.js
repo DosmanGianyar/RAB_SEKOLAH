@@ -181,9 +181,9 @@ async function switchUserRole(userId) {
       renderUserHeader(currentUser);
       closeRoleModal();
       showNotification(`Beralih ke akun: ${currentUser.nama_lengkap} (${currentUser.role})`);
-      if (activeViewName === 'riwayat') {
-        loadProposalsList();
-      }
+      loadProposalsList();
+      loadSummaryStats();
+      loadPosAnggaran();
     }
   } catch (err) {
     console.error('Error switching user:', err);
@@ -568,6 +568,21 @@ async function loadProposalsList() {
     const data = await res.json();
     if (data.success && data.data) {
       currentProposals = data.data;
+
+      const isGuru = currentUser && currentUser.role === 'GURU';
+      const titleEl = document.getElementById('riwayatViewTitle');
+      const subtitleEl = document.getElementById('riwayatViewSubtitle');
+      
+      if (titleEl && subtitleEl) {
+        if (isGuru) {
+          titleEl.textContent = 'Riwayat Usulan Saya';
+          subtitleEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; color:#059669; font-weight:700;">🔒 Area Usulan Pribadi:</span> Menampilkan khusus usulan dari akun Anda (<strong>${currentUser.nama_lengkap}</strong>). Berkas usulan guru/unit lain terisolasi & tidak dapat diakses.`;
+        } else {
+          titleEl.textContent = 'Daftar Seluruh Usulan Sekolah';
+          subtitleEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; color:#2563eb; font-weight:700;">🌐 Mode Pengawasan Institusi (${currentUser.role}):</span> Memantau seluruh usulan kegiatan dari semua guru dan unit pembina sekolah.`;
+        }
+      }
+
       document.getElementById('proposalCountBadge').textContent = `${currentProposals.length} Proposal`;
       renderProposalsList(currentProposals);
     }
@@ -581,15 +596,21 @@ function renderProposalsList(proposals) {
   container.innerHTML = '';
 
   if (proposals.length === 0) {
+    const isGuru = currentUser && currentUser.role === 'GURU';
+    const emptyTitle = isGuru ? 'Anda Belum Memiliki Usulan RAB' : 'Belum Ada Usulan Masuk dari Guru';
+    const emptyDesc = isGuru 
+      ? 'Anda belum mengajukan rencana anggaran kegiatan. Tekan tombol di bawah untuk membuat usulan baru.'
+      : 'Saat ini belum ada proposal kegiatan yang diajukan oleh guru pembina sekolah.';
+
     container.innerHTML = `
       <div style="text-align: center; padding: 50px 20px; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-subtle);">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-subtle); margin-bottom: 12px;">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <polyline points="14 2 14 8 20 8"></polyline>
         </svg>
-        <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-main);">Belum Ada Proposal Diajukan</div>
+        <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-main);">${emptyTitle}</div>
         <p style="font-size: 0.82rem; color: var(--text-muted); margin: 6px 0 16px;">
-          Mulai buat proposal usulan kegiatan sekolah pertama Anda sekarang.
+          ${emptyDesc}
         </p>
         <button class="btn btn-primary btn-sm" onclick="switchView('ajukan')">
           + Buat Usulan RAB Sekarang

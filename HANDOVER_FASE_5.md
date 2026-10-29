@@ -63,3 +63,4 @@ Bagi pengembang atau AI Assistant pada sesi berikutnya, berikut adalah instruksi
      *(Dana sisa kembali ke sisa pagu aktif pos anggaran secara akurat)*.
    * Status proposal berubah menjadi `SELESAI`.
    * Dokumen LPJ dicatat pada `audit_log_koreksi`.
+

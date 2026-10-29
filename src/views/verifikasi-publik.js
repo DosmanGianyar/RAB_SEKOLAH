@@ -442,3 +442,4 @@ function renderVerifikasiPublik({ proposal, isValid }) {
 }
 
 module.exports = { renderVerifikasiPublik };
+

@@ -44,3 +44,4 @@ function terbilang(angka) {
 }
 
 module.exports = { terbilang };
+

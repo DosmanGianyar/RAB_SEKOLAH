@@ -132,10 +132,21 @@ app.get('/api/pengajuan', (req, res) => {
 // Detail Pengajuan beserta item baris belanja
 app.get('/api/pengajuan/:id', (req, res) => {
   try {
+    const activeUser = getUserById(currentActiveUserId) || getUserById(1);
     const data = getPengajuanById(req.params.id);
     if (!data) {
       return res.status(404).json({ success: false, message: 'Proposal tidak ditemukan' });
     }
+
+    // ISOLASI PRIVASI ANTAR-GURU:
+    // Guru dilarang keras membuka data detail usulan milik guru/unit lain
+    if (activeUser.role === 'GURU' && data.user_id !== activeUser.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses Ditolak: Berkas RAB ini bersifat privat. Anda hanya berhak mengakses usulan kegiatan yang Anda ajukan sendiri.'
+      });
+    }
+
     res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -241,6 +252,11 @@ app.post('/api/pengajuan/:id/kepsek-decision', (req, res) => {
 // Get Audit Trail Logs for Proposal
 app.get('/api/pengajuan/:id/audit', (req, res) => {
   try {
+    const activeUser = getUserById(currentActiveUserId) || getUserById(1);
+    const proposal = getPengajuanById(Number(req.params.id));
+    if (proposal && activeUser.role === 'GURU' && proposal.user_id !== activeUser.id) {
+      return res.status(403).json({ success: false, message: 'Akses Ditolak: Jejak audit guru lain bersifat rahasia.' });
+    }
     const logs = getAuditLogs(Number(req.params.id));
     res.json({ success: true, data: logs });
   } catch (err) {
@@ -323,9 +339,15 @@ app.get('/api/pengajuan/:id/qr', async (req, res) => {
 // 3. Render Lembar Disposisi & Pengesahan RAB Resmi (A4 Print-Ready)
 app.get('/cetak/:id', async (req, res) => {
   try {
+    const activeUser = getUserById(currentActiveUserId) || getUserById(1);
     const proposal = getPengajuanById(Number(req.params.id));
     if (!proposal) {
       return res.status(404).send('Proposal tidak ditemukan.');
+    }
+
+    // Proteksi Cetak: Guru dilarang mencetak disposisi guru lain
+    if (activeUser.role === 'GURU' && proposal.user_id !== activeUser.id) {
+      return res.status(403).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Akses Ditolak: Anda hanya berhak mencetak lembar disposisi usulan kegiatan Anda sendiri.</h2>');
     }
 
     const host = req.get('host');

@@ -600,3 +600,4 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
 }
 
 module.exports = { renderCetakDisposisi };
+
