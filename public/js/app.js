@@ -819,7 +819,7 @@ function renderProposalsList(proposals) {
     // Role-based quick action button on card
     let roleActionBtn = '';
     const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
-    const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ADMIN');
+    const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
     const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
 
     if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
@@ -1057,7 +1057,7 @@ async function openProposalDetail(id) {
       footer.innerHTML = `<button type="button" class="btn btn-secondary btn-sm" onclick="closeDetailModal()">Tutup</button>`;
 
       const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
-      const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ADMIN');
+      const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
       const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
 
       // Tombol Cetak Dokumen Resmi untuk status yang sudah disahkan / dicairkan

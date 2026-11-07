@@ -808,6 +808,7 @@ body {
 .role-badge-tag.GURU { background: var(--emerald-bg); color: var(--emerald); border: 1px solid var(--emerald-border); }
 .role-badge-tag.BENDAHARA { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
 .role-badge-tag.KEPALA_SEKOLAH { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
+.role-badge-tag.ANALISIS_SDM { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
 .role-badge-tag.ADMIN { background: var(--cyan-bg); color: var(--cyan); border: 1px solid var(--cyan-border); }
 
 /* ==========================================================================

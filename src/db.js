@@ -133,7 +133,8 @@ function initDatabase() {
     UPDATE users 
     SET nama_lengkap = 'I Gusti Ngurah Nyoman Okta Ariawan, SSTP',
         email = 'okta.sdm@sekolah.sch.id',
-        unit_bagian = 'Analisis SDM & Kepegawaian'
+        role = 'ANALISIS_SDM',
+        unit_bagian = 'Analisis SDM & Otorisasi Pimpinan'
     WHERE id = 2
   `).run();
 
@@ -172,7 +173,7 @@ function seedInitialData() {
     `);
 
     insertUser.run('I Putu Darma Putra, S.Pd', '198507122010011008', 'darma.osis@sekolah.sch.id', 'password123', 'GURU', 'Pembina OSIS & Kesiswaan');
-    insertUser.run('I Gusti Ngurah Nyoman Okta Ariawan, SSTP', '198804252014022003', 'okta.sdm@sekolah.sch.id', 'password123', 'GURU', 'Analisis SDM & Kepegawaian');
+    insertUser.run('I Gusti Ngurah Nyoman Okta Ariawan, SSTP', '198804252014022003', 'okta.sdm@sekolah.sch.id', 'password123', 'ANALISIS_SDM', 'Analisis SDM & Otorisasi Pimpinan');
     insertUser.run('I Gusti Ayu Reina Cahyanti', '198203152008012015', 'reina.bendahara@sekolah.sch.id', 'password123', 'BENDAHARA', 'Sub Bagian Keuangan & Tata Usaha');
     insertUser.run('I Wayan Sudra Astra, S.Pd., M.Pd', '196811201994121001', 'kepsek@sekolah.sch.id', 'password123', 'KEPALA_SEKOLAH', 'Kepala SMA Negeri 1 Gianyar');
     insertUser.run('daput', '199501012022011002', 'daput', '007007', 'ADMIN', 'Administrator Sistem');
@@ -652,7 +653,7 @@ function decisionProposalByKepsek({ proposal_id, user_id, tindakan, catatan_keps
   }
 
   if (proposal.status !== 'MENUNGGU_PERSETUJUAN_KEPSEK') {
-    throw new Error(`Proposal berstatus ${proposal.status} dan tidak sedang menunggu persetujuan Kepala Sekolah.`);
+    throw new Error(`Proposal berstatus ${proposal.status} dan tidak sedang menunggu otorisasi pimpinan.`);
   }
 
   const user = getUserById(user_id);

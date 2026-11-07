@@ -322,13 +322,14 @@ app.post('/api/pengajuan/:id/review', requireAuth, (req, res) => {
   }
 });
 
-// Keputusan Otorisasi Final oleh Kepala Sekolah
+// Keputusan Otorisasi Final oleh Kepala Sekolah / Analisis SDM
 app.post('/api/pengajuan/:id/kepsek-decision', requireAuth, (req, res) => {
   try {
     const { tindakan, catatan_kepsek } = req.body;
 
-    if (req.user.role !== 'KEPALA_SEKOLAH' && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Hanya Kepala Sekolah yang berhak memberikan otorisasi final.' });
+    // Kepala Sekolah dan Analisis SDM memiliki otoritas pengesahan yang setara
+    if (req.user.role !== 'KEPALA_SEKOLAH' && req.user.role !== 'ANALISIS_SDM' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Hanya Kepala Sekolah atau Analisis SDM yang berhak memberikan otorisasi final.' });
     }
 
     const updated = decisionProposalByKepsek({
@@ -338,9 +339,10 @@ app.post('/api/pengajuan/:id/kepsek-decision', requireAuth, (req, res) => {
       catatan_kepsek
     });
 
+    const roleName = req.user.role === 'ANALISIS_SDM' ? 'Analisis SDM' : 'Kepala Sekolah';
     const msg = tindakan === 'APPROVE'
-      ? `Usulan anggaran "${updated.nama_kegiatan}" telah DISETUJUI & DISAHKAN oleh Kepala Sekolah.`
-      : `Proposal dikembalikan oleh Kepala Sekolah untuk revisi.`;
+      ? `Usulan anggaran "${updated.nama_kegiatan}" telah DISETUJUI & DISAHKAN oleh ${req.user.nama_lengkap} (${roleName}).`
+      : `Proposal dikembalikan oleh ${req.user.nama_lengkap} (${roleName}) untuk revisi.`;
 
     res.json({ success: true, data: updated, message: msg });
   } catch (err) {
