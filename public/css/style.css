@@ -17,57 +17,91 @@
   --tblr-btn-border-radius: 10px;
 
   /* Clean High-Contrast Institutional Palette */
-  --bg-main: #f1f5f9;         /* Slate 100 - Kontras tajam dan tegas terhadap kartu putih */
-  --bg-surface: #ffffff;      /* Putih murni untuk kartu utama */
+  --bg-main: #f1f5f9;
+  /* Slate 100 - Kontras tajam dan tegas terhadap kartu putih */
+  --bg-surface: #ffffff;
+  /* Putih murni untuk kartu utama */
   --bg-card: #ffffff;
-  --bg-card-hover: #f8fafc;   /* Slate 50 */
+  --bg-card-hover: #f8fafc;
+  /* Slate 50 */
   --bg-input: #ffffff;
   --bg-subtle: #f8fafc;
 
   /* Primary Accent: Executive Sapphire / Deep Navy Blue */
-  --primary: #1d4ed8;         /* Blue 700 - Berwibawa, tajam, standar institusi resmi */
-  --primary-hover: #1e40af;   /* Blue 800 */
-  --primary-light: #eff6ff;   /* Blue 50 */
-  --primary-border: #93c5fd;  /* Blue 300 - Terbaca jelas dan solid */
+  --primary: #1d4ed8;
+  /* Blue 700 - Berwibawa, tajam, standar institusi resmi */
+  --primary-hover: #1e40af;
+  /* Blue 800 */
+  --primary-light: #eff6ff;
+  /* Blue 50 */
+  --primary-border: #93c5fd;
+  /* Blue 300 - Terbaca jelas dan solid */
   --primary-glow: rgba(29, 78, 216, 0.22);
 
   /* Status Accents (WCAG AAA High Contrast) */
-  --emerald: #047857;         /* Emerald 700 */
-  --emerald-bg: #ecfdf5;      /* Emerald 50 */
-  --emerald-border: #6ee7b7;  /* Emerald 300 */
-  --emerald-text: #064e3b;    /* Emerald 900 */
+  --emerald: #047857;
+  /* Emerald 700 */
+  --emerald-bg: #ecfdf5;
+  /* Emerald 50 */
+  --emerald-border: #6ee7b7;
+  /* Emerald 300 */
+  --emerald-text: #064e3b;
+  /* Emerald 900 */
 
-  --amber: #b45309;           /* Amber 700 */
-  --amber-bg: #fffbeb;        /* Amber 50 */
-  --amber-border: #fcd34d;    /* Amber 300 */
-  --amber-text: #78350f;      /* Amber 900 */
+  --amber: #b45309;
+  /* Amber 700 */
+  --amber-bg: #fffbeb;
+  /* Amber 50 */
+  --amber-border: #fcd34d;
+  /* Amber 300 */
+  --amber-text: #78350f;
+  /* Amber 900 */
 
-  --rose: #be123c;            /* Rose 700 */
-  --rose-bg: #fff1f2;         /* Rose 50 */
-  --rose-border: #fda4af;     /* Rose 300 */
-  --rose-text: #881337;       /* Rose 900 */
+  --rose: #be123c;
+  /* Rose 700 */
+  --rose-bg: #fff1f2;
+  /* Rose 50 */
+  --rose-border: #fda4af;
+  /* Rose 300 */
+  --rose-text: #881337;
+  /* Rose 900 */
   --danger: #b91c1c;
 
-  --cyan: #0369a1;            /* Sky 700 */
-  --cyan-bg: #f0f9ff;         /* Sky 50 */
-  --cyan-border: #7dd3fc;     /* Sky 300 */
-  --cyan-text: #0c4a6e;       /* Sky 900 */
+  --cyan: #0369a1;
+  /* Sky 700 */
+  --cyan-bg: #f0f9ff;
+  /* Sky 50 */
+  --cyan-border: #7dd3fc;
+  /* Sky 300 */
+  --cyan-text: #0c4a6e;
+  /* Sky 900 */
 
-  --purple: #6d28d9;          /* Violet 700 */
-  --purple-bg: #f5f3ff;       /* Violet 50 */
-  --purple-border: #c4b5fd;   /* Violet 300 */
-  --purple-text: #4c1d95;     /* Violet 900 */
+  --purple: #6d28d9;
+  /* Violet 700 */
+  --purple-bg: #f5f3ff;
+  /* Violet 50 */
+  --purple-border: #c4b5fd;
+  /* Violet 300 */
+  --purple-text: #4c1d95;
+  /* Violet 900 */
 
   /* High Contrast Typography */
-  --text-main: #0a0f1d;       /* Slate 950 - Sangat tegas, hitam pekat & berwibawa */
-  --text-body: #1e293b;       /* Slate 800 - Tajam dan sangat mudah dibaca */
-  --text-muted: #475569;      /* Slate 600 - Keterangan sekunder yang tetap kontras */
-  --text-subtle: #64748b;     /* Slate 500 */
-  --text-light: #94a3b8;      /* Slate 400 */
+  --text-main: #0a0f1d;
+  /* Slate 950 - Sangat tegas, hitam pekat & berwibawa */
+  --text-body: #1e293b;
+  /* Slate 800 - Tajam dan sangat mudah dibaca */
+  --text-muted: #475569;
+  /* Slate 600 - Keterangan sekunder yang tetap kontras */
+  --text-subtle: #64748b;
+  /* Slate 500 */
+  --text-light: #94a3b8;
+  /* Slate 400 */
 
   /* High Definition Solid Borders */
-  --border-subtle: #cbd5e1;   /* Slate 300 - Garis pembatas jelas dan tegas */
-  --border-card: #94a3b8;     /* Slate 400 - Batas kartu kentara dan terdefinisi */
+  --border-subtle: #cbd5e1;
+  /* Slate 300 - Garis pembatas jelas dan tegas */
+  --border-card: #94a3b8;
+  /* Slate 400 - Batas kartu kentara dan terdefinisi */
   --border-focus: #1d4ed8;
 
   /* Solid Natural Shadows */
@@ -86,7 +120,9 @@
 }
 
 /* Base Reset */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -108,7 +144,8 @@ body {
   min-height: 100vh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  padding-bottom: 90px; /* Ruang untuk mobile bottom navigation */
+  padding-bottom: 90px;
+  /* Ruang untuk mobile bottom navigation */
 }
 
 /* Background Subtle Gradient */
@@ -341,9 +378,17 @@ body {
   background: var(--primary);
 }
 
-.metric-card.emerald::before { background: var(--emerald); }
-.metric-card.amber::before { background: var(--amber); }
-.metric-card.cyan::before { background: var(--cyan); }
+.metric-card.emerald::before {
+  background: var(--emerald);
+}
+
+.metric-card.amber::before {
+  background: var(--amber);
+}
+
+.metric-card.cyan::before {
+  background: var(--cyan);
+}
 
 .metric-header {
   display: flex;
@@ -370,10 +415,29 @@ body {
   font-size: 0.95rem;
 }
 
-.metric-icon-wrap.indigo { background: #eff6ff; color: var(--primary); border: 1.5px solid #93c5fd; }
-.metric-icon-wrap.emerald { background: var(--emerald-bg); color: var(--emerald); border: 1.5px solid var(--emerald-border); }
-.metric-icon-wrap.amber { background: var(--amber-bg); color: var(--amber); border: 1.5px solid var(--amber-border); }
-.metric-icon-wrap.cyan { background: var(--cyan-bg); color: var(--cyan); border: 1.5px solid var(--cyan-border); }
+.metric-icon-wrap.indigo {
+  background: #eff6ff;
+  color: var(--primary);
+  border: 1.5px solid #93c5fd;
+}
+
+.metric-icon-wrap.emerald {
+  background: var(--emerald-bg);
+  color: var(--emerald);
+  border: 1.5px solid var(--emerald-border);
+}
+
+.metric-icon-wrap.amber {
+  background: var(--amber-bg);
+  color: var(--amber);
+  border: 1.5px solid var(--amber-border);
+}
+
+.metric-icon-wrap.cyan {
+  background: var(--cyan-bg);
+  color: var(--cyan);
+  border: 1.5px solid var(--cyan-border);
+}
 
 .metric-value {
   font-family: 'Outfit', sans-serif;
@@ -517,9 +581,17 @@ body {
   border-radius: 50%;
 }
 
-.traffic-badge.green .traffic-dot { background: var(--emerald); }
-.traffic-badge.yellow .traffic-dot { background: var(--amber); }
-.traffic-badge.red .traffic-dot { background: var(--rose); }
+.traffic-badge.green .traffic-dot {
+  background: var(--emerald);
+}
+
+.traffic-badge.yellow .traffic-dot {
+  background: var(--amber);
+}
+
+.traffic-badge.red .traffic-dot {
+  background: var(--rose);
+}
 
 /* Progress Bar */
 .budget-progress-wrap {
@@ -549,9 +621,17 @@ body {
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.progress-bar.green { background: linear-gradient(90deg, #10b981, #059669); }
-.progress-bar.yellow { background: linear-gradient(90deg, #f59e0b, #d97706); }
-.progress-bar.red { background: linear-gradient(90deg, #f43f5e, #e11d48); }
+.progress-bar.green {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.progress-bar.yellow {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.progress-bar.red {
+  background: linear-gradient(90deg, #f43f5e, #e11d48);
+}
 
 /* Breakdown Numbers Box */
 .budget-stats-breakdown {
@@ -664,6 +744,7 @@ body {
   .mobile-nav-bar {
     display: none;
   }
+
   body {
     padding-bottom: 30px;
   }
@@ -782,7 +863,9 @@ body {
   color: var(--text-main);
 }
 
-.form-input, .form-select, .form-textarea {
+.form-input,
+.form-select,
+.form-textarea {
   width: 100%;
   background: #ffffff;
   border: 1.5px solid var(--border-card);
@@ -795,7 +878,9 @@ body {
   transition: var(--transition);
 }
 
-.form-input:focus, .form-select:focus, .form-textarea:focus {
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
@@ -837,11 +922,35 @@ body {
   text-transform: uppercase;
 }
 
-.role-badge-tag.GURU { background: #d1fae5; color: #064e3b; border: 1.5px solid #6ee7b7; }
-.role-badge-tag.BENDAHARA { background: #fef3c7; color: #78350f; border: 1.5px solid #fcd34d; }
-.role-badge-tag.KEPALA_SEKOLAH { background: #ede9fe; color: #5b21b6; border: 1.5px solid #c4b5fd; }
-.role-badge-tag.ANALISIS_SDM { background: #ede9fe; color: #5b21b6; border: 1.5px solid #c4b5fd; }
-.role-badge-tag.ADMIN { background: #e0f2fe; color: #075985; border: 1.5px solid #7dd3fc; }
+.role-badge-tag.GURU {
+  background: #d1fae5;
+  color: #064e3b;
+  border: 1.5px solid #6ee7b7;
+}
+
+.role-badge-tag.BENDAHARA {
+  background: #fef3c7;
+  color: #78350f;
+  border: 1.5px solid #fcd34d;
+}
+
+.role-badge-tag.KEPALA_SEKOLAH {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1.5px solid #c4b5fd;
+}
+
+.role-badge-tag.ANALISIS_SDM {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1.5px solid #c4b5fd;
+}
+
+.role-badge-tag.ADMIN {
+  background: #e0f2fe;
+  color: #075985;
+  border: 1.5px solid #7dd3fc;
+}
 
 /* ==========================================================================
    FASE 2: DYNAMIC PROPOSAL FORM & MOBILE-FIRST ITEM CARDS
@@ -858,8 +967,15 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Desktop Navigation Header Tabs */
@@ -971,13 +1087,6 @@ body {
 .item-row-card:hover {
   border-color: var(--border-card);
   box-shadow: var(--shadow-sm);
-}
-}
-
-.item-row-card:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
-  box-shadow: var(--shadow-xs);
 }
 
 .item-card-header {
@@ -1095,8 +1204,13 @@ body {
   margin-top: 1px;
 }
 
-.live-budget-alert.safe .live-budget-alert-icon { color: var(--emerald); }
-.live-budget-alert.overbudget .live-budget-alert-icon { color: var(--rose); }
+.live-budget-alert.safe .live-budget-alert-icon {
+  color: var(--emerald);
+}
+
+.live-budget-alert.overbudget .live-budget-alert-icon {
+  color: var(--rose);
+}
 
 /* Summary & Submit Action Box */
 .proposal-action-box {
@@ -1299,6 +1413,7 @@ body {
   .review-inputs-grid {
     grid-template-columns: 1fr 1fr;
   }
+
   .review-inputs-grid .full-mobile {
     grid-column: span 2;
   }
@@ -1582,6 +1697,7 @@ body {
   .logout-label {
     display: none;
   }
+
   .btn-logout-header {
     padding: 7px;
   }
