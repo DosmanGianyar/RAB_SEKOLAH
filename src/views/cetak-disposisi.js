@@ -590,7 +590,7 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
         <div class="sig-box">
           <div class="sig-role">Penelaah Anggaran (Bendahara),</div>
           <div style="margin-top: 48px;">
-            <div class="sig-name">Ibu Ni Made Ratna Dewi, S.E</div>
+            <div class="sig-name">I Gusti Ayu Reina Cahyanti</div>
             <div class="sig-nip">NIP. 198203152008012015</div>
           </div>
         </div>
@@ -603,7 +603,7 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
             <strong>Kepala SMA Negeri 1 Gianyar</strong>
           </div>
           <div style="margin-top: 50px;">
-            <div class="sig-name">Drs. I Wayan Sudarsana, M.Pd</div>
+            <div class="sig-name">I Wayan Sudra Astra, S.Pd., M.Pd</div>
             <div class="sig-nip">Pembina Utama Muda / NIP. 196811201994121001</div>
           </div>
         </div>

@@ -120,6 +120,39 @@ function initDatabase() {
     db.prepare(`UPDATE users SET password = 'password123' WHERE password IS NULL OR password = ''`).run();
   }
 
+  // Update data detail akun resmi sekolah
+  db.prepare(`
+    UPDATE users 
+    SET nama_lengkap = 'I Putu Darma Putra, S.Pd',
+        email = 'darma.osis@sekolah.sch.id',
+        unit_bagian = 'Pembina OSIS & Kesiswaan'
+    WHERE id = 1
+  `).run();
+
+  db.prepare(`
+    UPDATE users 
+    SET nama_lengkap = 'I Gusti Ngurah Nyoman Okta Ariawan, SSTP',
+        email = 'okta.sdm@sekolah.sch.id',
+        unit_bagian = 'Analisis SDM & Kepegawaian'
+    WHERE id = 2
+  `).run();
+
+  db.prepare(`
+    UPDATE users 
+    SET nama_lengkap = 'I Gusti Ayu Reina Cahyanti',
+        email = 'reina.bendahara@sekolah.sch.id',
+        unit_bagian = 'Sub Bagian Keuangan & Tata Usaha'
+    WHERE id = 3
+  `).run();
+
+  db.prepare(`
+    UPDATE users 
+    SET nama_lengkap = 'I Wayan Sudra Astra, S.Pd., M.Pd',
+        email = 'kepsek@sekolah.sch.id',
+        unit_bagian = 'Kepala SMA Negeri 1 Gianyar'
+    WHERE id = 4
+  `).run();
+
   // Update akun administrator menjadi 'daput' dengan password '007007'
   db.prepare(`
     UPDATE users 
@@ -138,10 +171,10 @@ function seedInitialData() {
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    insertUser.run('I Putu Agus Pratama, S.Pd', '198507122010011008', 'agus.osis@sekolah.sch.id', 'password123', 'GURU', 'Pembina OSIS & Kesiswaan');
-    insertUser.run('Ni Luh Made Lestari, M.Pd', '198804252014022003', 'lestari.pramuka@sekolah.sch.id', 'password123', 'GURU', 'Pembina Pramuka & Ekstrakurikuler');
-    insertUser.run('Ibu Ni Made Ratna Dewi, S.E', '198203152008012015', 'ratna.bendahara@sekolah.sch.id', 'password123', 'BENDAHARA', 'Sub Bagian Keuangan & Tata Usaha');
-    insertUser.run('Drs. I Wayan Sudarsana, M.Pd', '196811201994121001', 'kepsek@sekolah.sch.id', 'password123', 'KEPALA_SEKOLAH', 'Pimpinan Institusi');
+    insertUser.run('I Putu Darma Putra, S.Pd', '198507122010011008', 'darma.osis@sekolah.sch.id', 'password123', 'GURU', 'Pembina OSIS & Kesiswaan');
+    insertUser.run('I Gusti Ngurah Nyoman Okta Ariawan, SSTP', '198804252014022003', 'okta.sdm@sekolah.sch.id', 'password123', 'GURU', 'Analisis SDM & Kepegawaian');
+    insertUser.run('I Gusti Ayu Reina Cahyanti', '198203152008012015', 'reina.bendahara@sekolah.sch.id', 'password123', 'BENDAHARA', 'Sub Bagian Keuangan & Tata Usaha');
+    insertUser.run('I Wayan Sudra Astra, S.Pd., M.Pd', '196811201994121001', 'kepsek@sekolah.sch.id', 'password123', 'KEPALA_SEKOLAH', 'Kepala SMA Negeri 1 Gianyar');
     insertUser.run('daput', '199501012022011002', 'daput', '007007', 'ADMIN', 'Administrator Sistem');
   }
 
@@ -249,8 +282,12 @@ function authenticateUser(identifier, password) {
     WHERE LOWER(email) = ? 
        OR nip = ? 
        OR LOWER(nama_lengkap) = ?
+       OR (id = 1 AND ? IN ('darma', 'darma.osis@sekolah.sch.id', 'agus.osis@sekolah.sch.id', 'osis'))
+       OR (id = 2 AND ? IN ('okta', 'okta.sdm@sekolah.sch.id', 'lestari.pramuka@sekolah.sch.id', 'sdm'))
+       OR (id = 3 AND ? IN ('reina', 'reina.bendahara@sekolah.sch.id', 'ratna.bendahara@sekolah.sch.id', 'bendahara'))
+       OR (id = 4 AND ? IN ('sudra', 'sudra.kepsek@sekolah.sch.id', 'kepsek', 'kepsek@sekolah.sch.id'))
        OR (role = 'ADMIN' AND ? IN ('daput', 'daput@sekolah.sch.id', 'admin', 'admin@sekolah.sch.id'))
-  `).get(cleanIdent, identifier.trim(), cleanIdent, cleanIdent);
+  `).get(cleanIdent, identifier.trim(), cleanIdent, cleanIdent, cleanIdent, cleanIdent, cleanIdent, cleanIdent);
 
   if (!user) {
     throw new Error('Akun tidak terdaftar. Periksa kembali Username, Email, atau NIP Anda.');
