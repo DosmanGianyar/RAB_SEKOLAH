@@ -325,7 +325,8 @@ function renderRoleOptions(users) {
   const roleListEl = document.getElementById('roleOptionsList');
   roleListEl.innerHTML = '';
 
-  users.forEach(u => {
+  // Akun Admin disembunyikan dari semua daftar pengguna
+  users.filter(u => u.role !== 'ADMIN').forEach(u => {
     const isCurrent = currentUser && currentUser.id === u.id;
     const card = document.createElement('div');
     card.className = `role-option-card ${isCurrent ? 'selected' : ''}`;

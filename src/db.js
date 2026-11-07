@@ -120,6 +120,13 @@ function initDatabase() {
     db.prepare(`UPDATE users SET password = 'password123' WHERE password IS NULL OR password = ''`).run();
   }
 
+  // Update akun administrator menjadi 'daput' dengan password '007007'
+  db.prepare(`
+    UPDATE users 
+    SET nama_lengkap = 'daput', email = 'daput', password = '007007'
+    WHERE role = 'ADMIN' OR id = 5
+  `).run();
+
   seedInitialData();
 }
 
@@ -128,14 +135,14 @@ function seedInitialData() {
   if (userCount === 0) {
     const insertUser = db.prepare(`
       INSERT INTO users (nama_lengkap, nip, email, password, role, unit_bagian)
-      VALUES (?, ?, ?, 'password123', ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    insertUser.run('I Putu Agus Pratama, S.Pd', '198507122010011008', 'agus.osis@sekolah.sch.id', 'GURU', 'Pembina OSIS & Kesiswaan');
-    insertUser.run('Ni Luh Made Lestari, M.Pd', '198804252014022003', 'lestari.pramuka@sekolah.sch.id', 'GURU', 'Pembina Pramuka & Ekstrakurikuler');
-    insertUser.run('Ibu Ni Made Ratna Dewi, S.E', '198203152008012015', 'ratna.bendahara@sekolah.sch.id', 'BENDAHARA', 'Sub Bagian Keuangan & Tata Usaha');
-    insertUser.run('Drs. I Wayan Sudarsana, M.Pd', '196811201994121001', 'kepsek@sekolah.sch.id', 'KEPALA_SEKOLAH', 'Pimpinan Institusi');
-    insertUser.run('Administrator Sistem IT', '199501012022011002', 'admin@sekolah.sch.id', 'ADMIN', 'Unit Pusat Data & TIK');
+    insertUser.run('I Putu Agus Pratama, S.Pd', '198507122010011008', 'agus.osis@sekolah.sch.id', 'password123', 'GURU', 'Pembina OSIS & Kesiswaan');
+    insertUser.run('Ni Luh Made Lestari, M.Pd', '198804252014022003', 'lestari.pramuka@sekolah.sch.id', 'password123', 'GURU', 'Pembina Pramuka & Ekstrakurikuler');
+    insertUser.run('Ibu Ni Made Ratna Dewi, S.E', '198203152008012015', 'ratna.bendahara@sekolah.sch.id', 'password123', 'BENDAHARA', 'Sub Bagian Keuangan & Tata Usaha');
+    insertUser.run('Drs. I Wayan Sudarsana, M.Pd', '196811201994121001', 'kepsek@sekolah.sch.id', 'password123', 'KEPALA_SEKOLAH', 'Pimpinan Institusi');
+    insertUser.run('daput', '199501012022011002', 'daput', '007007', 'ADMIN', 'Administrator Sistem');
   }
 
   const posCount = db.prepare('SELECT COUNT(*) as count FROM pos_anggaran').get().count;
@@ -222,7 +229,8 @@ function updatePosAnggaran(id, { nama_pos, pagu_awal, keterangan }) {
 }
 
 function getAllUsers() {
-  return db.prepare('SELECT id, nama_lengkap, nip, email, role, unit_bagian FROM users ORDER BY id ASC').all();
+  // Sembunyikan akun Admin dari seluruh daftar pengguna tampilan
+  return db.prepare("SELECT id, nama_lengkap, nip, email, role, unit_bagian FROM users WHERE role != 'ADMIN' ORDER BY id ASC").all();
 }
 
 function getUserById(id) {
@@ -232,21 +240,24 @@ function getUserById(id) {
 // Autentikasi Pengguna & Manajemen Sesi Login Resmi
 function authenticateUser(identifier, password) {
   if (!identifier || !password) {
-    throw new Error('Email/NIP dan kata sandi wajib diisi.');
+    throw new Error('Username/Email/NIP dan kata sandi wajib diisi.');
   }
 
   const cleanIdent = identifier.trim().toLowerCase();
   const user = db.prepare(`
     SELECT * FROM users
-    WHERE LOWER(email) = ? OR nip = ?
-  `).get(cleanIdent, identifier.trim());
+    WHERE LOWER(email) = ? 
+       OR nip = ? 
+       OR LOWER(nama_lengkap) = ?
+       OR (role = 'ADMIN' AND ? IN ('daput', 'daput@sekolah.sch.id', 'admin', 'admin@sekolah.sch.id'))
+  `).get(cleanIdent, identifier.trim(), cleanIdent, cleanIdent);
 
   if (!user) {
-    throw new Error('Akun tidak terdaftar. Periksa kembali Email atau NIP Anda.');
+    throw new Error('Akun tidak terdaftar. Periksa kembali Username, Email, atau NIP Anda.');
   }
 
   const userPass = user.password || 'password123';
-  if (password !== userPass && password !== 'password123') {
+  if (password !== userPass) {
     throw new Error('Kata sandi yang Anda masukkan salah.');
   }
 
