@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>E-RAB Sekolah - SMA Negeri 1 Gianyar</title>
+  <title>[DEMO] E-RAB Sekolah - SMA Negeri 1 Gianyar</title>
   <meta name="description" content="Sistem Informasi Pengajuan Anggaran, Otorisasi Bertingkat, Pencairan Dana, dan LPJ Internal Berbasis Web Praktis - SMA Negeri 1 Gianyar">
   <!-- Favicon & Icons -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -15,6 +15,9 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+
+  <!-- Floating Corner Demo Ribbon -->
+  <div class="demo-corner-ribbon">DEMO MODE</div>
 
   <!-- Ambient Glow Background -->
   <div class="ambient-glow"></div>
@@ -33,9 +36,12 @@
             <img src="/img/logo_sekolah.png" alt="Logo SMAN 1 Gianyar" class="login-logo-img">
           </div>
         </div>
+        <div class="login-demo-badge">
+          <i class="ti ti-flask"></i> MODE DEMO & SIMULASI PRA-RILIS
+        </div>
         <h1 class="login-school-name">SMA NEGERI 1 GIANYAR</h1>
         <div class="login-app-title">Sistem E-RAB & Disposisi Anggaran</div>
-        <p class="login-subtext">Masuk menggunakan NIP atau Email Akun Resmi Sekolah Anda untuk mengakses layanan perencanaan dan belanja anggaran.</p>
+        <p class="login-subtext">Sistem ini dalam tahap uji coba (DEMO). Masuk menggunakan akun resmi atau akun simulasi untuk mencoba alur perencanaan dan belanja anggaran.</p>
       </div>
 
       <!-- Alert Error Box -->
@@ -152,7 +158,10 @@
             <img src="/img/logo_sekolah.png" alt="Logo SMAN 1 Gianyar" class="brand-logo-img">
           </div>
           <div>
-            <div class="brand-title">E-RAB SEKOLAH</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="brand-title">E-RAB SEKOLAH</div>
+              <span class="badge-demo-mark">DEMO</span>
+            </div>
             <div class="brand-subtitle">SMA NEGERI 1 GIANYAR</div>
           </div>
         </a>
@@ -193,6 +202,14 @@
         </div>
       </div>
     </header>
+
+    <!-- Demo Notice Bar -->
+    <div class="demo-notice-bar">
+      <div class="container demo-notice-inner">
+        <span class="demo-notice-badge"><i class="ti ti-alert-triangle-filled"></i> VERSI DEMO</span>
+        <span class="demo-notice-text">Sistem E-RAB ini dalam tahap simulasi uji coba pra-rilis SMA Negeri 1 Gianyar. Data anggaran dan pengajuan bersifat simulasi internal.</span>
+      </div>
+    </div>
 
   <!-- Main Content Container -->
   <main class="container" style="margin-top: 14px;">

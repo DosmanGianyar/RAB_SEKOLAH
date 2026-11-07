@@ -76,7 +76,7 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lembar Disposisi & Pengesahan RAB - ${proposal.nomor_surat_ajuan}</title>
+  <title>[DEMO] Lembar Disposisi & Pengesahan RAB - ${proposal.nomor_surat_ajuan}</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/logo_sekolah.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -151,6 +151,26 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
       padding: 16mm 20mm 20mm;
       box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
       position: relative;
+    }
+
+    /* Watermark DEMO untuk Dokumen Cetak */
+    .sheet::before {
+      content: 'DEMO / SIMULASI';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-32deg);
+      font-size: 52pt;
+      font-weight: 900;
+      color: rgba(220, 38, 38, 0.12);
+      border: 5px dashed rgba(220, 38, 38, 0.22);
+      padding: 14px 40px;
+      border-radius: 16px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      pointer-events: none;
+      z-index: 5;
+      white-space: nowrap;
     }
 
     /* KOP RESMI SEKOLAH */
@@ -470,8 +490,11 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
   <!-- Top Toolbar (Hidden on Print) -->
   <div class="no-print-toolbar">
     <div>
-      <div style="font-weight: 800; font-size: 1rem; color: #0f172a;">Pratinjau Lembar Disposisi & Pengesahan RAB</div>
-      <div style="font-size: 0.8rem; color: #64748b;">Dokumen resmi SMA Negeri 1 Gianyar ber-QR Code Keabsahan Digital</div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="background: #ef4444; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.8px;">MODE DEMO</span>
+        <div style="font-weight: 800; font-size: 1rem; color: #0f172a;">Pratinjau Lembar Disposisi & Pengesahan RAB</div>
+      </div>
+      <div style="font-size: 0.8rem; color: #dc2626; font-weight: 600; margin-top: 2px;">Dokumen simulasi uji coba internal SMA Negeri 1 Gianyar (Belum berlaku definitif)</div>
     </div>
     <div style="display: flex; gap: 10px;">
       <a href="/" class="btn-toolbar btn-secondary">

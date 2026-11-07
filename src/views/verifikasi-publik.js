@@ -120,7 +120,7 @@ function renderVerifikasiPublik({ proposal, isValid }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verifikasi Keabsahan Dokumen - SMA Negeri 1 Gianyar</title>
+  <title>[DEMO] Verifikasi Keabsahan Dokumen - SMA Negeri 1 Gianyar</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/logo_sekolah.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -379,6 +379,9 @@ function renderVerifikasiPublik({ proposal, isValid }) {
       <div class="school-title">SMA Negeri 1 Gianyar (Dosman)</div>
       <div class="main-title">Verifikasi Dokumen Digital</div>
       <div class="subtitle">Sistem Informasi Pengelolaan Anggaran & Realisasi Kas Sekolah</div>
+      <div style="margin-top: 10px;">
+        <span style="display: inline-block; background: rgba(239,68,68,0.25); border: 1.5px solid #f87171; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 10px; border-radius: 9999px; letter-spacing: 1px;">MODE DEMO / SIMULASI PRA-RILIS</span>
+      </div>
     </div>
 
     <div class="badge-wrap">
