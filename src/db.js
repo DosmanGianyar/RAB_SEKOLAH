@@ -258,7 +258,12 @@ function updatePosAnggaran(id, { nama_pos, pagu_awal, keterangan }) {
         keterangan = COALESCE(?, keterangan)
     WHERE id = ?
   `);
-  stmt.run(nama_pos, pagu_awal !== undefined ? Number(pagu_awal) : null, keterangan, id);
+  stmt.run(
+    nama_pos !== undefined ? nama_pos : null,
+    pagu_awal !== undefined ? Number(pagu_awal) : null,
+    keterangan !== undefined ? keterangan : null,
+    id
+  );
   return getPosAnggaranById(id);
 }
 

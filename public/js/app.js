@@ -175,10 +175,19 @@ function showAuthenticatedApp(user) {
   }
 }
 
+function updateRolePermissionsUI(user) {
+  const isGuru = user && user.role === 'GURU';
+  const btnAddPos = document.getElementById('btnAddPos');
+  if (btnAddPos) {
+    btnAddPos.style.display = isGuru ? 'none' : 'inline-flex';
+  }
+}
+
 function renderUserHeader(user) {
   document.getElementById('userNameDisplay').textContent = user.nama_lengkap;
   document.getElementById('userRoleDisplay').textContent = user.role.replace('_', ' ');
   document.getElementById('userAvatarInitial').textContent = user.nama_lengkap.charAt(0);
+  updateRolePermissionsUI(user);
 }
 
 // Handler Submit Form Login Resmi
@@ -411,6 +420,8 @@ function renderPosAnggaranCards(list) {
     return;
   }
 
+  const canManagePos = currentUser && currentUser.role !== 'GURU';
+
   list.forEach(item => {
     let trafficLabel = 'AMAN';
     if (item.trafficLight === 'yellow') trafficLabel = 'WASPADA';
@@ -459,13 +470,12 @@ function renderPosAnggaranCards(list) {
         <div style="font-size: 0.72rem; color: var(--text-subtle);">
           Pending Review: <strong>${formatRupiah(item.pagu_tercadangkan)}</strong>
         </div>
+        ${canManagePos ? `
         <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 20h9"></path>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-          </svg>
+          <i class="ti ti-edit" style="font-size: 0.9rem;"></i>
           Edit Pagu
         </button>
+        ` : ''}
       </div>
     `;
 
@@ -1427,6 +1437,10 @@ function closeKepsekModal() {
 
 // --- 6. Add / Edit Pos Anggaran Modal (From Phase 1) ---
 function openAddPosModal() {
+  if (currentUser && currentUser.role === 'GURU') {
+    alert('Akses Ditolak: Akun Guru tidak memiliki wewenang untuk menambahkan pos anggaran. Hanya Bendahara, Kepala Sekolah, dan Analisis SDM yang berhak mengatur pagu anggaran sekolah.');
+    return;
+  }
   document.getElementById('modalPosTitle').textContent = 'Tambah Pos Anggaran Baru';
   document.getElementById('formPosAnggaran').reset();
   document.getElementById('posIdInput').value = '';
@@ -1434,6 +1448,10 @@ function openAddPosModal() {
 }
 
 function openEditPosModal(id) {
+  if (currentUser && currentUser.role === 'GURU') {
+    alert('Akses Ditolak: Akun Guru tidak memiliki wewenang untuk mengubah pagu pos anggaran.');
+    return;
+  }
   const item = currentPosList.find(p => p.id === id);
   if (!item) return;
 
@@ -1453,6 +1471,10 @@ function closePosModal() {
 
 async function handleSavePosAnggaran(e) {
   e.preventDefault();
+  if (currentUser && currentUser.role === 'GURU') {
+    alert('Akses Ditolak: Akun Guru tidak memiliki wewenang untuk menyimpan pos anggaran.');
+    return;
+  }
   const id = document.getElementById('posIdInput').value;
   const payload = {
     nama_pos: document.getElementById('inputNamaPos').value,

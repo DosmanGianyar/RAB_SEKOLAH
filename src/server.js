@@ -194,9 +194,15 @@ app.get('/api/pos-anggaran/:id', (req, res) => {
   res.json({ success: true, data: item });
 });
 
-// Add new Pos Anggaran
-app.post('/api/pos-anggaran', (req, res) => {
+// Add new Pos Anggaran (Hanya Bendahara, Kepsek, Analisis SDM, atau Admin)
+app.post('/api/pos-anggaran', requireAuth, (req, res) => {
   try {
+    if (req.user.role === 'GURU') {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses Ditolak: Akun Guru tidak memiliki wewenang untuk menambahkan pos anggaran. Hanya Bendahara, Kepala Sekolah, dan Analisis SDM yang berhak mengatur pagu anggaran sekolah.'
+      });
+    }
     const { nama_pos, tahun_ajaran, pagu_awal, keterangan } = req.body;
     if (!nama_pos || !pagu_awal) {
       return res.status(400).json({ success: false, message: 'Nama pos dan pagu awal wajib diisi' });
@@ -208,9 +214,15 @@ app.post('/api/pos-anggaran', (req, res) => {
   }
 });
 
-// Update Pos Anggaran
-app.put('/api/pos-anggaran/:id', (req, res) => {
+// Update Pos Anggaran (Hanya Bendahara, Kepsek, Analisis SDM, atau Admin)
+app.put('/api/pos-anggaran/:id', requireAuth, (req, res) => {
   try {
+    if (req.user.role === 'GURU') {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses Ditolak: Akun Guru tidak memiliki wewenang untuk mengubah pagu pos anggaran.'
+      });
+    }
     const { nama_pos, pagu_awal, keterangan } = req.body;
     const updated = updatePosAnggaran(req.params.id, { nama_pos, pagu_awal, keterangan });
     res.json({ success: true, data: updated, message: 'Pos anggaran berhasil diperbarui' });
