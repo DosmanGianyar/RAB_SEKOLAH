@@ -6,6 +6,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
+  /* Tabler UI Theme Integration */
+  --tblr-font-sans-serif: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --tblr-primary: #2563eb;
+  --tblr-primary-rgb: 37, 99, 235;
+  --tblr-body-bg: #f8fafc;
+  --tblr-body-color: #334155;
+  --tblr-border-color: #e2e8f0;
+  --tblr-card-border-radius: 14px;
+  --tblr-btn-border-radius: 10px;
+
   /* Clean Institutional Palette */
   --bg-main: #f8fafc;         /* Slate 50 - Kanvas bersih, lembut & nyaman di mata */
   --bg-surface: #ffffff;      /* Putih murni untuk kartu utama */
@@ -73,6 +83,15 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Tabler Icon Alignment Helper */
+i.ti {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 1;
 }
 
 body {

@@ -236,11 +236,7 @@ async function performLogin(identifier, password) {
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-          <polyline points="10 17 15 12 10 7"></polyline>
-          <line x1="15" y1="12" x2="3" y2="12"></line>
-        </svg>
+        <i class="ti ti-login" style="font-size: 1.15rem; margin-right: 6px;"></i>
         <span>Masuk ke Akun Saya</span>
       `;
     }
@@ -825,37 +821,37 @@ function renderProposalsList(proposals) {
     if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
       roleActionBtn = `
         <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #d97706, #f59e0b); color: #fff;" onclick="event.stopPropagation(); openReviewModal(${p.id})">
-          ✏️ Telaah & Koreksi
+          <i class="ti ti-edit"></i> Telaah & Koreksi
         </button>
       `;
     } else if (isKepsek && p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
       roleActionBtn = `
         <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="event.stopPropagation(); openKepsekModal(${p.id})">
-          🛡️ Beri Otorisasi Final
+          <i class="ti ti-shield-check"></i> Beri Otorisasi Final
         </button>
       `;
     } else if (isBendahara && p.status === 'DISETUJUI') {
       roleActionBtn = `
         <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="event.stopPropagation(); openCairkanModal(${p.id})">
-          💵 Cairkan Kas
+          <i class="ti ti-cash"></i> Cairkan Kas
         </button>
       `;
     } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
       roleActionBtn = `
         <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff;" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})">
-          📋 Buat LPJ
+          <i class="ti ti-file-invoice"></i> Buat LPJ
         </button>
       `;
     } else if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
       roleActionBtn = `
         <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #d97706, #f59e0b); color: #fff;" onclick="event.stopPropagation(); openVerifikasiLpjModal(${p.id})">
-          🔍 Verifikasi LPJ
+          <i class="ti ti-clipboard-check"></i> Verifikasi LPJ
         </button>
       `;
     } else if (isOwnerGuru && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
       roleActionBtn = `
         <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})">
-          ✏️ Edit LPJ
+          <i class="ti ti-edit"></i> Edit LPJ
         </button>
       `;
     }
@@ -864,7 +860,7 @@ function renderProposalsList(proposals) {
     if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
       printActionBtn = `
         <a href="/cetak/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()">
-          🖨️ Disposisi
+          <i class="ti ti-printer"></i> Disposisi
         </a>
       `;
     }
@@ -1066,7 +1062,7 @@ async function openProposalDetail(id) {
         btnPrint.className = 'btn btn-secondary btn-sm';
         btnPrint.href = `/cetak/${p.id}`;
         btnPrint.target = '_blank';
-        btnPrint.innerHTML = '🖨️ Cetak Lembar Disposisi (PDF)';
+        btnPrint.innerHTML = '<i class="ti ti-printer"></i> Cetak Lembar Disposisi (PDF)';
         footer.appendChild(btnPrint);
       }
 
@@ -1074,7 +1070,7 @@ async function openProposalDetail(id) {
         const btnReview = document.createElement('button');
         btnReview.className = 'btn btn-primary btn-sm';
         btnReview.style.background = 'linear-gradient(135deg, #d97706, #f59e0b)';
-        btnReview.innerHTML = '✏️ Buka Modul Telaah & Koreksi';
+        btnReview.innerHTML = '<i class="ti ti-edit"></i> Buka Modul Telaah & Koreksi';
         btnReview.onclick = () => {
           closeDetailModal();
           openReviewModal(p.id);
@@ -1084,7 +1080,7 @@ async function openProposalDetail(id) {
         const btnKepsek = document.createElement('button');
         btnKepsek.className = 'btn btn-primary btn-sm';
         btnKepsek.style.background = 'linear-gradient(135deg, #059669, #10b981)';
-        btnKepsek.innerHTML = '🛡️ Berikan Otorisasi Pengesahan';
+        btnKepsek.innerHTML = '<i class="ti ti-shield-check"></i> Berikan Otorisasi Pengesahan';
         btnKepsek.onclick = () => {
           closeDetailModal();
           openKepsekModal(p.id);
@@ -1094,7 +1090,7 @@ async function openProposalDetail(id) {
         const btnCairkan = document.createElement('button');
         btnCairkan.className = 'btn btn-primary btn-sm';
         btnCairkan.style.background = 'linear-gradient(135deg, #059669, #10b981)';
-        btnCairkan.innerHTML = '💵 Cairkan Kas Sekarang';
+        btnCairkan.innerHTML = '<i class="ti ti-cash"></i> Cairkan Kas Sekarang';
         btnCairkan.onclick = () => {
           closeDetailModal();
           openCairkanModal(p.id);
@@ -1104,7 +1100,7 @@ async function openProposalDetail(id) {
         const btnLpj = document.createElement('button');
         btnLpj.className = 'btn btn-primary btn-sm';
         btnLpj.style.background = 'linear-gradient(135deg, #2563eb, #3b82f6)';
-        btnLpj.innerHTML = '📋 Buat LPJ Realisasi';
+        btnLpj.innerHTML = '<i class="ti ti-file-invoice"></i> Buat LPJ Realisasi';
         btnLpj.onclick = () => {
           closeDetailModal();
           openSubmitLpjModal(p.id);
@@ -1114,7 +1110,7 @@ async function openProposalDetail(id) {
         const btnVerifLpj = document.createElement('button');
         btnVerifLpj.className = 'btn btn-primary btn-sm';
         btnVerifLpj.style.background = 'linear-gradient(135deg, #d97706, #f59e0b)';
-        btnVerifLpj.innerHTML = '🔍 Verifikasi LPJ Bendahara';
+        btnVerifLpj.innerHTML = '<i class="ti ti-clipboard-check"></i> Verifikasi LPJ Bendahara';
         btnVerifLpj.onclick = () => {
           closeDetailModal();
           openVerifikasiLpjModal(p.id);
@@ -1123,7 +1119,7 @@ async function openProposalDetail(id) {
       } else if (isOwnerGuru && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
         const btnEditLpj = document.createElement('button');
         btnEditLpj.className = 'btn btn-secondary btn-sm';
-        btnEditLpj.innerHTML = '✏️ Edit Berkas LPJ';
+        btnEditLpj.innerHTML = '<i class="ti ti-edit"></i> Edit Berkas LPJ';
         btnEditLpj.onclick = () => {
           closeDetailModal();
           openSubmitLpjModal(p.id);
