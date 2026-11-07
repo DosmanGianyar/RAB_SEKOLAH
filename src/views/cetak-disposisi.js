@@ -77,6 +77,8 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lembar Disposisi & Pengesahan RAB - ${proposal.nomor_surat_ajuan}</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/logo_sekolah.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -167,6 +169,11 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
       width: 72px;
       height: 72px;
       object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .kop-text {
+      flex: 1;
     }
 
     .kop-text h3 {
@@ -485,6 +492,7 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
   <div class="sheet">
     <!-- KOP RESMI SEKOLAH -->
     <div class="kop-wrapper">
+      <img src="/img/logo-pemprov-bali.png" alt="Logo Pemprov Bali" class="kop-logo" onerror="this.style.display='none'">
       <div class="kop-text">
         <h3>Pemerintah Provinsi Bali</h3>
         <h3>Dinas Pendidikan Kepemudaan dan Olahraga</h3>
@@ -492,6 +500,7 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
         <p>Jalan Ratna No. 1 Gianyar, Bali • Kode Pos: 80511 • Telp: (0361) 943034</p>
         <p>Laman: <em>sman1gianyar.sch.id</em> • Pos-el: <em>info@sman1gianyar.sch.id</em></p>
       </div>
+      <img src="/img/logo_sekolah.png" alt="Logo SMAN 1 Gianyar" class="kop-logo" onerror="this.style.display='none'">
     </div>
 
     <!-- Judul Dokumen -->

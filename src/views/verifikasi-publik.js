@@ -121,6 +121,8 @@ function renderVerifikasiPublik({ proposal, isValid }) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verifikasi Keabsahan Dokumen - SMA Negeri 1 Gianyar</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/logo_sekolah.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -371,6 +373,9 @@ function renderVerifikasiPublik({ proposal, isValid }) {
 
   <div class="verify-container">
     <div class="header-banner">
+      <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+        <img src="/img/logo_sekolah.png" alt="Logo SMAN 1 Gianyar" style="width: 58px; height: 58px; object-fit: contain; background: #ffffff; border-radius: 12px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.18);">
+      </div>
       <div class="school-title">SMA Negeri 1 Gianyar (Dosman)</div>
       <div class="main-title">Verifikasi Dokumen Digital</div>
       <div class="subtitle">Sistem Informasi Pengelolaan Anggaran & Realisasi Kas Sekolah</div>

@@ -197,14 +197,25 @@ body {
 }
 
 .brand-icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  background: #ffffff;
+  border: 1.5px solid var(--border-card);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px var(--primary-glow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.brand-icon img,
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .brand-icon svg {
@@ -1762,15 +1773,24 @@ body {
 }
 
 .login-brand-icon {
-  width: 48px;
-  height: 48px;
+  width: 60px;
+  height: 60px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  background: #ffffff;
+  border: 1.5px solid var(--border-card);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 16px var(--primary-glow);
-  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  padding: 5px;
+}
+
+.login-brand-icon img,
+.login-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .login-brand-icon svg {

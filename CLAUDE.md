@@ -59,3 +59,4 @@ git add . ; git commit -m "deploy: update aplikasi rab sekolah" ; git push origi
 - **Port E-RAB:** 3000 (Langsung dari Dst-NAT MikroTik Port 3000)
 - **Port Suka Duka:** 3005 (Nginx Reverse Proxy Port 80 <- Dst-NAT MikroTik Port 3001)
 - **Database:** SQLite 3 (`rab_sekolah.db`)
+
