@@ -60,3 +60,10 @@ git add . ; git commit -m "deploy: update aplikasi rab sekolah" ; git push origi
 - **Port Suka Duka:** 3005 (Nginx Reverse Proxy Port 80 <- Dst-NAT MikroTik Port 3001)
 - **Database:** SQLite 3 (`rab_sekolah.db`)
 
+
+
+## Aturan Sesi (lihat juga AGENTS.md)
+
+- **WAJIB** jalankan `git pull --rebase --autostash` di awal setiap sesi sebelum mengerjakan apa pun (project dikerjakan dari banyak PC).
+- Skill prompt engineering tersedia di `.agents/skills/prompt-master/`.
+
