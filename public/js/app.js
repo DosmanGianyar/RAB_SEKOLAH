@@ -733,19 +733,19 @@ function renderPosAnggaranTable() {
             </span>
           </div>
         </td>
-        <td style="text-align: center; white-space: nowrap;">
+        <td style="text-align: center; vertical-align: middle;">
           ${isGuru ? `
             <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
               <i class="ti ti-plus"></i> Ajukan
             </button>
           ` : `
-            <div style="display: inline-flex; gap: 4px; justify-content: center; align-items: center;">
-              <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
+            <div class="table-action-stack">
+              <button class="btn btn-secondary btn-xs" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
                 <i class="ti ti-edit"></i> Edit
               </button>
               ${canUserDelete() ? `
-                <button class="btn btn-outline-danger btn-sm" onclick="handleDeletePosAnggaran(${item.id}, '${escapeHtml(item.nama_pos)}')" title="Hapus Pos Anggaran">
-                  <i class="ti ti-trash"></i>
+                <button class="btn btn-outline-danger btn-xs" onclick="handleDeletePosAnggaran(${item.id}, '${escapeHtml(item.nama_pos)}')" title="Hapus Pos Anggaran">
+                  <i class="ti ti-trash"></i> Hapus
                 </button>
               ` : ''}
             </div>
@@ -854,19 +854,19 @@ function renderPosAnggaranTable() {
                 </span>
               </div>
             </td>
-            <td style="text-align: center; white-space: nowrap;">
+            <td style="text-align: center; vertical-align: middle;">
               ${isGuru ? `
                 <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
                   <i class="ti ti-plus"></i> Ajukan
                 </button>
               ` : `
-                <div style="display: inline-flex; gap: 4px; justify-content: center; align-items: center;">
-                  <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
+                <div class="table-action-stack">
+                  <button class="btn btn-secondary btn-xs" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
                     <i class="ti ti-edit"></i> Edit
                   </button>
                   ${canUserDelete() ? `
-                    <button class="btn btn-outline-danger btn-sm" onclick="handleDeletePosAnggaran(${item.id}, '${escapeHtml(item.nama_pos)}')" title="Hapus Pos Anggaran">
-                      <i class="ti ti-trash"></i>
+                    <button class="btn btn-outline-danger btn-xs" onclick="handleDeletePosAnggaran(${item.id}, '${escapeHtml(item.nama_pos)}')" title="Hapus Pos Anggaran">
+                      <i class="ti ti-trash"></i> Hapus
                     </button>
                   ` : ''}
                 </div>
@@ -1480,18 +1480,19 @@ function renderProposalsList(proposals) {
       ${revisionNoteHtml}
 
       <div class="proposal-bottom-row" style="margin-top: 10px;">
-        <div style="font-size: 0.75rem; color: var(--text-subtle);">
-          Diajukan: ${p.created_at}
+        <div style="font-size: 0.75rem; color: var(--text-subtle); display: flex; align-items: center; gap: 4px;">
+          <i class="ti ti-calendar" style="font-size: 0.85rem;"></i> Diajukan: ${p.created_at}
         </div>
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <div>
-            <span style="font-size: 0.72rem; color: var(--text-muted); margin-right: 4px;">Nominal:</span>
-            <span class="proposal-cost-val">${formatRupiah(p.total_dana_disetujui || p.total_dana_diajukan)}</span>
-          </div>
-          ${printActionBtn}
-          ${roleActionBtn}
-          ${deleteProposalBtn}
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); margin-right: 4px;">Nominal Usulan:</span>
+          <span class="proposal-cost-val">${formatRupiah(p.total_dana_disetujui || p.total_dana_diajukan)}</span>
         </div>
+      </div>
+
+      <div class="proposal-actions-row">
+        ${roleActionBtn}
+        ${printActionBtn}
+        ${deleteProposalBtn}
       </div>
     `;
 

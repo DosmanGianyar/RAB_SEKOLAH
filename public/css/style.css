@@ -883,6 +883,38 @@ body {
   border-radius: var(--radius-sm);
 }
 
+.btn-xs {
+  padding: 3px 6px;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  border-radius: 4px;
+}
+
+/* Penataan Tombol Aksi 2 Baris (Vertical Stack pada Tabel) */
+.table-action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.table-action-stack .btn-xs {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  max-width: 62px;
+  padding: 3px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 .btn-icon-only {
   width: 36px;
   height: 36px;
@@ -1558,6 +1590,18 @@ body {
   font-size: 1.25rem;
   font-weight: 800;
   color: #1e3a8a;
+}
+
+/* Bilah Aksi Kartu Usulan (Baris ke-2 Rapi) */
+.proposal-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px dashed var(--border-subtle);
+  flex-wrap: wrap;
 }
 
 /* Status Badges */
