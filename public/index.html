@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.4.2">
+  <link rel="stylesheet" href="/css/style.css?v=2.5.0">
 </head>
 <body>
 
@@ -195,6 +195,12 @@
             <i class="ti ti-chevron-down" style="font-size: 0.95rem; color: var(--text-muted); margin-left: 2px;"></i>
           </div>
 
+          <!-- Tombol Ganti Sandi Pribadi (Semua Akun) -->
+          <button class="btn-change-password-header" id="btnHeaderChangePassword" onclick="openModalGantiPassword()" title="Ganti Kata Sandi Akun Pribadi">
+            <i class="ti ti-key" style="font-size: 1rem;"></i>
+            <span class="logout-label">Ganti Sandi</span>
+          </button>
+
           <!-- Tombol Logout Resmi -->
           <button class="btn-logout-header" id="btnLogout" title="Keluar dari akun">
             <i class="ti ti-logout" style="font-size: 1rem;"></i>
@@ -241,6 +247,20 @@
             <span class="home-meta-pill">
               <i class="ti ti-building-bank"></i> Pos RKAS: <strong>102 Rincian</strong>
             </span>
+            <!-- Pill Jumlah Akun (Khusus Analisis SDM & Kepsek) -->
+            <span class="home-meta-pill pill-guru-counter" id="pillCountAkunGuru" style="display: none;">
+              <i class="ti ti-users"></i> Akun Guru: <strong id="textCountAkunGuru">0 Terdaftar</strong>
+            </span>
+          </div>
+
+          <!-- Tombol Aksi Kelola Guru (Khusus Analisis SDM & Kepsek) -->
+          <div class="home-hero-actions-sdm" id="containerActionsSdm" style="display: none;">
+            <button type="button" class="btn btn-success btn-sm" id="btnTambahAkunGuru" onclick="openModalTambahGuru()">
+              <i class="ti ti-user-plus"></i> + Tambah Akun Guru
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnKelolaAkunGuru" onclick="openModalDaftarGuru()">
+              <i class="ti ti-id-badge-2"></i> Daftar &amp; Reset Sandi Guru
+            </button>
           </div>
         </div>
         <div class="home-hero-illustration">
@@ -1846,7 +1866,10 @@
         <div id="roleOptionsList">
           <!-- Populated via JS -->
         </div>
-        <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
+        <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px;">
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="closeRoleModal(); openModalGantiPassword();" style="width: 100%; justify-content: center; gap: 8px;">
+            <i class="ti ti-key"></i> Ganti Kata Sandi Pribadi
+          </button>
           <button type="button" class="btn btn-secondary btn-sm" id="btnModalLogout" style="width: 100%; color: var(--danger); justify-content: center; gap: 8px;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -1974,12 +1997,163 @@
     </div>
   </div>
 
+  <!-- Modal 1: Tambah Akun Guru Baru (Khusus Analisis SDM & Kepsek) -->
+  <div class="modal-overlay" id="modalTambahGuru">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="ti ti-user-plus" style="color: #059669; margin-right: 6px;"></i> Tambah Akun Guru Baru
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon-only btn-sm" onclick="closeModalTambahGuru()">✕</button>
+      </div>
+      <form id="formTambahGuru" onsubmit="handleSimpanGuruBaru(event)">
+        <div class="modal-body">
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+            Daftarkan akun login untuk Bapak/Ibu Guru agar dapat mengajukan usulan kegiatan dan menyusun RAB secara mandiri.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Nama Lengkap Guru *</label>
+            <input type="text" class="form-input" id="inputGuruNama" placeholder="Cth: I Kadek Wira Sanjaya, S.Pd" required>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">NIP (Opsional)</label>
+              <input type="text" class="form-input" id="inputGuruNip" placeholder="198705142011011003">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Unit / Mata Pelajaran *</label>
+              <input type="text" class="form-input" id="inputGuruUnit" placeholder="Cth: Guru Biologi / Pembina OSIS" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email Guru (Digunakan untuk Login) *</label>
+            <input type="email" class="form-input" id="inputGuruEmail" placeholder="nama.guru@sekolah.sch.id" required>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+              Email ini akan digunakan sebagai username saat masuk ke aplikasi.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="form-label" style="margin-bottom: 0;">Kata Sandi Login</label>
+              <button type="button" class="btn btn-link btn-sm" style="font-size: 0.75rem; padding: 0; color: #059669; text-decoration: underline;" onclick="isiPasswordDefaultGuru()">
+                Gunakan Default (Dosman2026)
+              </button>
+            </div>
+            <div class="password-input-wrap">
+              <input type="password" class="form-input" id="inputGuruPassword" value="Dosman2026" placeholder="Dosman2026">
+              <button type="button" class="btn-toggle-password" onclick="togglePasswordInput('inputGuruPassword')">
+                <i class="ti ti-eye"></i>
+              </button>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+              Bisa langsung diisi sandi khusus atau gunakan default <code>Dosman2026</code>. Guru dapat menggantinya sendiri nanti.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModalTambahGuru()">Batal</button>
+          <button type="submit" class="btn btn-success btn-sm" id="btnSubmitGuru">
+            <i class="ti ti-check"></i> Simpan &amp; Aktifkan Akun
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Daftar Akun Guru & Reset Kata Sandi (Khusus Analisis SDM & Kepsek) -->
+  <div class="modal-overlay" id="modalKelolaGuru">
+    <div class="modal-box" style="max-width: 650px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="ti ti-users" style="color: #059669; margin-right: 6px;"></i> Daftar Akun Guru &amp; Reset Kata Sandi
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon-only btn-sm" onclick="closeModalDaftarGuru()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height: 65vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
+          <div style="font-size: 0.8rem; color: var(--text-muted);">
+            Total: <strong id="modalTotalGuruText">0 Guru Terdaftar</strong>. Admin utama disembunyikan.
+          </div>
+          <button type="button" class="btn btn-success btn-sm" onclick="closeModalDaftarGuru(); openModalTambahGuru();">
+            <i class="ti ti-plus"></i> Tambah Guru Baru
+          </button>
+        </div>
+
+        <div id="daftarGuruContainer" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModalDaftarGuru()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Ganti Kata Sandi Mandiri (Semua Akun) -->
+  <div class="modal-overlay" id="modalGantiPassword">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="ti ti-key" style="color: #2563eb; margin-right: 6px;"></i> Ganti Kata Sandi Pribadi
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon-only btn-sm" onclick="closeModalGantiPassword()">✕</button>
+      </div>
+      <form id="formGantiPassword" onsubmit="handleGantiPasswordSubmit(event)">
+        <div class="modal-body">
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+            Perbarui kata sandi Anda untuk menjaga keamanan dan kerahasiaan akses akun pribadi Anda.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Kata Sandi Saat Ini *</label>
+            <div class="password-input-wrap">
+              <input type="password" class="form-input" id="inputPassOld" placeholder="Masukkan kata sandi lama Anda" required>
+              <button type="button" class="btn-toggle-password" onclick="togglePasswordInput('inputPassOld')">
+                <i class="ti ti-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Kata Sandi Baru (Min. 6 Karakter) *</label>
+            <div class="password-input-wrap">
+              <input type="password" class="form-input" id="inputPassNew" placeholder="Masukkan kata sandi baru" minlength="6" required>
+              <button type="button" class="btn-toggle-password" onclick="togglePasswordInput('inputPassNew')">
+                <i class="ti ti-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Ulangi Kata Sandi Baru *</label>
+            <div class="password-input-wrap">
+              <input type="password" class="form-input" id="inputPassConfirm" placeholder="Ketik ulang kata sandi baru" minlength="6" required>
+              <button type="button" class="btn-toggle-password" onclick="togglePasswordInput('inputPassConfirm')">
+                <i class="ti ti-eye"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModalGantiPassword()">Batal</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="btnSubmitGantiPass">
+            <i class="ti ti-check"></i> Perbarui Kata Sandi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   </div> <!-- /#appAuthenticatedShell -->
 
   <!-- Tabler Core JS, SweetAlert2 & Chart.js -->
   <script src="/libs/tabler/js/tabler.min.js"></script>
   <script src="/libs/sweetalert2/sweetalert2.all.min.js"></script>
   <script src="/libs/chartjs/chart.umd.min.js"></script>
-  <script src="/js/app.js?v=2.4.8"></script>
+  <script src="/js/app.js?v=2.5.0"></script>
 </body>
 </html>

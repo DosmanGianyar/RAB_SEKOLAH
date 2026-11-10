@@ -637,7 +637,375 @@ function updateRolePermissionsUI(user) {
   if (btnSyncRkas) {
     btnSyncRkas.style.display = canManagePagu ? 'inline-flex' : 'none';
   }
+
+  // Hak Akses Manajemen Akun Guru & Kontrol Sandi (Khusus Analisis SDM & Kepsek & Admin)
+  const canManageGuru = user && ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(user.role);
+  const pillCountAkunGuru = document.getElementById('pillCountAkunGuru');
+  if (pillCountAkunGuru) {
+    pillCountAkunGuru.style.display = canManageGuru ? 'inline-flex' : 'none';
+  }
+  const containerActionsSdm = document.getElementById('containerActionsSdm');
+  if (containerActionsSdm) {
+    containerActionsSdm.style.display = canManageGuru ? 'flex' : 'none';
+  }
+  const btnTambahAkunGuru = document.getElementById('btnTambahAkunGuru');
+  if (btnTambahAkunGuru) {
+    btnTambahAkunGuru.style.display = canManageGuru ? 'inline-flex' : 'none';
+  }
+  const btnKelolaAkunGuru = document.getElementById('btnKelolaAkunGuru');
+  if (btnKelolaAkunGuru) {
+    btnKelolaAkunGuru.style.display = canManageGuru ? 'inline-flex' : 'none';
+  }
+
+  if (canManageGuru) {
+    loadGuruStats();
+  }
 }
+
+// --- Manajemen Akun Guru, Reset Kata Sandi, & Ganti Sandi Mandiri ---
+
+async function loadGuruStats() {
+  try {
+    const res = await fetch('/api/users/stats');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.success && data.stats) {
+      const elText = document.getElementById('textCountAkunGuru');
+      if (elText) elText.textContent = `${data.stats.totalGuru} Terdaftar`;
+      const elModalTotal = document.getElementById('modalTotalGuruText');
+      if (elModalTotal) elModalTotal.textContent = `${data.stats.totalGuru} Guru Terdaftar`;
+    }
+  } catch (err) {
+    console.error('Error loading guru stats:', err);
+  }
+}
+
+function openModalTambahGuru() {
+  const form = document.getElementById('formTambahGuru');
+  if (form) form.reset();
+  const inputPass = document.getElementById('inputGuruPassword');
+  if (inputPass) inputPass.value = 'Dosman2026';
+  const modal = document.getElementById('modalTambahGuru');
+  if (modal) modal.classList.add('active');
+}
+window.openModalTambahGuru = openModalTambahGuru;
+
+function closeModalTambahGuru() {
+  const modal = document.getElementById('modalTambahGuru');
+  if (modal) modal.classList.remove('active');
+}
+window.closeModalTambahGuru = closeModalTambahGuru;
+
+function isiPasswordDefaultGuru() {
+  const inputPass = document.getElementById('inputGuruPassword');
+  if (inputPass) inputPass.value = 'Dosman2026';
+}
+window.isiPasswordDefaultGuru = isiPasswordDefaultGuru;
+
+async function handleSimpanGuruBaru(e) {
+  if (e) e.preventDefault();
+  const nama = document.getElementById('inputGuruNama').value.trim();
+  const nip = document.getElementById('inputGuruNip').value.trim();
+  const unit = document.getElementById('inputGuruUnit').value.trim();
+  const email = document.getElementById('inputGuruEmail').value.trim();
+  const password = document.getElementById('inputGuruPassword').value.trim() || 'Dosman2026';
+
+  const btnSubmit = document.getElementById('btnSubmitGuru');
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<i class="ti ti-loader spin-icon"></i> Menyimpan...';
+  }
+
+  try {
+    const res = await fetch('/api/users/guru', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nama_lengkap: nama,
+        nip,
+        unit_bagian: unit,
+        email,
+        password
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeModalTambahGuru();
+      loadGuruStats();
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Akun Guru Berhasil Didaftarkan!',
+          html: `
+            <div style="text-align: left; background: #f8fafc; padding: 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 0.85rem; line-height: 1.6;">
+              <div style="margin-bottom: 5px;"><strong>Nama Lengkap:</strong> ${escapeHtml(data.user.nama_lengkap)}</div>
+              <div style="margin-bottom: 5px;"><strong>Unit / Mapel:</strong> ${escapeHtml(data.user.unit_bagian)}</div>
+              ${data.user.nip ? `<div style="margin-bottom: 5px;"><strong>NIP:</strong> ${escapeHtml(data.user.nip)}</div>` : ''}
+              <div style="margin-bottom: 5px;"><strong>Email (Username Login):</strong> <code style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;">${escapeHtml(data.user.email)}</code></div>
+              <div><strong>Kata Sandi Login:</strong> <code style="background:#ecfdf5; color:#047857; padding:2px 6px; border-radius:4px; font-weight:bold;">${escapeHtml(password)}</code></div>
+            </div>
+            <p style="font-size: 0.78rem; color: #64748b; margin-top: 10px;">
+              Akun telah aktif. Bagikan email dan kata sandi di atas kepada guru bersangkutan. Guru dapat mengubah kata sandi mereka secara mandiri setelah login.
+            </p>
+          `,
+          confirmButtonText: 'Selesai &amp; Salin Informasi',
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        alert(data.message);
+      }
+    } else {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({ icon: 'error', title: 'Gagal Mendaftarkan Akun', text: data.message });
+      } else {
+        alert(data.message);
+      }
+    }
+  } catch (err) {
+    console.error('Error create guru:', err);
+    alert('Terjadi kesalahan koneksi saat mendaftarkan akun guru.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = '<i class="ti ti-check"></i> Simpan &amp; Aktifkan Akun';
+    }
+  }
+}
+window.handleSimpanGuruBaru = handleSimpanGuruBaru;
+
+function openModalDaftarGuru() {
+  const modal = document.getElementById('modalKelolaGuru');
+  if (modal) modal.classList.add('active');
+  loadDaftarGuru();
+}
+window.openModalDaftarGuru = openModalDaftarGuru;
+
+function closeModalDaftarGuru() {
+  const modal = document.getElementById('modalKelolaGuru');
+  if (modal) modal.classList.remove('active');
+}
+window.closeModalDaftarGuru = closeModalDaftarGuru;
+
+async function loadDaftarGuru() {
+  const container = document.getElementById('daftarGuruContainer');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center; padding: 25px; color: var(--text-muted);"><i class="ti ti-loader spin-icon" style="font-size: 1.4rem;"></i> Memuat daftar guru...</div>';
+
+  try {
+    const res = await fetch('/api/users/guru');
+    const data = await res.json();
+    if (data.success && data.users) {
+      const elModalTotal = document.getElementById('modalTotalGuruText');
+      if (elModalTotal) elModalTotal.textContent = `${data.users.length} Guru Terdaftar`;
+
+      if (data.users.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--text-muted);">Belum ada akun guru terdaftar. Klik tombol Tambah Guru Baru di atas.</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      data.users.forEach(u => {
+        const card = document.createElement('div');
+        card.className = 'guru-item-card';
+        card.innerHTML = `
+          <div class="guru-item-left">
+            <div class="guru-avatar-circle">${escapeHtml(u.nama_lengkap.charAt(0))}</div>
+            <div class="guru-info-wrap">
+              <div class="guru-name-title">${escapeHtml(u.nama_lengkap)}</div>
+              <div class="guru-meta-sub">
+                <span>📧 <code>${escapeHtml(u.email)}</code></span>
+                ${u.nip ? `<span>• NIP: ${escapeHtml(u.nip)}</span>` : ''}
+                <span>• ${escapeHtml(u.unit_bagian)}</span>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-reset-sandi" onclick="handleResetPasswordGuru(${u.id}, '${escapeHtml(u.nama_lengkap).replace(/'/g, "\\'")}', '${escapeHtml(u.email).replace(/'/g, "\\'")}')" title="Reset kata sandi akun guru ke default (Dosman2026)">
+            <i class="ti ti-key"></i> Reset Sandi
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    } else {
+      container.innerHTML = `<div style="color:var(--rose); padding: 15px;">${data.message || 'Gagal memuat data guru.'}</div>`;
+    }
+  } catch (err) {
+    console.error('Error fetching guru list:', err);
+    container.innerHTML = '<div style="color:var(--rose); padding: 15px;">Terjadi kesalahan jaringan saat memuat data guru.</div>';
+  }
+}
+window.loadDaftarGuru = loadDaftarGuru;
+
+async function handleResetPasswordGuru(id, nama, email) {
+  if (typeof Swal === 'undefined') {
+    const ok = confirm(`Reset kata sandi ${nama} ke "Dosman2026"?`);
+    if (ok) {
+      const res = await fetch(`/api/users/${id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: 'Dosman2026' })
+      });
+      const data = await res.json();
+      alert(data.message);
+      loadDaftarGuru();
+    }
+    return;
+  }
+
+  Swal.fire({
+    title: 'Reset Kata Sandi Guru?',
+    html: `
+      <div style="font-size: 0.85rem; color: #475569; text-align: left; line-height: 1.5; margin-bottom: 12px;">
+        Anda akan mereset kata sandi akun untuk:
+        <div style="font-weight: 700; color: #0f172a; margin-top: 4px;">${escapeHtml(nama)}</div>
+        <div style="color: #64748b;">${escapeHtml(email)}</div>
+      </div>
+      <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 6px; text-align: left;">
+        Kata sandi akan otomatis direset kembali ke standar default sekolah:
+      </p>
+      <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; font-weight: 800; font-family: monospace; font-size: 1.15rem; color: #0f172a; border: 1px solid #cbd5e1; margin-bottom: 8px;">
+        Dosman2026
+      </div>
+    `,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d97706',
+    cancelButtonColor: '#94a3b8',
+    confirmButtonText: '<i class="ti ti-check"></i> Ya, Reset ke Dosman2026',
+    cancelButtonText: 'Batal'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`/api/users/${id}/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newPassword: 'Dosman2026' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Kata Sandi Direset!',
+            html: `
+              <p style="font-size: 0.85rem; color: #334155;">Kata sandi akun <strong>${escapeHtml(nama)}</strong> berhasil direset ke:</p>
+              <div style="background: #ecfdf5; color: #047857; padding: 10px; border-radius: 6px; font-weight: bold; font-family: monospace; font-size: 1.1rem; border: 1px solid #a7f3d0; margin: 8px 0;">
+                Dosman2026
+              </div>
+              <p style="font-size: 0.75rem; color: #64748b;">Silakan sampaikan kepada guru bersangkutan.</p>
+            `,
+            confirmButtonColor: '#059669'
+          });
+          loadDaftarGuru();
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal Mereset', text: data.message });
+        }
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: 'Terjadi gangguan saat mereset kata sandi.' });
+      }
+    }
+  });
+}
+window.handleResetPasswordGuru = handleResetPasswordGuru;
+
+// --- Ganti Kata Sandi Pribadi (Semua Akun) ---
+
+function openModalGantiPassword() {
+  const form = document.getElementById('formGantiPassword');
+  if (form) form.reset();
+  const modal = document.getElementById('modalGantiPassword');
+  if (modal) modal.classList.add('active');
+}
+window.openModalGantiPassword = openModalGantiPassword;
+
+function closeModalGantiPassword() {
+  const modal = document.getElementById('modalGantiPassword');
+  if (modal) modal.classList.remove('active');
+}
+window.closeModalGantiPassword = closeModalGantiPassword;
+
+async function handleGantiPasswordSubmit(e) {
+  if (e) e.preventDefault();
+  const oldPass = document.getElementById('inputPassOld').value;
+  const newPass = document.getElementById('inputPassNew').value;
+  const confirmPass = document.getElementById('inputPassConfirm').value;
+
+  if (newPass !== confirmPass) {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({ icon: 'error', title: 'Konfirmasi Sandi Tidak Cocok', text: 'Kata sandi baru dan ulangi kata sandi harus sama persis.' });
+    } else {
+      alert('Kata sandi baru dan ulangi kata sandi tidak cocok!');
+    }
+    return;
+  }
+
+  if (newPass.length < 6) {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({ icon: 'warning', title: 'Sandi Terlalu Pendek', text: 'Kata sandi baru minimal harus 6 karakter demi keamanan akun Anda.' });
+    } else {
+      alert('Kata sandi baru minimal 6 karakter!');
+    }
+    return;
+  }
+
+  const btnSubmit = document.getElementById('btnSubmitGantiPass');
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<i class="ti ti-loader spin-icon"></i> Memperbarui...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        oldPassword: oldPass,
+        newPassword: newPass
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeModalGantiPassword();
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Kata Sandi Berhasil Diperbarui!',
+          text: 'Kerahasiaan akun Anda kini terlindungi. Silakan gunakan kata sandi baru Anda untuk login berikutnya.',
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        alert('Kata sandi berhasil diperbarui!');
+      }
+    } else {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({ icon: 'error', title: 'Gagal Mengubah Sandi', text: data.message });
+      } else {
+        alert(data.message);
+      }
+    }
+  } catch (err) {
+    console.error('Error changing password:', err);
+    alert('Terjadi kesalahan jaringan saat memperbarui kata sandi.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = '<i class="ti ti-check"></i> Perbarui Kata Sandi';
+    }
+  }
+}
+window.handleGantiPasswordSubmit = handleGantiPasswordSubmit;
+
+function togglePasswordInput(inputId) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const isPass = el.type === 'password';
+  el.type = isPass ? 'text' : 'password';
+
+  const btn = el.parentElement ? el.parentElement.querySelector('.btn-toggle-password i') : null;
+  if (btn) {
+    btn.className = isPass ? 'ti ti-eye-off' : 'ti ti-eye';
+  }
+}
+window.togglePasswordInput = togglePasswordInput;
 
 function renderUserHeader(user) {
   document.getElementById('userNameDisplay').textContent = user.nama_lengkap;

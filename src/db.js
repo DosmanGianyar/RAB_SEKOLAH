@@ -733,6 +733,119 @@ function getUserBySessionToken(token) {
   return row || null;
 }
 
+function createGuruUser({ nama_lengkap, nip, email, password, unit_bagian }, callerUser = null) {
+  if (!nama_lengkap || !nama_lengkap.trim()) {
+    throw new Error('Nama lengkap guru wajib diisi.');
+  }
+  if (!email || !email.trim()) {
+    throw new Error('Email guru wajib diisi untuk akun login.');
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Cek duplikasi email
+  const existingEmail = db.prepare('SELECT id, nama_lengkap FROM users WHERE LOWER(email) = ?').get(cleanEmail);
+  if (existingEmail) {
+    throw new Error(`Email "${cleanEmail}" sudah terdaftar atas nama ${existingEmail.nama_lengkap}.`);
+  }
+
+  // Cek duplikasi NIP jika diisi
+  const cleanNip = (nip && nip.trim()) ? nip.trim() : null;
+  if (cleanNip) {
+    const existingNip = db.prepare('SELECT id, nama_lengkap FROM users WHERE nip = ?').get(cleanNip);
+    if (existingNip) {
+      throw new Error(`NIP "${cleanNip}" sudah digunakan oleh akun ${existingNip.nama_lengkap}.`);
+    }
+  }
+
+  const finalPass = (password && password.trim()) ? password.trim() : 'Dosman2026';
+  const cleanUnit = (unit_bagian && unit_bagian.trim()) ? unit_bagian.trim() : 'Guru Mata Pelajaran';
+
+  const stmt = db.prepare(`
+    INSERT INTO users (nama_lengkap, nip, email, password, role, unit_bagian)
+    VALUES (?, ?, ?, ?, 'GURU', ?)
+  `);
+  const info = stmt.run(nama_lengkap.trim(), cleanNip, cleanEmail, finalPass, cleanUnit);
+  const newUserId = Number(info.lastInsertRowid);
+
+  if (callerUser) {
+    db.prepare(`
+      INSERT INTO audit_log_koreksi (user_id, aktivitas)
+      VALUES (?, ?)
+    `).run(callerUser.id, `TAMBAH AKUN GURU: Akun guru baru "${nama_lengkap.trim()}" (${cleanEmail}) dibuat oleh ${callerUser.nama_lengkap} (${callerUser.role}).`);
+  }
+
+  return getUserById(newUserId);
+}
+
+function resetUserPassword(targetUserId, callerUser, newPassword = 'Dosman2026') {
+  if (!callerUser || !['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(callerUser.role)) {
+    throw new Error('Hanya Analisis SDM, Kepala Sekolah, dan Administrator yang memiliki hak mereset kata sandi.');
+  }
+
+  const targetUser = db.prepare('SELECT id, nama_lengkap, role, email FROM users WHERE id = ?').get(targetUserId);
+  if (!targetUser) {
+    throw new Error('Akun pengguna tidak ditemukan.');
+  }
+
+  if (targetUser.role === 'ADMIN' && callerUser.role !== 'ADMIN') {
+    throw new Error('Dilarang mereset kata sandi Administrator Utama.');
+  }
+
+  const finalPass = (newPassword && newPassword.trim()) ? newPassword.trim() : 'Dosman2026';
+  db.prepare('UPDATE users SET password = ? WHERE id = ?').run(finalPass, targetUserId);
+
+  db.prepare(`
+    INSERT INTO audit_log_koreksi (user_id, aktivitas)
+    VALUES (?, ?)
+  `).run(callerUser.id, `RESET KATA SANDI: Kata sandi untuk akun "${targetUser.nama_lengkap}" (${targetUser.email}) berhasil direset oleh ${callerUser.nama_lengkap} (${callerUser.role}).`);
+
+  return {
+    success: true,
+    user: targetUser,
+    newPassword: finalPass,
+    message: `Kata sandi untuk ${targetUser.nama_lengkap} berhasil direset ke "${finalPass}".`
+  };
+}
+
+function changeOwnPassword(userId, oldPassword, newPassword) {
+  if (!oldPassword || !newPassword) {
+    throw new Error('Kata sandi saat ini dan kata sandi baru wajib diisi.');
+  }
+  if (newPassword.length < 6) {
+    throw new Error('Kata sandi baru minimal 6 karakter demi keamanan akun.');
+  }
+
+  const user = db.prepare('SELECT id, nama_lengkap, password FROM users WHERE id = ?').get(userId);
+  if (!user) {
+    throw new Error('Pengguna tidak ditemukan.');
+  }
+
+  const currentPass = user.password || 'password123';
+  if (oldPassword !== currentPass) {
+    throw new Error('Kata sandi saat ini yang Anda masukkan salah.');
+  }
+
+  db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newPassword, userId);
+
+  db.prepare(`
+    INSERT INTO audit_log_koreksi (user_id, aktivitas)
+    VALUES (?, ?)
+  `).run(userId, `GANTI KATA SANDI PRIBADI: Pengguna "${user.nama_lengkap}" berhasil memperbarui kata sandi mandiri.`);
+
+  return { success: true, message: 'Kata sandi Anda berhasil diperbarui.' };
+}
+
+function getGuruAccountsList() {
+  return db.prepare("SELECT id, nama_lengkap, nip, email, role, unit_bagian FROM users WHERE role = 'GURU' ORDER BY id ASC").all();
+}
+
+function getUserStats() {
+  const totalGuru = db.prepare("SELECT count(*) as c FROM users WHERE role = 'GURU'").get().c;
+  const totalAll = db.prepare("SELECT count(*) as c FROM users WHERE role != 'ADMIN'").get().c;
+  return { totalGuru, totalAll };
+}
+
 function deleteSession(token) {
   if (!token) return;
   db.prepare(`DELETE FROM user_sessions WHERE token = ?`).run(token);
@@ -1623,7 +1736,12 @@ module.exports = {
   deletePosAnggaran,
   importRkasFromExcel,
   getAllUsers,
+  getGuruAccountsList,
+  getUserStats,
   getUserById,
+  createGuruUser,
+  resetUserPassword,
+  changeOwnPassword,
   authenticateUser,
   createSession,
   getUserBySessionToken,

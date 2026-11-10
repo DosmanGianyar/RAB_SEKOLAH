@@ -13,7 +13,12 @@ const {
   deletePosAnggaran,
   importRkasFromExcel,
   getAllUsers,
+  getGuruAccountsList,
+  getUserStats,
   getUserById,
+  createGuruUser,
+  resetUserPassword,
+  changeOwnPassword,
   authenticateUser,
   createSession,
   getUserBySessionToken,
@@ -177,6 +182,73 @@ app.post('/api/auth/switch-user', (req, res) => {
 app.get('/api/users', (req, res) => {
   const users = getAllUsers();
   res.json({ success: true, users });
+});
+
+// Statistik Akun (Khusus Analisis SDM & Kepsek & Admin)
+app.get('/api/users/stats', requireAuth, (req, res) => {
+  try {
+    if (!['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Akses terbatas untuk Analisis SDM dan Kepala Sekolah.' });
+    }
+    const stats = getUserStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Daftar Akun Guru (Khusus Analisis SDM & Kepsek & Admin)
+app.get('/api/users/guru', requireAuth, (req, res) => {
+  try {
+    if (!['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Akses terbatas untuk Analisis SDM dan Kepala Sekolah.' });
+    }
+    const list = getGuruAccountsList();
+    res.json({ success: true, users: list });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Tambah Akun Guru Baru (Khusus Analisis SDM & Kepsek & Admin)
+app.post('/api/users/guru', requireAuth, (req, res) => {
+  try {
+    if (!['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Hanya Analisis SDM dan Kepala Sekolah yang berwenang menambah akun guru.' });
+    }
+    const { nama_lengkap, nip, email, password, unit_bagian } = req.body;
+    const newUser = createGuruUser({ nama_lengkap, nip, email, password, unit_bagian }, req.user);
+    res.json({
+      success: true,
+      user: newUser,
+      message: `Akun guru "${newUser.nama_lengkap}" berhasil didaftarkan!`
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// Reset Password Akun Guru (Khusus Analisis SDM & Kepsek & Admin)
+app.post('/api/users/:id/reset-password', requireAuth, (req, res) => {
+  try {
+    const targetId = Number(req.params.id);
+    const { newPassword } = req.body;
+    const result = resetUserPassword(targetId, req.user, newPassword);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// Ganti Password Pribadi (Bisa dilakukan semua pengguna untuk akunnya sendiri)
+app.post('/api/auth/change-password', requireAuth, (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const result = changeOwnPassword(req.user.id, oldPassword, newPassword);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
 });
 
 // Summary overview stats
