@@ -200,11 +200,12 @@ app.get('/api/pos-anggaran/:id', (req, res) => {
   res.json({ success: true, data: item });
 });
 
-// Sync / Import Ulang RKAS dari File Excel (Hanya Bendahara, Kepsek, SDM, Admin)
+// Sync / Import Ulang RKAS dari File Excel (Hanya Kepsek, Analisis SDM, Admin)
 app.post('/api/pos-anggaran/sync-rkas', requireAuth, (req, res) => {
   try {
-    if (req.user.role === 'GURU') {
-      return res.status(403).json({ success: false, message: 'Akses Ditolak: Hanya manajemen yang berhak menyinkronkan data RKAS.' });
+    const ALLOWED_PAGU_ROLES = ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'];
+    if (!ALLOWED_PAGU_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Akses Ditolak: Hanya Analisis SDM Aparatur dan Kepala Sekolah yang berhak menyinkronkan data RKAS.' });
     }
     const success = importRkasFromExcel();
     if (success) {
@@ -218,13 +219,14 @@ app.post('/api/pos-anggaran/sync-rkas', requireAuth, (req, res) => {
   }
 });
 
-// Add new Pos Anggaran (Hanya Bendahara, Kepsek, Analisis SDM, atau Admin)
+// Add new Pos Anggaran (Hanya Kepsek, Analisis SDM, atau Admin)
 app.post('/api/pos-anggaran', requireAuth, (req, res) => {
   try {
-    if (req.user.role === 'GURU') {
+    const ALLOWED_PAGU_ROLES = ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'];
+    if (!ALLOWED_PAGU_ROLES.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Akses Ditolak: Akun Guru tidak memiliki wewenang untuk menambahkan pos anggaran. Hanya Bendahara, Kepala Sekolah, dan Analisis SDM yang berhak mengatur pagu anggaran sekolah.'
+        message: 'Akses Ditolak: Perubahan atau penambahan pagu anggaran hanya dapat dilakukan oleh Analisis SDM Aparatur dan Kepala Sekolah. Akun Bendahara dan Guru bertugas dalam pengajuan dan pengelolaan LPJ.'
       });
     }
     const {
@@ -266,13 +268,14 @@ app.post('/api/pos-anggaran', requireAuth, (req, res) => {
   }
 });
 
-// Update Pos Anggaran (Hanya Bendahara, Kepsek, Analisis SDM, atau Admin)
+// Update Pos Anggaran (Hanya Kepsek, Analisis SDM, atau Admin)
 app.put('/api/pos-anggaran/:id', requireAuth, (req, res) => {
   try {
-    if (req.user.role === 'GURU') {
+    const ALLOWED_PAGU_ROLES = ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'];
+    if (!ALLOWED_PAGU_ROLES.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Akses Ditolak: Akun Guru tidak memiliki wewenang untuk mengubah pagu pos anggaran.'
+        message: 'Akses Ditolak: Perubahan pagu anggaran hanya dapat dilakukan oleh Analisis SDM Aparatur dan Kepala Sekolah. Akun Bendahara dan Guru bertugas dalam pengajuan dan pengelolaan LPJ.'
       });
     }
     const {

@@ -67,6 +67,11 @@ function canUserDelete() {
   return currentUser && ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role);
 }
 
+// Otorisasi Pengelolaan Pagu RKAS: Hanya Analisis SDM, Kepala Sekolah, dan Administrator
+function canUserManagePagu() {
+  return currentUser && ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role);
+}
+
 // SweetAlert2 Toast Notifikasi Pojok
 function getSwalToast() {
   if (typeof Swal === 'undefined') return null;
@@ -340,6 +345,7 @@ async function handleDeletePosAnggaran(id, nama) {
 }
 
 window.canUserDelete = canUserDelete;
+window.canUserManagePagu = canUserManagePagu;
 window.handleDeleteProposal = handleDeleteProposal;
 window.handleDeletePosAnggaran = handleDeletePosAnggaran;
 window.confirmDeleteWithSecurityCheckbox = confirmDeleteWithSecurityCheckbox;
@@ -619,14 +625,14 @@ function showAuthenticatedApp(user) {
 }
 
 function updateRolePermissionsUI(user) {
-  const isGuru = user && user.role === 'GURU';
+  const canManagePagu = user && ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(user.role);
   const btnAddPos = document.getElementById('btnAddPos');
   if (btnAddPos) {
-    btnAddPos.style.display = isGuru ? 'none' : 'inline-flex';
+    btnAddPos.style.display = canManagePagu ? 'inline-flex' : 'none';
   }
   const btnSyncRkas = document.getElementById('btnSyncRkas');
   if (btnSyncRkas) {
-    btnSyncRkas.style.display = isGuru ? 'none' : 'inline-flex';
+    btnSyncRkas.style.display = canManagePagu ? 'inline-flex' : 'none';
   }
 }
 
@@ -1321,11 +1327,7 @@ function renderPosAnggaranTable() {
           </div>
         </td>
         <td style="text-align: center; vertical-align: middle;">
-          ${isGuru ? `
-            <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
-              <i class="ti ti-plus"></i> Ajukan
-            </button>
-          ` : `
+          ${canUserManagePagu() ? `
             <div class="table-action-stack">
               <button class="btn btn-secondary btn-xs" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
                 <i class="ti ti-edit"></i> Edit
@@ -1336,6 +1338,10 @@ function renderPosAnggaranTable() {
                 </button>
               ` : ''}
             </div>
+          ` : `
+            <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
+              <i class="ti ti-plus"></i> Ajukan
+            </button>
           `}
         </td>
       `;
@@ -1445,11 +1451,7 @@ function renderPosAnggaranTable() {
               </div>
             </td>
             <td style="text-align: center; vertical-align: middle;">
-              ${isGuru ? `
-                <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
-                  <i class="ti ti-plus"></i> Ajukan
-                </button>
-              ` : `
+              ${canUserManagePagu() ? `
                 <div class="table-action-stack">
                   <button class="btn btn-secondary btn-xs" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
                     <i class="ti ti-edit"></i> Edit
@@ -1460,6 +1462,10 @@ function renderPosAnggaranTable() {
                     </button>
                   ` : ''}
                 </div>
+              ` : `
+                <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
+                  <i class="ti ti-plus"></i> Ajukan
+                </button>
               `}
             </td>
           `;
@@ -1551,8 +1557,8 @@ function ajukanPosSpesifik(id) {
 }
 
 async function handleSyncRkasExcel() {
-  if (currentUser && currentUser.role === 'GURU') {
-    alert('Akses Ditolak: Hanya Manajemen/Bendahara yang dapat menyinkronkan data RKAS.');
+  if (!canUserManagePagu()) {
+    alert('Akses Ditolak: Hanya Analisis SDM Aparatur dan Kepala Sekolah yang berhak menyinkronkan data RKAS.');
     return;
   }
   if (!confirm('Apakah Anda yakin ingin menyinkronkan ulang data pagu dari file Excel data_luar/rkas.xlsx?')) {
@@ -2892,8 +2898,17 @@ function openAddPosModal() {
 }
 
 function openEditPosModal(id) {
-  if (currentUser && currentUser.role === 'GURU') {
-    alert('Akses Ditolak: Akun Guru tidak memiliki wewenang untuk mengubah pagu pos anggaran.');
+  if (!canUserManagePagu()) {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Akses Ditolak',
+        text: 'Perubahan pagu anggaran hanya dapat dilakukan oleh Analisis SDM Aparatur dan Kepala Sekolah.',
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert('Akses Ditolak: Perubahan pagu anggaran hanya dapat dilakukan oleh Analisis SDM Aparatur dan Kepala Sekolah.');
+    }
     return;
   }
   const item = currentPosList.find(p => p.id === id);
