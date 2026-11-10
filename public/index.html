@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.3.6">
+  <link rel="stylesheet" href="/css/style.css?v=2.3.7">
 </head>
 <body>
 
@@ -154,9 +154,9 @@
           <div class="brand-icon">
             <img src="/img/logo_sekolah.png" alt="Logo SMAN 1 Gianyar" class="brand-logo-img">
           </div>
-          <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <div class="brand-title">SI-ARTHA DOSMAN</div>
+          <div class="brand-text-container">
+            <div class="brand-title-row">
+              <span class="brand-title">SI-ARTHA DOSMAN</span>
               <span class="badge-demo-mark">DEMO</span>
             </div>
             <div class="brand-subtitle">SMA NEGERI 1 GIANYAR</div>
@@ -330,7 +330,11 @@
 
         <!-- Main RKAS Table -->
         <div class="rkas-table-card">
-          <div class="table-responsive">
+          <!-- Bilah Petunjuk Geser Tabel (Mobile & Laptop) -->
+          <div class="table-scroll-hint-bar">
+            <span><i class="ti ti-arrows-left-right"></i> Geser tabel ke samping dari posisi mana saja untuk melihat seluruh rincian kolom</span>
+          </div>
+          <div class="table-responsive draggable-table-container" id="rkasTableResponsive">
             <table class="table rkas-table" id="tablePosAnggaran">
               <thead>
                 <tr>
@@ -630,7 +634,10 @@
 
       <!-- 5. Kontainer Tabel Rekap Laporan LPJ & Nota Pembelian -->
       <div class="rkas-table-card">
-        <div class="table-responsive">
+        <div class="table-scroll-hint-bar">
+          <span><i class="ti ti-arrows-left-right"></i> Geser tabel ke samping dari mana saja untuk melihat data kuitansi lengkap</span>
+        </div>
+        <div class="table-responsive draggable-table-container">
           <table class="rkas-table" id="tableLpj">
             <thead>
               <tr>
@@ -994,7 +1001,7 @@
     </div>
   </footer>
 
-  <!-- Mobile Bottom Navigation Bar (Teacher Friendly) -->
+  <!-- Mobile Bottom Navigation Bar (Teacher Friendly - Tepat 4 Tombol) -->
   <nav class="mobile-nav-bar">
     <a href="javascript:void(0)" class="nav-item active" id="navHome" onclick="switchView('dashboard')">
       <i class="ti ti-layout-grid" style="font-size: 1.35rem;"></i>
@@ -1011,10 +1018,6 @@
     <a href="javascript:void(0)" class="nav-item" id="navLaporan" onclick="switchView('laporan')">
       <i class="ti ti-file-analytics" style="font-size: 1.35rem;"></i>
       <span>Laporan</span>
-    </a>
-    <a href="javascript:void(0)" class="nav-item" id="navAkun" onclick="openRoleModal()">
-      <i class="ti ti-user-circle" style="font-size: 1.35rem;"></i>
-      <span>Ganti Akun</span>
     </a>
   </nav>
 
@@ -1649,6 +1652,6 @@
   <!-- Tabler Core JS & SweetAlert2 -->
   <script src="/libs/tabler/js/tabler.min.js"></script>
   <script src="/libs/sweetalert2/sweetalert2.all.min.js"></script>
-  <script src="/js/app.js?v=2.4.1"></script>
+  <script src="/js/app.js?v=2.4.2"></script>
 </body>
 </html>

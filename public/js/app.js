@@ -344,6 +344,7 @@ window.confirmDeleteWithSecurityCheckbox = confirmDeleteWithSecurityCheckbox;
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
+  enableDragToScroll();
   loadActiveUser();
 
   // Inisialisasi baris belanja pertama pada form RAB
@@ -355,6 +356,49 @@ document.addEventListener('DOMContentLoaded', () => {
     harga_satuan: 250000
   });
 });
+
+/**
+ * Memungkinkan pengguna menggeser tabel horizontal secara bebas dengan klik & drag mouse atau sentuhan jari dari mana saja
+ */
+function enableDragToScroll() {
+  const containers = document.querySelectorAll('.table-responsive, .draggable-table-container');
+  containers.forEach(slider => {
+    if (slider._hasDragScrollAttached) return;
+    slider._hasDragScrollAttached = true;
+
+    let isDown = false;
+    let startX = 0;
+    let scrollLeft = 0;
+
+    slider.addEventListener('mousedown', (e) => {
+      // Jangan menginterupsi klik tombol aksi, link, input, atau select
+      if (e.target.closest('button, a, input, select, textarea, .btn, .dropdown, [onclick]')) return;
+      isDown = true;
+      slider.classList.add('is-dragging');
+      startX = e.pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener('mouseleave', () => {
+      isDown = false;
+      slider.classList.remove('is-dragging');
+    });
+
+    slider.addEventListener('mouseup', () => {
+      isDown = false;
+      slider.classList.remove('is-dragging');
+    });
+
+    slider.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - slider.offsetLeft;
+      const walk = (x - startX) * 1.6; // multiplier kecepatan geser mulus
+      slider.scrollLeft = scrollLeft - walk;
+    });
+  });
+}
+window.enableDragToScroll = enableDragToScroll;
 
 function setupEventListeners() {
   // Autentikasi: Form Login & Tombol Logout
@@ -1191,6 +1235,11 @@ function renderPosAnggaranTable() {
         <td></td>
       </tr>
     `;
+  }
+
+  // Aktifkan drag-to-scroll di mana saja pada tabel
+  if (typeof enableDragToScroll === 'function') {
+    enableDragToScroll();
   }
 }
 

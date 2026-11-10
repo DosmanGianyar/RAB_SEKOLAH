@@ -187,6 +187,8 @@ body {
   gap: 10px;
   text-decoration: none;
   color: var(--text-main);
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .brand-icon {
@@ -217,12 +219,27 @@ body {
   color: #fff;
 }
 
+.brand-text-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.brand-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
 .brand-title {
   font-family: 'Outfit', sans-serif;
   font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #0f172a;
+  white-space: nowrap;
 }
 
 .brand-subtitle {
@@ -231,6 +248,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 /* User Switcher Pill */
@@ -918,7 +936,7 @@ body {
   border-radius: var(--radius-md);
 }
 
-/* Mobile Bottom Navigation (Teacher Friendly) */
+/* Mobile Bottom Navigation (Teacher Friendly - Tepat 4 Tombol Proporsional) */
 .mobile-nav-bar {
   position: fixed;
   bottom: 0;
@@ -927,8 +945,9 @@ body {
   background: #ffffff;
   border-top: 2px solid var(--border-subtle);
   display: flex;
-  justify-content: space-around;
-  padding: 8px 12px;
+  justify-content: stretch;
+  align-items: center;
+  padding: 6px 6px;
   z-index: 50;
   box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
 }
@@ -944,17 +963,28 @@ body {
 }
 
 .nav-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 3px;
   text-decoration: none;
   color: #475569;
   font-size: 0.68rem;
   font-weight: 700;
-  padding: 5px 12px;
+  padding: 6px 2px;
   border-radius: var(--radius-md);
   transition: var(--transition);
+  min-width: 0;
+}
+
+.nav-item span {
+  white-space: nowrap;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .nav-item svg {
@@ -2387,13 +2417,80 @@ body {
   color: var(--danger);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .header-inner {
+    gap: 6px;
+    padding: 0 4px;
+  }
+
+  .brand-badge {
+    gap: 8px;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    padding: 2px;
+  }
+
+  .brand-title {
+    font-size: 0.95rem;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+  }
+
+  .badge-demo-mark {
+    font-size: 0.58rem;
+    padding: 1px 5px;
+  }
+
+  .brand-subtitle {
+    font-size: 0.58rem;
+    white-space: nowrap;
+  }
+
+  .role-switcher-pill {
+    padding: 4px 8px;
+    gap: 6px;
+    max-width: 150px;
+  }
+
+  .role-switcher-pill .user-info-text {
+    max-width: 85px;
+  }
+
+  .role-switcher-pill .user-name {
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .role-switcher-pill .user-role-badge {
+    font-size: 0.58rem;
+    padding: 1px 4px;
+  }
+
   .logout-label {
     display: none;
   }
 
   .btn-logout-header {
-    padding: 7px;
+    padding: 6px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-title {
+    font-size: 0.88rem;
+  }
+  .brand-subtitle {
+    font-size: 0.54rem;
+  }
+  .role-switcher-pill .user-info-text {
+    max-width: 72px;
   }
 }
 
@@ -3160,38 +3257,65 @@ table td {
   overflow: hidden;
 }
 
-/* Scroll Container with Sticky Header */
-.rkas-table-card .table-responsive {
-  max-height: 72vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  position: relative;
-  -webkit-overflow-scrolling: touch;
+/* Bilah Petunjuk Geser Horizontal */
+.table-scroll-hint-bar {
+  display: flex;
+  align-items: center;
+  background: #f0fdf4;
+  border-bottom: 1.5px solid #bbf7d0;
+  padding: 7px 14px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #166534;
 }
 
-@media (max-width: 1024px) {
-  .rkas-table-card .table-responsive {
-    overflow-x: auto;
-  }
+.table-scroll-hint-bar i {
+  color: #059669;
+  font-size: 1rem;
+  margin-right: 6px;
+}
+
+/* Scroll Container with Sticky Header & Instant Drag-to-Scroll */
+.rkas-table-card .table-responsive,
+.draggable-table-container {
+  max-height: 72vh;
+  overflow-y: auto;
+  overflow-x: auto !important;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  cursor: grab;
+  user-select: none;
+}
+
+.rkas-table-card .table-responsive.is-dragging,
+.draggable-table-container.is-dragging {
+  cursor: grabbing !important;
+  cursor: -webkit-grabbing !important;
+  user-select: none;
 }
 
 /* Custom Scrollbar */
-.rkas-table-card .table-responsive::-webkit-scrollbar {
+.rkas-table-card .table-responsive::-webkit-scrollbar,
+.draggable-table-container::-webkit-scrollbar {
   width: 7px;
-  height: 7px;
+  height: 8px;
 }
 
-.rkas-table-card .table-responsive::-webkit-scrollbar-track {
-  background: #f8fafc;
+.rkas-table-card .table-responsive::-webkit-scrollbar-track,
+.draggable-table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
 }
 
-.rkas-table-card .table-responsive::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+.rkas-table-card .table-responsive::-webkit-scrollbar-thumb,
+.draggable-table-container::-webkit-scrollbar-thumb {
+  background: #94a3b8;
   border-radius: 4px;
 }
 
-.rkas-table-card .table-responsive::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+.rkas-table-card .table-responsive::-webkit-scrollbar-thumb:hover,
+.draggable-table-container::-webkit-scrollbar-thumb:hover {
+  background: #059669;
 }
 
 .rkas-table {
