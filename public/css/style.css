@@ -1508,7 +1508,7 @@ body {
   letter-spacing: -0.02em;
 }
 
-/* Proposal History Cards */
+/* Proposal History Cards (FlexAdmin Human-Crafted Aesthetic) */
 .proposals-list {
   display: flex;
   flex-direction: column;
@@ -1517,19 +1517,21 @@ body {
 
 .proposal-item-card {
   background: #ffffff;
-  border: 1.5px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  transition: var(--transition);
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid var(--primary);
+  border-radius: 12px;
+  padding: 18px 22px;
+  transition: all var(--transition-fast);
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .proposal-item-card:hover {
-  border-color: var(--border-card);
+  border-color: #cbd5e1;
+  border-left-color: var(--primary-hover);
   background: #ffffff;
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
 }
 
 .proposal-top-row {
@@ -1541,11 +1543,17 @@ body {
 }
 
 .proposal-number-tag {
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.76rem;
   font-weight: 800;
-  color: var(--primary);
-  letter-spacing: 0.04em;
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
 }
 
 .proposal-title {
@@ -1554,7 +1562,7 @@ body {
   font-weight: 800;
   color: var(--text-main);
   line-height: 1.35;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .proposal-meta-row {
@@ -1585,7 +1593,7 @@ body {
   font-family: 'Outfit', sans-serif;
   font-size: 1.25rem;
   font-weight: 800;
-  color: #1e3a8a;
+  color: #064e3b;
 }
 
 /* Bilah Aksi Kartu Usulan (Baris ke-2 Rapi) */

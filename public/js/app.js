@@ -1663,31 +1663,31 @@ function renderProposalsList(proposals) {
 
     if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
       roleActionBtn = `
-        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #d97706, #f59e0b); color: #fff;" onclick="event.stopPropagation(); openReviewModal(${p.id})">
+        <button class="btn btn-warning btn-sm" style="background: #d97706; border-color: #d97706; color: #fff;" onclick="event.stopPropagation(); openReviewModal(${p.id})">
           <i class="ti ti-edit"></i> Telaah & Koreksi
         </button>
       `;
     } else if (isKepsek && p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
       roleActionBtn = `
-        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="event.stopPropagation(); openKepsekModal(${p.id})">
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openKepsekModal(${p.id})">
           <i class="ti ti-shield-check"></i> Beri Otorisasi Final
         </button>
       `;
     } else if (isBendahara && p.status === 'DISETUJUI') {
       roleActionBtn = `
-        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="event.stopPropagation(); openCairkanModal(${p.id})">
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCairkanModal(${p.id})">
           <i class="ti ti-cash"></i> Cairkan Kas
         </button>
       `;
     } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
       roleActionBtn = `
-        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff;" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})">
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})">
           <i class="ti ti-file-invoice"></i> Buat LPJ
         </button>
       `;
     } else if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
       roleActionBtn = `
-        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #d97706, #f59e0b); color: #fff;" onclick="event.stopPropagation(); openVerifikasiLpjModal(${p.id})">
+        <button class="btn btn-warning btn-sm" style="background: #d97706; border-color: #d97706; color: #fff;" onclick="event.stopPropagation(); openVerifikasiLpjModal(${p.id})">
           <i class="ti ti-clipboard-check"></i> Verifikasi LPJ
         </button>
       `;
@@ -1932,8 +1932,10 @@ async function openProposalDetail(id) {
 
       if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
         const btnReview = document.createElement('button');
-        btnReview.className = 'btn btn-primary btn-sm';
-        btnReview.style.background = 'linear-gradient(135deg, #d97706, #f59e0b)';
+        btnReview.className = 'btn btn-warning btn-sm';
+        btnReview.style.background = '#d97706';
+        btnReview.style.borderColor = '#d97706';
+        btnReview.style.color = '#fff';
         btnReview.innerHTML = '<i class="ti ti-edit"></i> Buka Modul Telaah & Koreksi';
         btnReview.onclick = () => {
           closeDetailModal();
@@ -1943,7 +1945,6 @@ async function openProposalDetail(id) {
       } else if (isKepsek && p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
         const btnKepsek = document.createElement('button');
         btnKepsek.className = 'btn btn-primary btn-sm';
-        btnKepsek.style.background = 'linear-gradient(135deg, #059669, #10b981)';
         btnKepsek.innerHTML = '<i class="ti ti-shield-check"></i> Berikan Otorisasi Pengesahan';
         btnKepsek.onclick = () => {
           closeDetailModal();
@@ -1953,7 +1954,6 @@ async function openProposalDetail(id) {
       } else if (isBendahara && p.status === 'DISETUJUI') {
         const btnCairkan = document.createElement('button');
         btnCairkan.className = 'btn btn-primary btn-sm';
-        btnCairkan.style.background = 'linear-gradient(135deg, #059669, #10b981)';
         btnCairkan.innerHTML = '<i class="ti ti-cash"></i> Cairkan Kas Sekarang';
         btnCairkan.onclick = () => {
           closeDetailModal();
@@ -1963,7 +1963,6 @@ async function openProposalDetail(id) {
       } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
         const btnLpj = document.createElement('button');
         btnLpj.className = 'btn btn-primary btn-sm';
-        btnLpj.style.background = 'linear-gradient(135deg, #2563eb, #3b82f6)';
         btnLpj.innerHTML = '<i class="ti ti-file-invoice"></i> Buat LPJ Realisasi';
         btnLpj.onclick = () => {
           closeDetailModal();
@@ -1972,8 +1971,10 @@ async function openProposalDetail(id) {
         footer.appendChild(btnLpj);
       } else if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
         const btnVerifLpj = document.createElement('button');
-        btnVerifLpj.className = 'btn btn-primary btn-sm';
-        btnVerifLpj.style.background = 'linear-gradient(135deg, #d97706, #f59e0b)';
+        btnVerifLpj.className = 'btn btn-warning btn-sm';
+        btnVerifLpj.style.background = '#d97706';
+        btnVerifLpj.style.borderColor = '#d97706';
+        btnVerifLpj.style.color = '#fff';
         btnVerifLpj.innerHTML = '<i class="ti ti-clipboard-check"></i> Verifikasi LPJ Bendahara';
         btnVerifLpj.onclick = () => {
           closeDetailModal();
@@ -2193,16 +2194,44 @@ async function handleBendaharaAction(tindakan) {
     const data = await res.json();
     if (data.success) {
       closeReviewModal();
-      showNotification(`✨ ${data.message}`);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Telaah Disimpan!',
+          text: data.message,
+          confirmButtonColor: '#059669',
+          timer: 3000
+        });
+      } else {
+        showNotification(`✨ ${data.message}`);
+      }
       await loadSummaryStats();
       await loadPosAnggaran();
       await loadProposalsList();
     } else {
-      alert(data.message || 'Gagal memproses review bendahara.');
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Memproses Telaah',
+          text: data.message || 'Gagal memproses review bendahara.',
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        alert(data.message || 'Gagal memproses review bendahara.');
+      }
     }
   } catch (err) {
     console.error('Error submitting review:', err);
-    alert('Terjadi kesalahan koneksi.');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kesalahan Koneksi',
+        text: 'Terjadi kesalahan koneksi atau server.',
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert('Terjadi kesalahan koneksi.');
+    }
   }
 }
 
@@ -2271,16 +2300,44 @@ async function handleKepsekAction(tindakan) {
     const data = await res.json();
     if (data.success) {
       closeKepsekModal();
-      showNotification(`🏛️ ${data.message}`);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Keputusan Disimpan!',
+          text: data.message,
+          confirmButtonColor: '#059669',
+          timer: 3000
+        });
+      } else {
+        showNotification(`🏛️ ${data.message}`);
+      }
       await loadSummaryStats();
       await loadPosAnggaran();
       await loadProposalsList();
     } else {
-      alert(data.message || 'Gagal memproses otorisasi Kepala Sekolah.');
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Otorisasi',
+          text: data.message || 'Gagal memproses otorisasi Kepala Sekolah.',
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        alert(data.message || 'Gagal memproses otorisasi Kepala Sekolah.');
+      }
     }
   } catch (err) {
     console.error('Error submitting kepsek decision:', err);
-    alert('Terjadi kesalahan koneksi.');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kesalahan Jaringan',
+        text: 'Terjadi kesalahan jaringan atau server saat memproses otorisasi.',
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert('Terjadi kesalahan koneksi.');
+    }
   }
 }
 
@@ -2691,15 +2748,43 @@ async function handlePencairanSubmit(e) {
     const data = await res.json();
     if (data.success) {
       closeCairkanModal();
-      showNotification(`✓ ${data.message}`);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Kas Berhasil Dicairkan!',
+          text: data.message,
+          confirmButtonColor: '#059669',
+          timer: 3000
+        });
+      } else {
+        showNotification(`✓ ${data.message}`);
+      }
       loadSummaryStats();
       loadPosAnggaran();
       loadProposalsList();
     } else {
-      alert(`Gagal mencairkan kas: ${data.message}`);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Mencairkan Kas',
+          text: data.message,
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        alert(`Gagal mencairkan kas: ${data.message}`);
+      }
     }
   } catch (err) {
-    alert(`Terjadi kesalahan jaringan saat mencairkan kas: ${err.message}`);
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kesalahan Jaringan',
+        text: `Terjadi kesalahan saat mencairkan kas: ${err.message}`,
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert(`Terjadi kesalahan jaringan saat mencairkan kas: ${err.message}`);
+    }
   }
 }
 
@@ -2832,15 +2917,43 @@ async function handleSubmitLpj(e) {
     const data = await res.json();
     if (data.success) {
       closeSubmitLpjModal();
-      showNotification(`✓ ${data.message}`);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Berkas LPJ Diserahkan!',
+          text: data.message,
+          confirmButtonColor: '#059669',
+          timer: 3000
+        });
+      } else {
+        showNotification(`✓ ${data.message}`);
+      }
       loadSummaryStats();
       loadPosAnggaran();
       loadProposalsList();
     } else {
-      alert(`Gagal mengirimkan LPJ: ${data.message}`);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Menyerahkan LPJ',
+          text: data.message,
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        alert(`Gagal mengirimkan LPJ: ${data.message}`);
+      }
     }
   } catch (err) {
-    alert(`Terjadi kesalahan jaringan: ${err.message}`);
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kesalahan Jaringan',
+        text: `Terjadi kesalahan jaringan: ${err.message}`,
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert(`Terjadi kesalahan jaringan: ${err.message}`);
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = '📋 Serahkan Berkas LPJ ke Bendahara';
@@ -2910,7 +3023,16 @@ async function handleBendaharaLpjAction(tindakan) {
   const catatan_verifikasi = document.getElementById('verifLpjCatatanBendahara').value.trim();
 
   if (tindakan === 'REVISI' && !catatan_verifikasi) {
-    alert('Harap isi catatan pemeriksaan alasan pengembalian/perbaikan LPJ.');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Catatan Wajib Diisi',
+        text: 'Harap isi catatan pemeriksaan alasan pengembalian/perbaikan LPJ.',
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert('Harap isi catatan pemeriksaan alasan pengembalian/perbaikan LPJ.');
+    }
     return;
   }
 
@@ -2923,14 +3045,42 @@ async function handleBendaharaLpjAction(tindakan) {
     const data = await res.json();
     if (data.success) {
       closeVerifikasiLpjModal();
-      showNotification(`✓ ${data.message}`);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Verifikasi Berhasil!',
+          text: data.message,
+          confirmButtonColor: '#059669',
+          timer: 3000
+        });
+      } else {
+        showNotification(`✓ ${data.message}`);
+      }
       loadSummaryStats();
       loadPosAnggaran();
       loadProposalsList();
     } else {
-      alert(`Gagal memverifikasi LPJ: ${data.message}`);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Verifikasi LPJ',
+          text: data.message,
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        alert(`Gagal memverifikasi LPJ: ${data.message}`);
+      }
     }
   } catch (err) {
-    alert(`Terjadi kesalahan jaringan: ${err.message}`);
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kesalahan Jaringan',
+        text: `Terjadi kesalahan jaringan: ${err.message}`,
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert(`Terjadi kesalahan jaringan: ${err.message}`);
+    }
   }
 }
