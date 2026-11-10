@@ -3,6 +3,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const QRCode = require('qrcode');
 const multer = require('multer');
+const XLSX = require('xlsx');
 const {
   initDatabase,
   getPosAnggaranList,
@@ -32,6 +33,7 @@ const {
 } = require('./db');
 
 const { renderCetakDisposisi } = require('./views/cetak-disposisi');
+const { renderCetakRkas } = require('./views/cetak-rkas');
 const { renderVerifikasiPublik } = require('./views/verifikasi-publik');
 
 const app = express();
@@ -555,6 +557,104 @@ app.get('/api/pengajuan/:id/qr', async (req, res) => {
     res.json({ success: true, qrDataUrl, verifyUrl, kode_verifikasi: proposal.kode_verifikasi_qr });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --- Ekspor & Cetak Dokumen Buku Besar RKAS ---
+
+// 1. Render Lembar Cetak / Ekspor PDF Buku Besar RKAS Resmi (A4 Landscape)
+app.get('/cetak/rkas', (req, res) => {
+  try {
+    const posList = getPosAnggaranList();
+    const summary = getSystemSummary();
+    const html = renderCetakRkas({ posList, summary });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.error('Error rendering cetak rkas:', err);
+    res.status(500).send('Gagal memuat format cetak RKAS: ' + err.message);
+  }
+});
+
+// 2. Ekspor Data Buku Besar RKAS ke Format Excel (.xlsx)
+app.get('/api/export/rkas/excel', (req, res) => {
+  try {
+    const list = getPosAnggaranList();
+    const summary = getSystemSummary();
+
+    const dataRows = list.map((item, idx) => {
+      let trafficLabel = 'AMAN';
+      if (item.trafficLight === 'yellow') trafficLabel = 'WASPADA';
+      if (item.trafficLight === 'red') trafficLabel = 'KRITIS';
+
+      return {
+        'No': idx + 1,
+        'Kode Rekening': item.kode_rekening || '-',
+        'SNP': item.snp || '-',
+        'Program Induk': item.program_induk || '-',
+        'Kelompok': item.nama_kelompok || '-',
+        'Uraian Pos Anggaran': item.nama_pos,
+        'Volume': item.volume || 1,
+        'Satuan': item.satuan || 'kegiatan',
+        'Pagu Plafon (Rp)': item.pagu_awal || 0,
+        'Realisasi Terserap (Rp)': item.total_terserap || 0,
+        'Pagu Pending (Rp)': item.pagu_tercadangkan || 0,
+        'Sisa Plafon (Rp)': item.sisa_pagu || 0,
+        'Serapan (%)': `${item.persentaseTerserap || 0}%`,
+        'Status Kontrol': trafficLabel,
+        'Keterangan': item.keterangan || ''
+      };
+    });
+
+    dataRows.push({
+      'No': '',
+      'Kode Rekening': '',
+      'SNP': '',
+      'Program Induk': '',
+      'Kelompok': '',
+      'Uraian Pos Anggaran': 'TOTAL KESELURUHAN BUKU BESAR RKAS',
+      'Volume': '',
+      'Satuan': '',
+      'Pagu Plafon (Rp)': summary.total_pagu || 0,
+      'Realisasi Terserap (Rp)': summary.total_terserap || 0,
+      'Pagu Pending (Rp)': summary.total_tercadangkan || 0,
+      'Sisa Plafon (Rp)': summary.sisa_pagu_aktif || 0,
+      'Serapan (%)': `${summary.persentase_terserap || 0}%`,
+      'Status Kontrol': '',
+      'Keterangan': ''
+    });
+
+    const ws = XLSX.utils.json_to_sheet(dataRows);
+
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 15 },
+      { wch: 24 },
+      { wch: 28 },
+      { wch: 28 },
+      { wch: 42 },
+      { wch: 8 },
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 20 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 28 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Buku Besar RKAS 2026-2027');
+
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="RKAS_SMAN1_GIANYAR_2026_2027.xlsx"');
+    res.send(buffer);
+  } catch (err) {
+    console.error('Export Excel error:', err);
+    res.status(500).send('Gagal mengekspor data ke Excel: ' + err.message);
   }
 });
 

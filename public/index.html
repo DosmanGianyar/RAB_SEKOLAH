@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.2.5">
+  <link rel="stylesheet" href="/css/style.css?v=2.2.7">
 </head>
 <body>
 
@@ -350,6 +350,29 @@
                 <!-- Total Row via JavaScript -->
               </tfoot>
             </table>
+          </div>
+        </div>
+
+        <!-- Bilah Unduh Laporan Buku Besar RKAS (Di Bagian Bawah) -->
+        <div class="rkas-download-card">
+          <div class="rkas-download-info">
+            <div class="rkas-download-icon">
+              <i class="ti ti-file-download"></i>
+            </div>
+            <div>
+              <div class="rkas-download-title">Unduh Laporan Buku Besar RKAS &amp; Serapan Anggaran</div>
+              <div class="rkas-download-sub">Ekspor rekapitulasi data pagu, realisasi belanja, dan sisa anggaran resmi SMA Negeri 1 Gianyar T.A. 2026/2027.</div>
+            </div>
+          </div>
+          <div class="rkas-download-actions">
+            <a href="/cetak/rkas" target="_blank" class="btn btn-secondary btn-download-pdf" title="Lihat pratinjau & simpan format PDF resmi A4 Landscape">
+              <i class="ti ti-file-type-pdf" style="color: #dc2626; font-size: 1.15rem;"></i>
+              <span>Unduh Format PDF</span>
+            </a>
+            <a href="/api/export/rkas/excel" class="btn btn-primary btn-download-excel" title="Unduh data buku besar ke file Microsoft Excel">
+              <i class="ti ti-file-spreadsheet" style="font-size: 1.15rem;"></i>
+              <span>Unduh Excel (.xlsx)</span>
+            </a>
           </div>
         </div>
       </section>
@@ -1185,6 +1208,6 @@
   <!-- Tabler Core JS & SweetAlert2 -->
   <script src="/libs/tabler/js/tabler.min.js"></script>
   <script src="/libs/sweetalert2/sweetalert2.all.min.js"></script>
-  <script src="/js/app.js?v=2.2.6"></script>
+  <script src="/js/app.js?v=2.2.7"></script>
 </body>
 </html>
