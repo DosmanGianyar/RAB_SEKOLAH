@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.2.3">
+  <link rel="stylesheet" href="/css/style.css?v=2.2.4">
 </head>
 <body>
 
@@ -1169,9 +1169,12 @@
             <textarea class="form-textarea" id="inputKeterangan" rows="2" placeholder="Catatan atau tujuan peruntukan belanja pos ini..."></textarea>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="closePosModal()">Batal</button>
-          <button type="submit" class="btn btn-primary btn-sm">Simpan Pos Anggaran</button>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <div id="modalPosDeleteBtnWrap"></div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closePosModal()">Batal</button>
+            <button type="submit" class="btn btn-primary btn-sm">Simpan Pos Anggaran</button>
+          </div>
         </div>
       </form>
     </div>
@@ -1181,6 +1184,6 @@
 
   <!-- Tabler Core JS & App Logic -->
   <script src="/libs/tabler/js/tabler.min.js"></script>
-  <script src="/js/app.js?v=2.2.3"></script>
+  <script src="/js/app.js?v=2.2.4"></script>
 </body>
 </html>

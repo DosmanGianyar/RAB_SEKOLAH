@@ -59,6 +59,80 @@ function parseRupiahInput(val) {
   return Number(String(val).replace(/\D/g, '')) || 0;
 }
 
+// Otorisasi Penghapusan Khusus: Hanya Analisis SDM, Kepala Sekolah, dan Administrator
+function canUserDelete() {
+  return currentUser && ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role);
+}
+
+// Handler Hapus Usulan Pengajuan Kegiatan (Hanya Otoritas Khusus)
+async function handleDeleteProposal(id, nama) {
+  if (!canUserDelete()) {
+    alert('Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang memiliki hak otorisasi untuk menghapus usulan kegiatan.');
+    return;
+  }
+
+  const namaDisplay = nama || 'usulan ini';
+  const confirmed = confirm(
+    `PERINGATAN OTORISASI KHUSUS:\n\nApakah Anda yakin ingin menghapus permanen usulan kegiatan:\n"${namaDisplay}"?\n\nSeluruh data rincian belanja, riwayat audit, dan alokasi pagu akan dibatalkan & dikembalikan otomatis ke kas.\n\nTindakan ini bersifat PERMANEN dan tidak dapat dibatalkan.`
+  );
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/pengajuan/${id}`, {
+      method: 'DELETE'
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert(`✅ ${result.message}`);
+      closeDetailModal();
+      await loadProposals();
+      await loadPosAnggaran();
+      await loadSummary();
+    } else {
+      alert(`❌ Gagal menghapus usulan: ${result.message}`);
+    }
+  } catch (err) {
+    console.error('Error saat menghapus proposal:', err);
+    alert('Terjadi kesalahan jaringan atau server saat menghapus usulan.');
+  }
+}
+
+// Handler Hapus Pos Anggaran RKAS (Hanya Otoritas Khusus)
+async function handleDeletePosAnggaran(id, nama) {
+  if (!canUserDelete()) {
+    alert('Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang berhak menghapus pos anggaran.');
+    return;
+  }
+
+  const namaDisplay = nama || 'pos anggaran ini';
+  const confirmed = confirm(
+    `PERINGATAN OTORISASI KHUSUS:\n\nApakah Anda yakin ingin menghapus pos anggaran:\n"${namaDisplay}"?\n\nCatatan: Pos hanya dapat dihapus jika tidak ada usulan kegiatan aktif di dalamnya.\n\nTindakan ini tidak dapat dibatalkan.`
+  );
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/pos-anggaran/${id}`, {
+      method: 'DELETE'
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert(`✅ ${result.message}`);
+      closePosModal();
+      await loadPosAnggaran();
+      await loadSummary();
+    } else {
+      alert(`❌ Gagal menghapus pos anggaran: ${result.message}`);
+    }
+  } catch (err) {
+    console.error('Error saat menghapus pos anggaran:', err);
+    alert('Terjadi kesalahan jaringan atau server saat menghapus pos anggaran.');
+  }
+}
+
+window.canUserDelete = canUserDelete;
+window.handleDeleteProposal = handleDeleteProposal;
+window.handleDeletePosAnggaran = handleDeletePosAnggaran;
+
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
@@ -659,15 +733,22 @@ function renderPosAnggaranTable() {
             </span>
           </div>
         </td>
-        <td style="text-align: center;">
+        <td style="text-align: center; white-space: nowrap;">
           ${isGuru ? `
             <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
               <i class="ti ti-plus"></i> Ajukan
             </button>
           ` : `
-            <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
-              <i class="ti ti-edit"></i> Edit
-            </button>
+            <div style="display: inline-flex; gap: 4px; justify-content: center; align-items: center;">
+              <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
+                <i class="ti ti-edit"></i> Edit
+              </button>
+              ${canUserDelete() ? `
+                <button class="btn btn-outline-danger btn-sm" onclick="handleDeletePosAnggaran(${item.id}, '${escapeHtml(item.nama_pos)}')" title="Hapus Pos Anggaran">
+                  <i class="ti ti-trash"></i>
+                </button>
+              ` : ''}
+            </div>
           `}
         </td>
       `;
@@ -773,15 +854,22 @@ function renderPosAnggaranTable() {
                 </span>
               </div>
             </td>
-            <td style="text-align: center;">
+            <td style="text-align: center; white-space: nowrap;">
               ${isGuru ? `
                 <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
                   <i class="ti ti-plus"></i> Ajukan
                 </button>
               ` : `
-                <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
-                  <i class="ti ti-edit"></i> Edit
-                </button>
+                <div style="display: inline-flex; gap: 4px; justify-content: center; align-items: center;">
+                  <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
+                    <i class="ti ti-edit"></i> Edit
+                  </button>
+                  ${canUserDelete() ? `
+                    <button class="btn btn-outline-danger btn-sm" onclick="handleDeletePosAnggaran(${item.id}, '${escapeHtml(item.nama_pos)}')" title="Hapus Pos Anggaran">
+                      <i class="ti ti-trash"></i>
+                    </button>
+                  ` : ''}
+                </div>
               `}
             </td>
           `;
@@ -1331,6 +1419,15 @@ function renderProposalsList(proposals) {
       `;
     }
 
+    let deleteProposalBtn = '';
+    if (canUserDelete()) {
+      deleteProposalBtn = `
+        <button class="btn btn-outline-danger btn-sm" onclick="event.stopPropagation(); handleDeleteProposal(${p.id}, '${escapeHtml(p.nama_kegiatan)}')" title="Hapus Usulan Kegiatan">
+          <i class="ti ti-trash"></i> Hapus
+        </button>
+      `;
+    }
+
     let revisionNoteHtml = '';
     if (p.status === 'PERLU_REVISI' && p.catatan_bendahara) {
       revisionNoteHtml = `
@@ -1393,6 +1490,7 @@ function renderProposalsList(proposals) {
           </div>
           ${printActionBtn}
           ${roleActionBtn}
+          ${deleteProposalBtn}
         </div>
       </div>
     `;
@@ -1517,6 +1615,16 @@ async function openProposalDetail(id) {
       // Render Footer Action Buttons based on User Role
       const footer = document.getElementById('detailModalFooter');
       footer.innerHTML = `<button type="button" class="btn btn-secondary btn-sm" onclick="closeDetailModal()">Tutup</button>`;
+
+      if (canUserDelete()) {
+        const btnDelete = document.createElement('button');
+        btnDelete.type = 'button';
+        btnDelete.className = 'btn btn-danger btn-sm';
+        btnDelete.style.marginRight = 'auto';
+        btnDelete.innerHTML = '<i class="ti ti-trash"></i> Hapus Usulan Ini';
+        btnDelete.onclick = () => handleDeleteProposal(p.id, p.nama_kegiatan);
+        footer.prepend(btnDelete);
+      }
 
       const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
       const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
@@ -2019,6 +2127,9 @@ function openAddPosModal() {
   document.getElementById('formPosAnggaran').reset();
   document.getElementById('posIdInput').value = '';
 
+  const deleteBtnWrap = document.getElementById('modalPosDeleteBtnWrap');
+  if (deleteBtnWrap) deleteBtnWrap.innerHTML = '';
+
   const selectorWrap = document.getElementById('posTypeSelectorWrap');
   if (selectorWrap) selectorWrap.style.display = 'block';
 
@@ -2043,6 +2154,19 @@ function openEditPosModal(id) {
 
   document.getElementById('modalPosTitle').textContent = 'Ubah Plafon Pos Anggaran';
   document.getElementById('posIdInput').value = item.id;
+
+  const deleteBtnWrap = document.getElementById('modalPosDeleteBtnWrap');
+  if (deleteBtnWrap) {
+    if (canUserDelete()) {
+      deleteBtnWrap.innerHTML = `
+        <button type="button" class="btn btn-danger btn-sm" onclick="handleDeletePosAnggaran(${item.id}, '${escapeHtml(item.nama_pos)}')">
+          <i class="ti ti-trash"></i> Hapus Pos Ini
+        </button>
+      `;
+    } else {
+      deleteBtnWrap.innerHTML = '';
+    }
+  }
 
   // Sembunyikan toggle tipe saat edit pos yang sudah ada
   const selectorWrap = document.getElementById('posTypeSelectorWrap');

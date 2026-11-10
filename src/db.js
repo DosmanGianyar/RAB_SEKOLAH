@@ -1369,6 +1369,76 @@ function verifyLpjByBendahara({
   return getPengajuanById(pengajuan_id);
 }
 
+// Rekonsiliasi Otomatis Seluruh Plafon & Serapan Pos Anggaran
+function syncAllPosPagu() {
+  db.prepare('UPDATE pos_anggaran SET total_terserap = 0, pagu_tercadangkan = 0').run();
+  const activeProps = db.prepare(`
+    SELECT pos_anggaran_id, status, total_dana_disetujui, total_dana_diajukan
+    FROM pengajuan_kegiatan
+    WHERE status != 'DITOLAK'
+  `).all();
+
+  for (const p of activeProps) {
+    if (!p.pos_anggaran_id) continue;
+    const nominal = Number(p.total_dana_disetujui) || Number(p.total_dana_diajukan) || 0;
+    if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
+      db.prepare('UPDATE pos_anggaran SET total_terserap = total_terserap + ? WHERE id = ?').run(nominal, p.pos_anggaran_id);
+    } else {
+      db.prepare('UPDATE pos_anggaran SET pagu_tercadangkan = pagu_tercadangkan + ? WHERE id = ?').run(nominal, p.pos_anggaran_id);
+    }
+  }
+}
+
+// Hapus Pengajuan / Usulan Kegiatan (Hanya Otoritas Khusus)
+function deletePengajuan(id, user) {
+  const proposal = db.prepare('SELECT * FROM pengajuan_kegiatan WHERE id = ?').get(id);
+  if (!proposal) {
+    throw new Error('Usulan pengajuan tidak ditemukan.');
+  }
+
+  // Hapus semua dependensi: LPJ, audit log, rincian item, dan data pengajuan utama
+  db.prepare('DELETE FROM lpj_pertanggungjawaban WHERE pengajuan_id = ?').run(id);
+  db.prepare('DELETE FROM audit_log_koreksi WHERE pengajuan_id = ?').run(id);
+  db.prepare('DELETE FROM rincian_rab_item WHERE pengajuan_id = ?').run(id);
+  db.prepare('DELETE FROM pengajuan_kegiatan WHERE id = ?').run(id);
+
+  if (user) {
+    db.prepare(`
+      INSERT INTO audit_log_koreksi (user_id, aktivitas)
+      VALUES (?, ?)
+    `).run(user.id, `HAPUS USULAN: Pengajuan "${proposal.nama_kegiatan}" (Nomor: ${proposal.nomor_surat_ajuan}) berhasil dihapus permanen oleh ${user.nama_lengkap} (${user.role}).`);
+  }
+
+  // Rekonsiliasi ulang seluruh plafon & serapan pos anggaran
+  syncAllPosPagu();
+
+  return { success: true, message: `Usulan "${proposal.nama_kegiatan}" berhasil dihapus permanen.` };
+}
+
+// Hapus Pos Anggaran RKAS (Hanya Otoritas Khusus)
+function deletePosAnggaran(id, user) {
+  const pos = db.prepare('SELECT * FROM pos_anggaran WHERE id = ?').get(id);
+  if (!pos) {
+    throw new Error('Pos anggaran tidak ditemukan.');
+  }
+
+  const related = db.prepare('SELECT COUNT(*) as count FROM pengajuan_kegiatan WHERE pos_anggaran_id = ?').get(id).count;
+  if (related > 0) {
+    throw new Error(`Pos anggaran tidak dapat dihapus karena masih memiliki ${related} usulan kegiatan terkait. Hapus usulan terkait terlebih dahulu.`);
+  }
+
+  db.prepare('DELETE FROM pos_anggaran WHERE id = ?').run(id);
+
+  if (user) {
+    db.prepare(`
+      INSERT INTO audit_log_koreksi (user_id, aktivitas)
+      VALUES (?, ?)
+    `).run(user.id, `HAPUS POS ANGGARAN: Pos "${pos.nama_pos}" (Kode: ${pos.kode_rekening || '-'}) berhasil dihapus oleh ${user.nama_lengkap} (${user.role}).`);
+  }
+
+  return { success: true, message: `Pos anggaran "${pos.nama_pos}" berhasil dihapus.` };
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -1376,6 +1446,7 @@ module.exports = {
   getPosAnggaranById,
   createPosAnggaran,
   updatePosAnggaran,
+  deletePosAnggaran,
   importRkasFromExcel,
   getAllUsers,
   getUserById,
@@ -1387,6 +1458,7 @@ module.exports = {
   createPengajuan,
   getPengajuanList,
   getPengajuanById,
+  deletePengajuan,
   reviewProposalByBendahara,
   decisionProposalByKepsek,
   disburseProposal,

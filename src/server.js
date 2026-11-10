@@ -9,6 +9,7 @@ const {
   getPosAnggaranById,
   createPosAnggaran,
   updatePosAnggaran,
+  deletePosAnggaran,
   importRkasFromExcel,
   getAllUsers,
   getUserById,
@@ -20,6 +21,7 @@ const {
   createPengajuan,
   getPengajuanList,
   getPengajuanById,
+  deletePengajuan,
   reviewProposalByBendahara,
   decisionProposalByKepsek,
   disburseProposal,
@@ -304,6 +306,24 @@ app.put('/api/pos-anggaran/:id', requireAuth, (req, res) => {
   }
 });
 
+// Hapus Pos Anggaran (Hanya Otoritas: ANALISIS_SDM, KEPALA_SEKOLAH, ADMIN)
+app.delete('/api/pos-anggaran/:id', requireAuth, (req, res) => {
+  try {
+    const ALLOWED_DELETE_ROLES = ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'];
+    if (!ALLOWED_DELETE_ROLES.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang berhak menghapus pos anggaran.'
+      });
+    }
+
+    const result = deletePosAnggaran(req.params.id, req.user);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // --- Pengajuan Kegiatan & RAB Endpoints (FASE 2) ---
 
 // List Pengajuan (Filtered for Guru, Global for Bendahara/Kepsek)
@@ -336,6 +356,24 @@ app.get('/api/pengajuan/:id', requireAuth, (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Hapus Usulan Pengajuan (Hanya Otoritas: ANALISIS_SDM, KEPALA_SEKOLAH, ADMIN)
+app.delete('/api/pengajuan/:id', requireAuth, (req, res) => {
+  try {
+    const ALLOWED_DELETE_ROLES = ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'];
+    if (!ALLOWED_DELETE_ROLES.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang berhak menghapus berkas usulan kegiatan.'
+      });
+    }
+
+    const result = deletePengajuan(req.params.id, req.user);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 
