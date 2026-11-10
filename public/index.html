@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.3.9">
+  <link rel="stylesheet" href="/css/style.css?v=2.4.0">
 </head>
 <body>
 
@@ -312,6 +312,51 @@
               <span class="home-stat-label">Sisa Kuota Pagu Aktif</span>
               <div class="home-stat-value text-emerald" id="homeSisaAktif">Rp 2.379.652.018</div>
               <div class="home-stat-hint text-emerald">Tersedia untuk pengajuan kegiatan baru</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2.5 Visualisasi Analitik & Diagram Interaktif Anggaran -->
+      <div style="margin-bottom: 24px;">
+        <div class="home-section-header">
+          <div>
+            <h2 class="home-section-title">
+              <i class="ti ti-chart-infographic" style="color: #059669;"></i> Visualisasi Analisis Anggaran
+            </h2>
+            <p class="home-section-subtitle">Grafik interaktif distribusi pagu per standar pendidikan &amp; komposisi serapan kas sekolah.</p>
+          </div>
+          <span class="badge badge-outline-success" style="font-size: 0.72rem; padding: 4px 10px;">
+            <i class="ti ti-chart-arrows" style="margin-right: 4px;"></i> Analitik Visual Interaktif
+          </span>
+        </div>
+
+        <div class="home-charts-grid">
+          <!-- Chart 1: Perbandingan Alokasi vs Realisasi per Standar (Bar Chart) -->
+          <div class="home-panel-card chart-card">
+            <div class="home-panel-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ti ti-chart-bar" style="font-size: 1.25rem; color: #059669;"></i>
+                <h3 class="home-panel-title">Alokasi &amp; Realisasi per Standar (SNP)</h3>
+              </div>
+              <span class="chart-legend-hint"><i class="ti ti-info-circle"></i> Nilai Rupiah</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartSnpDistribution"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 2: Komposisi Realisasi & Sisa Pagu (Donut Chart) -->
+          <div class="home-panel-card chart-card">
+            <div class="home-panel-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ti ti-chart-donut" style="font-size: 1.25rem; color: #2563eb;"></i>
+                <h3 class="home-panel-title">Komposisi Serapan Anggaran</h3>
+              </div>
+              <span class="chart-legend-hint"><i class="ti ti-percentage"></i> Persentase</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartStatusSerapan"></canvas>
             </div>
           </div>
         </div>
@@ -1901,9 +1946,10 @@
 
   </div> <!-- /#appAuthenticatedShell -->
 
-  <!-- Tabler Core JS & SweetAlert2 -->
+  <!-- Tabler Core JS, SweetAlert2 & Chart.js -->
   <script src="/libs/tabler/js/tabler.min.js"></script>
   <script src="/libs/sweetalert2/sweetalert2.all.min.js"></script>
-  <script src="/js/app.js?v=2.4.4"></script>
+  <script src="/libs/chartjs/chart.umd.min.js"></script>
+  <script src="/js/app.js?v=2.4.6"></script>
 </body>
 </html>

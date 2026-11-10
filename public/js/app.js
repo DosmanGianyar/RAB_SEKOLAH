@@ -7,6 +7,9 @@ let currentUser = null;
 let currentPosList = [];
 let currentProposals = [];
 let activeViewName = 'home';
+let homeSnpChart = null;
+let homeSerapanChart = null;
+let latestSummaryData = null;
 let selectedSnpFilter = 'ALL';
 let searchKeyword = '';
 let selectedTrafficFilter = 'ALL';
@@ -507,6 +510,11 @@ function switchView(viewName) {
     const vHome = document.getElementById('viewHome');
     if (vHome) vHome.classList.add('active');
     loadSummaryStats();
+    if (!currentPosList || currentPosList.length === 0) {
+      loadPosAnggaran();
+    } else {
+      initOrUpdateHomeCharts();
+    }
     updateHomeGreeting();
   } else if (viewName === 'dashboard') {
     const vDash = document.getElementById('viewDashboard');
@@ -866,11 +874,206 @@ async function loadSummaryStats() {
           ? `${s.count_pending} usulan menunggu persetujuan` 
           : 'Tidak ada usulan pending';
       }
+
+      latestSummaryData = s;
+      initOrUpdateHomeCharts();
     }
   } catch (err) {
     console.error('Error loading stats:', err);
   }
 }
+
+/**
+ * Inisialisasi & pembaruan diagram visual analitik di Dashboard Beranda Utama
+ */
+function initOrUpdateHomeCharts() {
+  if (typeof Chart === 'undefined') {
+    return;
+  }
+
+  // 1. Chart Distribusi SNP (Bar Chart Horizontal)
+  const canvasSnp = document.getElementById('chartSnpDistribution');
+  if (canvasSnp && currentPosList && currentPosList.length > 0) {
+    const snpData = {
+      'Standar Proses': { pagu: 0, realisasi: 0 },
+      'Standar Sarana & Prasarana': { pagu: 0, realisasi: 0 },
+      'Standar Pengelolaan': { pagu: 0, realisasi: 0 },
+      'Standar Pembiayaan': { pagu: 0, realisasi: 0 }
+    };
+
+    currentPosList.forEach(pos => {
+      const snpKey = pos.snp || 'Lainnya';
+      if (!snpData[snpKey]) {
+        snpData[snpKey] = { pagu: 0, realisasi: 0 };
+      }
+      snpData[snpKey].pagu += (pos.pagu_awal || 0);
+      snpData[snpKey].realisasi += (pos.total_terserap || 0);
+    });
+
+    const labels = Object.keys(snpData);
+    const paguValues = labels.map(l => snpData[l].pagu);
+    const realisasiValues = labels.map(l => snpData[l].realisasi);
+
+    if (homeSnpChart) {
+      homeSnpChart.destroy();
+    }
+
+    const ctxSnp = canvasSnp.getContext('2d');
+    homeSnpChart = new Chart(ctxSnp, {
+      type: 'bar',
+      data: {
+        labels: labels.map(l => l.replace('Standar ', '')),
+        datasets: [
+          {
+            label: 'Pagu Alokasi',
+            data: paguValues,
+            backgroundColor: 'rgba(5, 150, 105, 0.88)',
+            borderColor: '#059669',
+            borderWidth: 1,
+            borderRadius: 6,
+            barPercentage: 0.65,
+            categoryPercentage: 0.75
+          },
+          {
+            label: 'Realisasi Belanja Riil',
+            data: realisasiValues,
+            backgroundColor: 'rgba(217, 119, 6, 0.92)',
+            borderColor: '#b45309',
+            borderWidth: 1,
+            borderRadius: 6,
+            barPercentage: 0.65,
+            categoryPercentage: 0.75
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              boxWidth: 12,
+              boxHeight: 12,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              font: {
+                weight: '600',
+                size: 11
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.94)',
+            titleFont: { size: 12, weight: '700' },
+            bodyFont: { size: 12 },
+            padding: 10,
+            cornerRadius: 8,
+            callbacks: {
+              label: function(context) {
+                const label = context.dataset.label || '';
+                const val = context.parsed.x || 0;
+                return ` ${label}: ${formatRupiah(val)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              color: 'rgba(226, 232, 240, 0.7)'
+            },
+            ticks: {
+              font: { size: 11 },
+              callback: function(value) {
+                if (value >= 1000000000) return (value / 1000000000).toFixed(1) + ' M';
+                if (value >= 1000000) return (value / 1000000).toFixed(0) + ' Jt';
+                return value;
+              }
+            }
+          },
+          y: {
+            grid: { display: false },
+            ticks: {
+              font: { size: 11, weight: '600' }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Chart Komposisi Serapan & Sisa Pagu (Doughnut Chart)
+  const canvasSerapan = document.getElementById('chartStatusSerapan');
+  if (canvasSerapan && latestSummaryData) {
+    const sisa = latestSummaryData.sisa_pagu_aktif || 0;
+    const terserap = latestSummaryData.total_terserap || 0;
+    const tercadangkan = latestSummaryData.total_tercadangkan || 0;
+
+    if (homeSerapanChart) {
+      homeSerapanChart.destroy();
+    }
+
+    const ctxSerapan = canvasSerapan.getContext('2d');
+    homeSerapanChart = new Chart(ctxSerapan, {
+      type: 'doughnut',
+      data: {
+        labels: ['Sisa Kuota Kas', 'Realisasi Terserap', 'Pagu Tercadangkan'],
+        datasets: [{
+          data: [sisa, terserap, tercadangkan],
+          backgroundColor: ['#10b981', '#f59e0b', '#06b6d4'],
+          hoverBackgroundColor: ['#059669', '#d97706', '#0891b2'],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 12,
+              boxHeight: 12,
+              padding: 12,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              font: {
+                weight: '600',
+                size: 11
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.94)',
+            titleFont: { size: 12, weight: '700' },
+            bodyFont: { size: 12 },
+            padding: 10,
+            cornerRadius: 8,
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const val = context.parsed || 0;
+                const total = sisa + terserap + tercadangkan;
+                const pct = total > 0 ? ((val / total) * 100).toFixed(2) : '0';
+                return ` ${label}: ${formatRupiah(val)} (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+}
+window.initOrUpdateHomeCharts = initOrUpdateHomeCharts;
 
 function updateHomeGreeting() {
   const now = new Date();
@@ -939,6 +1142,7 @@ async function loadPosAnggaran() {
 
       renderPosAnggaranTable();
       populatePosDropdown();
+      initOrUpdateHomeCharts();
     }
   } catch (err) {
     console.error('Error loading pos anggaran:', err);
