@@ -415,7 +415,7 @@ async function loadSummaryStats() {
 async function loadPosAnggaran() {
   const tbody = document.getElementById('posTableBody');
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="ti ti-loader spin-icon" style="font-size: 1.5rem; display: block; margin-bottom: 8px;"></i>Memuat data pagu RKAS...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="ti ti-loader spin-icon" style="font-size: 1.5rem; display: block; margin-bottom: 8px;"></i>Memuat data pagu RKAS...</td></tr>';
   }
 
   try {
@@ -444,7 +444,7 @@ async function loadPosAnggaran() {
   } catch (err) {
     console.error('Error loading pos anggaran:', err);
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="11" style="color:var(--rose); padding: 30px; text-align: center;">Gagal memuat pos anggaran dari server.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="color:var(--rose); padding: 30px; text-align: center;">Gagal memuat pos anggaran dari server.</td></tr>';
     }
   }
 }
@@ -509,7 +509,7 @@ function renderPosAnggaranTable() {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="11" style="text-align: center; padding: 45px 20px; color: var(--text-muted);">
+        <td colspan="8" style="text-align: center; padding: 45px 20px; color: var(--text-muted);">
           <div style="font-size: 1.8rem; margin-bottom: 8px;">🔍</div>
           <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-main);">Tidak ada pos anggaran yang sesuai kriteria</div>
           <div style="font-size: 0.8rem; margin-top: 4px;">Coba ubah kata kunci pencarian atau ganti filter Standar SNP.</div>
@@ -572,7 +572,7 @@ function renderPosAnggaranTable() {
     );
 
     if (isSingle) {
-      // Direct Single Row
+      // Direct Single Row (8 Kolom)
       const item = g.items[0];
       let itemTrafficLabel = 'AMAN';
       if (item.trafficLight === 'yellow') itemTrafficLabel = 'WASPADA';
@@ -588,41 +588,33 @@ function renderPosAnggaranTable() {
           <span class="kode-badge group" title="Kode Rekening RKAS">${escapeHtml(item.kode_rekening || '-')}</span>
         </td>
         <td>
-          <span class="snp-tag-badge ${snpBadgeClass}">${snpShort}</span>
-        </td>
-        <td>
-          <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.3;" title="${escapeHtml(item.program_induk || '')}">
-            ${escapeHtml(item.program_induk || '-')}
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <span class="snp-tag-badge ${snpBadgeClass}">${snpShort}</span>
+            <span class="program-induk-cell" title="${escapeHtml(item.program_induk || '')}">${escapeHtml(item.program_induk || '-')}</span>
           </div>
         </td>
         <td>
-          <strong style="color: var(--text-main); font-size: 0.88rem; display: block;">${escapeHtml(item.nama_pos)}</strong>
-          ${item.keterangan ? `<div style="font-size: 0.72rem; color: var(--text-subtle); margin-top: 2px;">${escapeHtml(item.keterangan)}</div>` : ''}
-        </td>
-        <td style="text-align: center; font-size: 0.82rem; color: var(--text-muted);">
-          <strong>${item.volume || 1}</strong> <span style="font-size: 0.74rem;">${escapeHtml(item.satuan || 'kegiatan')}</span>
+          <div class="pos-title-wrap">
+            <span class="pos-nama-main">${escapeHtml(item.nama_pos)}</span>
+            <span class="vol-satuan-badge">${item.volume || 1} ${escapeHtml(item.satuan || 'kegiatan')}</span>
+          </div>
+          ${item.keterangan ? `<div class="pos-keterangan-sub">${escapeHtml(item.keterangan)}</div>` : ''}
         </td>
         <td style="text-align: right; font-weight: 700; color: var(--text-main); font-size: 0.88rem;">
           ${formatRupiah(item.pagu_awal)}
         </td>
-        <td style="text-align: right; font-weight: 600; color: var(--amber); font-size: 0.85rem;">
-          ${formatRupiah(item.total_terserap)}
+        <td style="text-align: right;">
+          <div style="font-weight: 600; color: var(--amber); font-size: 0.85rem;">${formatRupiah(item.total_terserap)}</div>
+          ${item.pagu_tercadangkan > 0 ? `<div class="pending-cell-sub" title="Pending Review">⏳ ${formatRupiah(item.pagu_tercadangkan)}</div>` : ''}
         </td>
-        <td style="text-align: right; font-weight: 500; color: var(--text-subtle); font-size: 0.82rem;">
-          ${formatRupiah(item.pagu_tercadangkan)}
-        </td>
-        <td style="text-align: right; font-weight: 800; font-size: 0.88rem; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
-          ${formatRupiah(item.sisa_pagu)}
-        </td>
-        <td style="text-align: center;">
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
-            <span class="traffic-pill-badge ${item.trafficLight}" style="font-size: 0.7rem; padding: 1px 6px;">
-              <span class="traffic-dot"></span>
-              ${itemTrafficLabel} (${item.persentaseTerserap}%)
+        <td style="text-align: right;">
+          <div style="font-weight: 800; font-size: 0.88rem; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
+            ${formatRupiah(item.sisa_pagu)}
+          </div>
+          <div class="status-cell-sub">
+            <span class="traffic-mini-pill ${item.trafficLight}">
+              <span class="traffic-dot"></span> ${itemTrafficLabel} (${item.persentaseTerserap}%)
             </span>
-            <div class="mini-progress-bar" title="Serapan ${item.persentaseTerserap}%">
-              <div class="mini-progress-fill ${item.trafficLight}" style="width: ${Math.min(item.persentaseTerserap, 100)}%;"></div>
-            </div>
           </div>
         </td>
         <td style="text-align: center;">
@@ -639,8 +631,7 @@ function renderPosAnggaranTable() {
       `;
       tbody.appendChild(tr);
     } else {
-      // Multi-Item Group Row (Tingkat Induk / Header Kelompok)
-      // When searching, force expand so user can see matches
+      // Multi-Item Group Row (Tingkat Induk / Header Kelompok - 8 Kolom)
       const isCollapsed = searchKeyword ? false : collapsedGroups.has(g.no);
 
       const trGroup = document.createElement('tr');
@@ -655,15 +646,13 @@ function renderPosAnggaranTable() {
           <span class="kode-badge group" title="Kode Kelompok">${escapeHtml(g.kode || '-')}</span>
         </td>
         <td>
-          <span class="snp-tag-badge ${snpBadgeClass}">${snpShort}</span>
-        </td>
-        <td>
-          <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.3;" title="${escapeHtml(g.program_induk || '')}">
-            ${escapeHtml(g.program_induk || '-')}
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <span class="snp-tag-badge ${snpBadgeClass}">${snpShort}</span>
+            <span class="program-induk-cell" title="${escapeHtml(g.program_induk || '')}">${escapeHtml(g.program_induk || '-')}</span>
           </div>
         </td>
         <td>
-          <div style="font-size: 0.9rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
             <button type="button" class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(${g.no})">
               <i class="ti ti-chevron-${isCollapsed ? 'right' : 'down'}"></i>
             </button>
@@ -671,41 +660,32 @@ function renderPosAnggaranTable() {
             <span class="badge-child-count">${g.items.length} Rincian</span>
           </div>
         </td>
-        <td style="text-align: center; color: var(--text-muted); font-size: 0.78rem;">
-          -
-        </td>
         <td style="text-align: right; font-weight: 800; color: var(--text-main); font-size: 0.9rem;">
           ${formatRupiah(gTotalPagu)}
         </td>
-        <td style="text-align: right; font-weight: 700; color: var(--amber); font-size: 0.86rem;">
-          ${formatRupiah(gTotalTerserap)}
+        <td style="text-align: right;">
+          <div style="font-weight: 700; color: var(--amber); font-size: 0.86rem;">${formatRupiah(gTotalTerserap)}</div>
+          ${gTotalPending > 0 ? `<div class="pending-cell-sub" title="Total Pending Review">⏳ ${formatRupiah(gTotalPending)}</div>` : ''}
         </td>
-        <td style="text-align: right; font-weight: 600; color: var(--text-subtle); font-size: 0.82rem;">
-          ${formatRupiah(gTotalPending)}
-        </td>
-        <td style="text-align: right; font-weight: 800; font-size: 0.9rem; color: ${gTotalSisa <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
-          ${formatRupiah(gTotalSisa)}
-        </td>
-        <td style="text-align: center;">
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
-            <span class="traffic-pill-badge ${gTraffic}" style="font-size: 0.7rem; padding: 1px 6px;">
-              <span class="traffic-dot"></span>
-              ${gTrafficLabel} (${Math.round(gPersen)}%)
+        <td style="text-align: right;">
+          <div style="font-weight: 800; font-size: 0.9rem; color: ${gTotalSisa <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
+            ${formatRupiah(gTotalSisa)}
+          </div>
+          <div class="status-cell-sub">
+            <span class="traffic-mini-pill ${gTraffic}">
+              <span class="traffic-dot"></span> ${gTrafficLabel} (${Math.round(gPersen)}%)
             </span>
-            <div class="mini-progress-bar" title="Serapan Kelompok ${Math.round(gPersen)}%">
-              <div class="mini-progress-fill ${gTraffic}" style="width: ${Math.min(gPersen, 100)}%;"></div>
-            </div>
           </div>
         </td>
         <td style="text-align: center;">
-          <span style="font-size: 0.72rem; color: var(--text-subtle); font-weight: 700;">
+          <button type="button" class="btn-toggle-text" onclick="event.stopPropagation(); toggleGroup(${g.no})">
             ${isCollapsed ? '▶ Buka' : '▼ Tutup'}
-          </span>
+          </button>
         </td>
       `;
       tbody.appendChild(trGroup);
 
-      // Render Sub-Rows (Rincian Kegiatan Tingkat 2)
+      // Render Sub-Rows (Rincian Kegiatan Tingkat 2 - 8 Kolom)
       if (!isCollapsed) {
         g.items.forEach((item, cIdx) => {
           let itemTrafficLabel = 'AMAN';
@@ -720,46 +700,35 @@ function renderPosAnggaranTable() {
               <span class="kode-badge sub" title="Kode Sub-Kegiatan">${escapeHtml(item.kode_rekening || '-')}</span>
             </td>
             <td>
-              <span class="snp-tag-badge dim ${snpBadgeClass}">${snpShort}</span>
-            </td>
-            <td>
-              <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.3;" title="${escapeHtml(item.program_induk || '')}">
-                ${escapeHtml(item.program_induk || '-')}
-              </div>
+              <span class="snp-tag-badge dim ${snpBadgeClass}" title="${escapeHtml(item.program_induk || '')}">${snpShort}</span>
             </td>
             <td>
               <div class="child-indent-wrap">
                 <span class="child-bullet">•</span>
-                <div>
-                  <div class="child-item-title">${escapeHtml(item.nama_pos)}</div>
+                <div style="flex: 1;">
+                  <div class="pos-title-wrap">
+                    <span class="child-item-title">${escapeHtml(item.nama_pos)}</span>
+                    <span class="vol-satuan-badge">${item.volume || 1} ${escapeHtml(item.satuan || 'kegiatan')}</span>
+                  </div>
                   ${item.keterangan ? `<div class="child-item-sub">${escapeHtml(item.keterangan)}</div>` : ''}
                 </div>
               </div>
             </td>
-            <td style="text-align: center; font-size: 0.82rem; color: var(--text-muted);">
-              <strong>${item.volume || 1}</strong> <span style="font-size: 0.74rem;">${escapeHtml(item.satuan || 'kegiatan')}</span>
-            </td>
             <td style="text-align: right; font-weight: 600; color: var(--text-main); font-size: 0.86rem;">
               ${formatRupiah(item.pagu_awal)}
             </td>
-            <td style="text-align: right; font-weight: 600; color: var(--amber); font-size: 0.84rem;">
-              ${formatRupiah(item.total_terserap)}
+            <td style="text-align: right;">
+              <div style="font-weight: 600; color: var(--amber); font-size: 0.84rem;">${formatRupiah(item.total_terserap)}</div>
+              ${item.pagu_tercadangkan > 0 ? `<div class="pending-cell-sub" title="Pending Review">⏳ ${formatRupiah(item.pagu_tercadangkan)}</div>` : ''}
             </td>
-            <td style="text-align: right; font-weight: 500; color: var(--text-subtle); font-size: 0.82rem;">
-              ${formatRupiah(item.pagu_tercadangkan)}
-            </td>
-            <td style="text-align: right; font-weight: 700; font-size: 0.86rem; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
-              ${formatRupiah(item.sisa_pagu)}
-            </td>
-            <td style="text-align: center;">
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
-                <span class="traffic-pill-badge ${item.trafficLight}" style="font-size: 0.68rem; padding: 1px 6px;">
-                  <span class="traffic-dot"></span>
-                  ${itemTrafficLabel} (${item.persentaseTerserap}%)
+            <td style="text-align: right;">
+              <div style="font-weight: 700; font-size: 0.86rem; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
+                ${formatRupiah(item.sisa_pagu)}
+              </div>
+              <div class="status-cell-sub">
+                <span class="traffic-mini-pill ${item.trafficLight}">
+                  <span class="traffic-dot"></span> ${itemTrafficLabel} (${item.persentaseTerserap}%)
                 </span>
-                <div class="mini-progress-bar" style="width: 50px;">
-                  <div class="mini-progress-fill ${item.trafficLight}" style="width: ${Math.min(item.persentaseTerserap, 100)}%;"></div>
-                </div>
               </div>
             </td>
             <td style="text-align: center;">
@@ -780,31 +749,33 @@ function renderPosAnggaranTable() {
     }
   });
 
-  // Calculate & Render Footer Totals
+  // Calculate & Render Footer Totals (8 Kolom)
   if (tfoot) {
     const totalPagu = filtered.reduce((s, it) => s + (it.pagu_awal || 0), 0);
     const totalTerserap = filtered.reduce((s, it) => s + (it.total_terserap || 0), 0);
     const totalPending = filtered.reduce((s, it) => s + (it.pagu_tercadangkan || 0), 0);
     const totalSisa = filtered.reduce((s, it) => s + (it.sisa_pagu || 0), 0);
+    const totalPersen = totalPagu > 0 ? Math.round(((totalTerserap + totalPending) / totalPagu) * 100) : 0;
 
     tfoot.innerHTML = `
       <tr>
-        <td colspan="5" style="text-align: right; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">
+        <td colspan="4" style="text-align: right; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">
           Sub-Total (${groupMap.size} Kelompok / ${filtered.length} Rincian) :
         </td>
         <td style="text-align: right; font-weight: 800; color: var(--primary); font-size: 0.9rem;">
           ${formatRupiah(totalPagu)}
         </td>
-        <td style="text-align: right; font-weight: 700; color: var(--amber); font-size: 0.88rem;">
-          ${formatRupiah(totalTerserap)}
+        <td style="text-align: right;">
+          <div style="font-weight: 700; color: var(--amber); font-size: 0.88rem;">${formatRupiah(totalTerserap)}</div>
+          ${totalPending > 0 ? `<div class="pending-cell-sub" title="Total Pending Review">⏳ ${formatRupiah(totalPending)}</div>` : ''}
         </td>
-        <td style="text-align: right; font-weight: 600; color: var(--text-muted); font-size: 0.85rem;">
-          ${formatRupiah(totalPending)}
+        <td style="text-align: right;">
+          <div style="font-weight: 800; color: var(--emerald); font-size: 0.9rem;">${formatRupiah(totalSisa)}</div>
+          <div class="status-cell-sub" style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted);">
+            Serapan: ${totalPersen}%
+          </div>
         </td>
-        <td style="text-align: right; font-weight: 800; color: var(--emerald); font-size: 0.9rem;">
-          ${formatRupiah(totalSisa)}
-        </td>
-        <td colspan="2"></td>
+        <td></td>
       </tr>
     `;
   }
