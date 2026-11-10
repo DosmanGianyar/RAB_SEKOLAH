@@ -648,10 +648,7 @@ function renderPosAnggaranTable() {
       trGroup.onclick = () => toggleGroup(g.no);
       trGroup.title = 'Klik untuk melipat / membuka rincian sub-kegiatan';
       trGroup.innerHTML = `
-        <td style="text-align: center; color: var(--primary); font-size: 0.9rem; font-weight: 800;">
-          <button type="button" class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(${g.no})">
-            <i class="ti ti-chevron-${isCollapsed ? 'right' : 'down'}"></i>
-          </button>
+        <td style="text-align: center; color: var(--text-main); font-size: 0.88rem; font-weight: 800;">
           ${g.no}
         </td>
         <td>
@@ -666,13 +663,16 @@ function renderPosAnggaranTable() {
           </div>
         </td>
         <td>
-          <div style="font-size: 0.9rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <div style="font-size: 0.9rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(${g.no})">
+              <i class="ti ti-chevron-${isCollapsed ? 'right' : 'down'}"></i>
+            </button>
             <span>📁 ${escapeHtml(g.nama)}</span>
             <span class="badge-child-count">${g.items.length} Rincian</span>
           </div>
         </td>
-        <td style="text-align: center; color: var(--text-muted); font-size: 0.78rem; font-weight: 600;">
-          ${g.items.length} item
+        <td style="text-align: center; color: var(--text-muted); font-size: 0.78rem;">
+          -
         </td>
         <td style="text-align: right; font-weight: 800; color: var(--text-main); font-size: 0.9rem;">
           ${formatRupiah(gTotalPagu)}
@@ -715,18 +715,16 @@ function renderPosAnggaranTable() {
           const trChild = document.createElement('tr');
           trChild.className = 'rkas-child-row';
           trChild.innerHTML = `
-            <td style="text-align: center; color: var(--text-subtle); font-size: 0.78rem; font-weight: 600;">
-              <span class="tree-line-indicator">└─</span> ${g.no}.${cIdx + 1}
-            </td>
+            <td style="text-align: center;"></td>
             <td>
               <span class="kode-badge sub" title="Kode Sub-Kegiatan">${escapeHtml(item.kode_rekening || '-')}</span>
             </td>
-            <td style="text-align: center;">
-              <span style="font-size: 0.72rem; color: var(--text-subtle); font-weight: 600;">↳</span>
+            <td>
+              <span class="snp-tag-badge dim ${snpBadgeClass}">${snpShort}</span>
             </td>
             <td>
-              <div style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.2;">
-                ${escapeHtml(g.nama)}
+              <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.3;" title="${escapeHtml(item.program_induk || '')}">
+                ${escapeHtml(item.program_induk || '-')}
               </div>
             </td>
             <td>

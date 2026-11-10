@@ -2722,6 +2722,12 @@ table td {
   white-space: nowrap;
 }
 
+.snp-tag-badge.dim {
+  opacity: 0.75;
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
 .snp-tag-badge.proses {
   background: #e0f2fe;
   color: #0369a1;
