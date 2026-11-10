@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.0.1">
+  <link rel="stylesheet" href="/css/style.css?v=2.1.0">
 </head>
 <body>
 
@@ -218,19 +218,16 @@
     <!-- VIEW 1: DASHBOARD & PLAFON (FASE 1)       -->
     <!-- ========================================== -->
     <div class="app-view active" id="viewDashboard">
-      <!-- Phase Banner -->
-      <div class="phase-banner">
-        <div>
-          <div class="phase-pill">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="12" r="10"></circle>
-            </svg>
-            Sistem Anggaran Sekolah Terintegrasi
-          </div>
-          <h1 class="phase-title">Plafon Anggaran & Kontrol Serapan</h1>
-          <p class="phase-desc">Mekanisme lampu lalu lintas (Traffic Light) mengunci pengajuan saat pagu menipis untuk mencegah kebocoran anggaran.</p>
+      <!-- 1. Sleek Compact Header Row -->
+      <div class="dashboard-header-compact">
+        <div class="header-left">
+          <h1 class="page-title-compact">
+            <i class="ti ti-chart-pie" style="color: var(--primary);"></i>
+            Plafon Anggaran & RKAS 2026
+          </h1>
+          <span class="badge-counter" id="posCountBadge">102 Pos</span>
         </div>
-        <div style="display: flex; gap: 8px;">
+        <div class="header-right-actions">
           <button class="btn btn-primary btn-sm" onclick="switchView('ajukan')">
             <i class="ti ti-plus" style="font-size: 1rem;"></i>
             Ajukan RAB Baru
@@ -242,121 +239,92 @@
         </div>
       </div>
 
-      <!-- 4 Key Metrics Overview -->
-      <section class="metrics-grid">
+      <!-- 2. Compact 4-Metric Strip -->
+      <section class="metrics-grid-compact">
         <!-- Total Plafon -->
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-label">Total Plafon Pagu</span>
-            <div class="metric-icon-wrap indigo">
-              <i class="ti ti-wallet" style="font-size: 1.15rem;"></i>
-            </div>
+        <div class="metric-card-compact indigo">
+          <div class="metric-compact-left">
+            <span class="metric-compact-label">Total Plafon</span>
+            <div class="metric-compact-val" id="statTotalPagu">Rp 0</div>
           </div>
-          <div class="metric-value" id="statTotalPagu">Rp 0</div>
-          <div class="metric-sub">Tahun Ajaran 2026/2027</div>
+          <div class="metric-compact-icon indigo">
+            <i class="ti ti-wallet"></i>
+          </div>
         </div>
 
         <!-- Realisasi Kas -->
-        <div class="metric-card amber">
-          <div class="metric-header">
-            <span class="metric-label">Dana Dicairkan</span>
-            <div class="metric-icon-wrap amber">
-              <i class="ti ti-cash" style="font-size: 1.15rem;"></i>
-            </div>
+        <div class="metric-card-compact amber">
+          <div class="metric-compact-left">
+            <span class="metric-compact-label">Dana Dicairkan</span>
+            <div class="metric-compact-val" id="statTerserap">Rp 0</div>
           </div>
-          <div class="metric-value" id="statTerserap">Rp 0</div>
-          <div class="metric-sub">Total belanja terserap</div>
+          <div class="metric-compact-icon amber">
+            <i class="ti ti-cash"></i>
+          </div>
         </div>
 
         <!-- Pagu Tercadangkan (Pending) -->
-        <div class="metric-card cyan">
-          <div class="metric-header">
-            <span class="metric-label">Tercadangkan (Pending)</span>
-            <div class="metric-icon-wrap cyan">
-              <i class="ti ti-clock-pause" style="font-size: 1.15rem;"></i>
-            </div>
+        <div class="metric-card-compact cyan">
+          <div class="metric-compact-left">
+            <span class="metric-compact-label">Tercadangkan</span>
+            <div class="metric-compact-val" id="statTercadangkan">Rp 0</div>
           </div>
-          <div class="metric-value" id="statTercadangkan">Rp 0</div>
-          <div class="metric-sub">Dalam review bendahara</div>
+          <div class="metric-compact-icon cyan">
+            <i class="ti ti-clock-pause"></i>
+          </div>
         </div>
 
         <!-- Sisa Kas Aktif -->
-        <div class="metric-card emerald">
-          <div class="metric-header">
-            <span class="metric-label">Sisa Pagu Tersedia</span>
-            <div class="metric-icon-wrap emerald">
-              <i class="ti ti-coin" style="font-size: 1.15rem;"></i>
-            </div>
+        <div class="metric-card-compact emerald">
+          <div class="metric-compact-left">
+            <span class="metric-compact-label">Sisa Pagu</span>
+            <div class="metric-compact-val" id="statSisaAktif" style="color: var(--emerald);">Rp 0</div>
           </div>
-          <div class="metric-value" id="statSisaAktif" style="color: var(--emerald);">Rp 0</div>
-          <div class="metric-sub">Siap diajukan guru</div>
+          <div class="metric-compact-icon emerald">
+            <i class="ti ti-coin"></i>
+          </div>
         </div>
       </section>
 
-      <!-- RKAS Table Section -->
+      <!-- 3. RKAS Table Section with Unified Toolbar -->
       <section class="rkas-section">
-        <div class="rkas-header-row">
-          <div>
-            <h2 class="section-title">
-              Tabel RKAS & Plafon Anggaran Sekolah
-              <span class="badge-counter" id="posCountBadge">102 Pos</span>
-            </h2>
-            <div class="section-subtitle">
-              Format buku besar RKAS resmi SMA Negeri 1 Gianyar — Dana Masyarakat / Komite T.A. 2026/2027
-            </div>
-          </div>
-        </div>
-
-        <!-- Filter SNP Tabs (Standar Nasional Pendidikan) -->
-        <div class="snp-tabs-wrap">
-          <button class="snp-tab-btn active" data-snp="ALL" onclick="filterBySnp('ALL')">
-            <i class="ti ti-layers-intersect"></i>
-            Semua Standar
-            <span class="snp-pill-count" id="countSnpAll">102</span>
-          </button>
-          <button class="snp-tab-btn" data-snp="Standar Proses" onclick="filterBySnp('Standar Proses')">
-            <i class="ti ti-school"></i>
-            Standar Proses (Kesiswaan/Lomba/Ujian)
-            <span class="snp-pill-count" id="countSnpProses">72</span>
-          </button>
-          <button class="snp-tab-btn" data-snp="Standar Sarana & Prasarana" onclick="filterBySnp('Standar Sarana & Prasarana')">
-            <i class="ti ti-building"></i>
-            Standar Sarpras
-            <span class="snp-pill-count" id="countSnpSarpras">18</span>
-          </button>
-          <button class="snp-tab-btn" data-snp="Standar Pengelolaan" onclick="filterBySnp('Standar Pengelolaan')">
-            <i class="ti ti-settings"></i>
-            Standar Pengelolaan
-            <span class="snp-pill-count" id="countSnpPengelolaan">9</span>
-          </button>
-          <button class="snp-tab-btn" data-snp="Standar Pembiayaan" onclick="filterBySnp('Standar Pembiayaan')">
-            <i class="ti ti-currency-dollar"></i>
-            Standar Pembiayaan (Honor)
-            <span class="snp-pill-count" id="countSnpPembiayaan">3</span>
-          </button>
-        </div>
-
-        <!-- Search & Control Toolbar -->
+        <!-- Unified Filter Toolbar (1 Row) -->
         <div class="rkas-filter-toolbar">
           <div class="search-input-wrap">
             <i class="ti ti-search search-icon"></i>
-            <input type="text" id="searchPosInput" class="rkas-search-box" placeholder="Ketik nama kegiatan, kode rekening (misal: 03.03), atau kelompok (cth: PMR, Pramuka)..." oninput="handlePosSearch(this.value)">
+            <input type="text" id="searchPosInput" class="rkas-search-box" placeholder="Ketik nama kegiatan, kode rekening (03.03), kelompok..." oninput="handlePosSearch(this.value)">
             <button type="button" class="btn-clear-search" id="btnClearSearch" onclick="clearPosSearch()" style="display: none;">✕</button>
           </div>
           <div class="filter-controls-group">
-            <select id="filterTrafficSelect" class="rkas-select-filter" onchange="handleTrafficFilter(this.value)">
-              <option value="ALL">Semua Kontrol Serapan</option>
-              <option value="green">🟢 AMAN (Serapan &lt; 70%)</option>
-              <option value="yellow">🟡 WASPADA (Serapan 70% - 89%)</option>
-              <option value="red">🔴 KRITIS / PENUH (Serapan ≥ 90%)</option>
+            <select id="filterSnpSelect" class="rkas-select-filter" onchange="filterBySnp(this.value)" title="Saring berdasarkan Standar Nasional Pendidikan">
+              <option value="ALL" id="optSnpAll">Semua Standar (102)</option>
+              <option value="Standar Proses" id="optSnpProses">Standar Proses (72)</option>
+              <option value="Standar Sarana & Prasarana" id="optSnpSarpras">Standar Sarpras (18)</option>
+              <option value="Standar Pengelolaan" id="optSnpPengelolaan">Standar Pengelolaan (9)</option>
+              <option value="Standar Pembiayaan" id="optSnpPembiayaan">Standar Pembiayaan (3)</option>
+            </select>
+            <select id="filterTrafficSelect" class="rkas-select-filter" onchange="handleTrafficFilter(this.value)" title="Saring berdasarkan status lampu serapan">
+              <option value="ALL">Semua Kontrol</option>
+              <option value="green">🟢 AMAN (&lt; 70%)</option>
+              <option value="yellow">🟡 WASPADA (70% - 89%)</option>
+              <option value="red">🔴 KRITIS (≥ 90%)</option>
             </select>
             <button type="button" class="btn btn-secondary btn-sm" id="btnExpandAll" onclick="toggleAllGroups(true)" title="Buka seluruh rincian sub-kegiatan">
-              <i class="ti ti-layout-navbar-expand"></i> Buka Semua
+              <i class="ti ti-layout-navbar-expand"></i> Buka
             </button>
             <button type="button" class="btn btn-secondary btn-sm" id="btnCollapseAll" onclick="toggleAllGroups(false)" title="Tutup ke tingkat kelompok induk">
-              <i class="ti ti-layout-navbar-collapse"></i> Tutup Semua
+              <i class="ti ti-layout-navbar-collapse"></i> Tutup
             </button>
           </div>
+        </div>
+
+        <!-- Hidden spans for backward compatibility with app.js counter updates -->
+        <div style="display: none;" aria-hidden="true">
+          <span id="countSnpAll">102</span>
+          <span id="countSnpProses">72</span>
+          <span id="countSnpSarpras">18</span>
+          <span id="countSnpPengelolaan">9</span>
+          <span id="countSnpPembiayaan">3</span>
         </div>
 
         <!-- Main RKAS Table -->
@@ -1085,6 +1053,6 @@
 
   <!-- Tabler Core JS & App Logic -->
   <script src="/libs/tabler/js/tabler.min.js"></script>
-  <script src="/js/app.js?v=2.0.1"></script>
+  <script src="/js/app.js?v=2.1.0"></script>
 </body>
 </html>

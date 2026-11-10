@@ -438,6 +438,17 @@ async function loadPosAnggaran() {
       if (document.getElementById('countSnpPengelolaan')) document.getElementById('countSnpPengelolaan').textContent = countPengelolaan;
       if (document.getElementById('countSnpPembiayaan')) document.getElementById('countSnpPembiayaan').textContent = countPembiayaan;
 
+      const optAll = document.getElementById('optSnpAll');
+      if (optAll) optAll.textContent = `Semua Standar (${countAll})`;
+      const optProses = document.getElementById('optSnpProses');
+      if (optProses) optProses.textContent = `Standar Proses (${countProses})`;
+      const optSarpras = document.getElementById('optSnpSarpras');
+      if (optSarpras) optSarpras.textContent = `Standar Sarpras (${countSarpras})`;
+      const optPengelolaan = document.getElementById('optSnpPengelolaan');
+      if (optPengelolaan) optPengelolaan.textContent = `Standar Pengelolaan (${countPengelolaan})`;
+      const optPembiayaan = document.getElementById('optSnpPembiayaan');
+      if (optPembiayaan) optPembiayaan.textContent = `Standar Pembiayaan (${countPembiayaan})`;
+
       renderPosAnggaranTable();
       populatePosDropdown();
     }
@@ -783,6 +794,10 @@ function renderPosAnggaranTable() {
 
 function filterBySnp(snp) {
   selectedSnpFilter = snp;
+  const select = document.getElementById('filterSnpSelect');
+  if (select && select.value !== snp) {
+    select.value = snp;
+  }
   document.querySelectorAll('.snp-tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.snp === snp);
   });

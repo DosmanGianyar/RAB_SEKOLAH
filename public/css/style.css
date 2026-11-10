@@ -294,6 +294,131 @@ body {
   color: var(--primary);
 }
 
+/* Header Ringkas & Modern Dashboard */
+.dashboard-header-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 10px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dashboard-header-compact .header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.page-title-compact {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.18rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: -0.01em;
+}
+
+.dashboard-header-compact .header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Metric Strip 4 Kolom yang Kompak & Ramping */
+.metrics-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 1024px) {
+  .metrics-grid-compact {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+}
+
+.metric-card-compact {
+  background: #ffffff;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card-compact:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-card);
+}
+
+.metric-card-compact::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary);
+}
+
+.metric-card-compact.emerald::before { background: var(--emerald); }
+.metric-card-compact.amber::before { background: var(--amber); }
+.metric-card-compact.cyan::before { background: var(--cyan); }
+
+.metric-compact-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.metric-compact-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metric-compact-val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.metric-compact-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.metric-compact-icon.indigo { background: #eff6ff; color: var(--primary); }
+.metric-compact-icon.amber { background: #fffbeb; color: var(--amber); }
+.metric-compact-icon.cyan { background: #ecfeff; color: var(--cyan); }
+.metric-compact-icon.emerald { background: #ecfdf5; color: var(--emerald); }
+
 /* Banner Header Institusional */
 .phase-banner {
   margin: 16px 0 20px;
@@ -2372,36 +2497,36 @@ table td {
   color: #ffffff;
 }
 
-/* Search & Controls Toolbar */
+/* Search & Controls Toolbar Ramping & Efisien */
 .rkas-filter-toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .search-input-wrap {
   position: relative;
   flex: 1;
-  min-width: 280px;
+  min-width: 240px;
 }
 
 .search-input-wrap .search-icon {
   position: absolute;
-  left: 12px;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
   color: #64748b;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .rkas-search-box {
   width: 100%;
-  padding: 10px 36px 10px 38px;
+  padding: 8px 32px 8px 34px;
   border: 1.5px solid var(--border-card);
   border-radius: var(--radius-md);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-family: inherit;
   color: var(--text-main);
   background: #ffffff;
@@ -2416,15 +2541,15 @@ table td {
 
 .btn-clear-search {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   background: #e2e8f0;
   border: none;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 0.7rem;
+  width: 18px;
+  height: 18px;
+  font-size: 0.65rem;
   cursor: pointer;
   color: #475569;
   display: flex;
@@ -2437,15 +2562,28 @@ table td {
   color: #0f172a;
 }
 
+.filter-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .rkas-select-filter {
-  padding: 10px 14px;
+  padding: 7px 12px;
   border: 1.5px solid var(--border-card);
   border-radius: var(--radius-md);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-main);
   background: #ffffff;
   cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.rkas-select-filter:focus {
+  outline: none;
+  border-color: var(--primary);
 }
 
 .rkas-select-filter:focus {
