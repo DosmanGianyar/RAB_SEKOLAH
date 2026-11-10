@@ -249,7 +249,7 @@ function seedInitialData() {
 
   const posCount = db.prepare('SELECT COUNT(*) as count FROM pos_anggaran').get().count;
   const nullKelompok = db.prepare('SELECT COUNT(*) as count FROM pos_anggaran WHERE no_kelompok IS NULL').get().count;
-  if (posCount < 100 || nullKelompok > 0) {
+  if (posCount === 0 || nullKelompok > 0) {
     importRkasFromExcel();
   }
 }
