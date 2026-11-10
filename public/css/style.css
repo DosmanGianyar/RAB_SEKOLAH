@@ -3298,6 +3298,48 @@ table td {
   margin: 0;
 }
 
+.footer-acronym-box {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3.5px solid var(--primary);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.footer-acronym-title {
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.footer-acronym-desc {
+  color: #475569;
+  margin: 0 0 6px 0;
+  font-size: 0.77rem;
+  line-height: 1.45;
+}
+
+.footer-acronym-desc:last-child {
+  margin-bottom: 0;
+}
+
+.footer-acronym-desc strong {
+  color: #0f172a;
+}
+
+.footer-acronym-desc em {
+  color: var(--primary);
+  font-style: normal;
+  font-weight: 600;
+}
+
 .footer-col-title {
   font-size: 0.82rem;
   font-weight: 800;

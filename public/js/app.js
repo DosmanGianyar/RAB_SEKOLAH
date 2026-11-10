@@ -339,7 +339,7 @@ window.togglePasswordVisibility = togglePasswordVisibility;
 
 // Logout Handler Resmi
 async function handleLogout() {
-  if (!confirm('Apakah Anda yakin ingin keluar dari sistem E-RAB?')) {
+  if (!confirm('Apakah Anda yakin ingin keluar dari sistem SI-ARTHA DOSMAN?')) {
     return;
   }
 
