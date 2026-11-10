@@ -1538,6 +1538,109 @@ body {
   letter-spacing: -0.02em;
 }
 
+/* Proposal Status Tabs (Filter Berjenjang untuk Bendahara & Guru) */
+.proposal-status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 18px;
+  overflow-x: auto;
+  border: 1.5px solid var(--border-subtle);
+  scrollbar-width: thin;
+}
+
+.status-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.status-tab-btn:hover {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.status-tab-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.status-tab-btn.active i {
+  color: var(--primary);
+}
+
+.tab-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: #e2e8f0;
+  color: #475569;
+  line-height: 1;
+}
+
+.status-tab-btn.active .tab-badge-pill {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.tab-badge-pill.badge-warning {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a;
+}
+
+.status-tab-btn.active .tab-badge-pill.badge-warning {
+  background: #d97706 !important;
+  color: #ffffff !important;
+  border: 1px solid #b45309;
+}
+
+.tab-badge-pill.badge-success {
+  background: #dcfce7 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0;
+}
+
+.status-tab-btn.active .tab-badge-pill.badge-success {
+  background: #059669 !important;
+  color: #ffffff !important;
+  border: 1px solid #047857;
+}
+
+.tab-badge-pill.badge-info {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border: 1px solid #bae6fd;
+}
+
+.status-tab-btn.active .tab-badge-pill.badge-info {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border: 1px solid #0369a1;
+}
+
 /* Proposal History Cards (FlexAdmin Human-Crafted Aesthetic) */
 .proposals-list {
   display: flex;

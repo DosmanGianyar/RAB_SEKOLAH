@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.4.1">
+  <link rel="stylesheet" href="/css/style.css?v=2.4.2">
 </head>
 <body>
 
@@ -817,6 +817,35 @@
           </div>
           <button class="btn btn-primary btn-sm" onclick="switchRabSubTab('form')">
             <i class="ti ti-plus" style="font-size: 1rem; margin-right: 4px;"></i> Buat Usulan Baru
+          </button>
+        </div>
+
+        <!-- Bilah Tab Status Berjenjang untuk Bendahara & Guru -->
+        <div class="proposal-status-tabs" id="proposalStatusTabs">
+          <button type="button" class="status-tab-btn active" data-filter="ALL" onclick="filterProposalTab('ALL')">
+            <i class="ti ti-folders"></i>
+            <span>Semua Usulan</span>
+            <span class="tab-badge-pill" id="badgeCountAll">0</span>
+          </button>
+          <button type="button" class="status-tab-btn" data-filter="MENUNGGU_REVIEW" onclick="filterProposalTab('MENUNGGU_REVIEW')">
+            <i class="ti ti-clock-hour-4"></i>
+            <span>Menunggu Review</span>
+            <span class="tab-badge-pill badge-warning" id="badgeCountReview">0</span>
+          </button>
+          <button type="button" class="status-tab-btn" data-filter="SIAP_CAIR" onclick="filterProposalTab('SIAP_CAIR')">
+            <i class="ti ti-cash"></i>
+            <span>Menunggu Dicairkan</span>
+            <span class="tab-badge-pill badge-success" id="badgeCountSiapCair">0</span>
+          </button>
+          <button type="button" class="status-tab-btn" data-filter="DICAIRKAN" onclick="filterProposalTab('DICAIRKAN')">
+            <i class="ti ti-check-double"></i>
+            <span>Sudah Dicairkan</span>
+            <span class="tab-badge-pill badge-info" id="badgeCountDicairkan">0</span>
+          </button>
+          <button type="button" class="status-tab-btn" data-filter="SELESAI" onclick="filterProposalTab('SELESAI')">
+            <i class="ti ti-circle-check"></i>
+            <span>LPJ Selesai</span>
+            <span class="tab-badge-pill" id="badgeCountSelesai">0</span>
           </button>
         </div>
 
@@ -1951,6 +1980,6 @@
   <script src="/libs/tabler/js/tabler.min.js"></script>
   <script src="/libs/sweetalert2/sweetalert2.all.min.js"></script>
   <script src="/libs/chartjs/chart.umd.min.js"></script>
-  <script src="/js/app.js?v=2.4.7"></script>
+  <script src="/js/app.js?v=2.4.8"></script>
 </body>
 </html>

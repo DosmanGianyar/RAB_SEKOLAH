@@ -10,6 +10,7 @@ let activeViewName = 'home';
 let homeSnpChart = null;
 let homeSerapanChart = null;
 let latestSummaryData = null;
+let currentProposalFilterTab = 'ALL';
 let selectedSnpFilter = 'ALL';
 let searchKeyword = '';
 let selectedTrafficFilter = 'ALL';
@@ -547,8 +548,9 @@ function switchView(viewName) {
     if (tabDesk) tabDesk.classList.add('active');
     const navAjukan = document.getElementById('navAjukan');
     if (navAjukan) navAjukan.classList.add('active');
-    // Beralih ke sub-tab riwayat usulan
+    // Beralih ke sub-tab riwayat usulan & fokuskan pada antrean telaah
     switchRabSubTab('riwayat');
+    filterProposalTab('MENUNGGU_REVIEW');
   } else if (viewName === 'verifikasi') {
     const vAjukan = document.getElementById('viewAjukan');
     if (vAjukan) vAjukan.classList.add('active');
@@ -556,8 +558,9 @@ function switchView(viewName) {
     if (tabVerif) tabVerif.classList.add('active');
     const navVerif = document.getElementById('navVerifikasi');
     if (navVerif) navVerif.classList.add('active');
-    // Beralih ke sub-tab riwayat usulan
+    // Beralih ke sub-tab riwayat usulan & fokuskan pada antrean telaah
     switchRabSubTab('riwayat');
+    filterProposalTab('MENUNGGU_REVIEW');
   } else if (viewName === 'laporan') {
     const vLap = document.getElementById('viewLaporan');
     if (vLap) vLap.classList.add('active');
@@ -1999,36 +2002,102 @@ async function loadProposalsList() {
   }
 }
 
+function filterProposalTab(tabKey) {
+  currentProposalFilterTab = tabKey;
+  document.querySelectorAll('.proposal-status-tabs .status-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-filter') === tabKey);
+  });
+  renderProposalsList(currentProposals);
+}
+window.filterProposalTab = filterProposalTab;
+
+function updateProposalTabCounters(proposals) {
+  if (!proposals) return;
+  const countAll = proposals.length;
+  const countReview = proposals.filter(p => ['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI'].includes(p.status)).length;
+  const countSiapCair = proposals.filter(p => p.status === 'DISETUJUI').length;
+  const countDicairkan = proposals.filter(p => ['DICAIRKAN', 'MENUNGGU_VERIFIKASI_LPJ'].includes(p.status)).length;
+  const countSelesai = proposals.filter(p => p.status === 'SELESAI').length;
+
+  const elAll = document.getElementById('badgeCountAll');
+  if (elAll) elAll.textContent = countAll;
+  const elReview = document.getElementById('badgeCountReview');
+  if (elReview) {
+    elReview.textContent = countReview;
+  }
+  const elSiapCair = document.getElementById('badgeCountSiapCair');
+  if (elSiapCair) {
+    elSiapCair.textContent = countSiapCair;
+  }
+  const elDicairkan = document.getElementById('badgeCountDicairkan');
+  if (elDicairkan) elDicairkan.textContent = countDicairkan;
+  const elSelesai = document.getElementById('badgeCountSelesai');
+  if (elSelesai) elSelesai.textContent = countSelesai;
+}
+
 function renderProposalsList(proposals) {
   const container = document.getElementById('proposalsListContainer');
+  if (!container) return;
   container.innerHTML = '';
 
-  if (proposals.length === 0) {
-    const isGuru = currentUser && currentUser.role === 'GURU';
-    const emptyTitle = isGuru ? 'Anda Belum Memiliki Usulan RAB' : 'Belum Ada Usulan Masuk dari Guru';
-    const emptyDesc = isGuru 
-      ? 'Anda belum mengajukan rencana anggaran kegiatan. Tekan tombol di bawah untuk membuat usulan baru.'
-      : 'Saat ini belum ada proposal kegiatan yang diajukan oleh guru pembina sekolah.';
+  updateProposalTabCounters(proposals);
+
+  let filtered = proposals;
+  if (currentProposalFilterTab === 'MENUNGGU_REVIEW') {
+    filtered = proposals.filter(p => ['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI'].includes(p.status));
+  } else if (currentProposalFilterTab === 'SIAP_CAIR') {
+    filtered = proposals.filter(p => p.status === 'DISETUJUI');
+  } else if (currentProposalFilterTab === 'DICAIRKAN') {
+    filtered = proposals.filter(p => ['DICAIRKAN', 'MENUNGGU_VERIFIKASI_LPJ'].includes(p.status));
+  } else if (currentProposalFilterTab === 'SELESAI') {
+    filtered = proposals.filter(p => p.status === 'SELESAI');
+  }
+
+  if (filtered.length === 0) {
+    let emptyTitle = 'Tidak Ada Usulan dalam Kategori Ini';
+    let emptyDesc = 'Saat ini tidak ada usulan kegiatan pada status ini.';
+    if (currentProposalFilterTab === 'MENUNGGU_REVIEW') {
+      emptyTitle = 'Antrean Bersih: Tidak Ada Usulan Menunggu Review';
+      emptyDesc = 'Semua usulan kegiatan yang masuk telah ditelaah atau belum ada pengajuan baru.';
+    } else if (currentProposalFilterTab === 'SIAP_CAIR') {
+      emptyTitle = 'Tidak Ada Usulan Menunggu Pencairan Kas';
+      emptyDesc = 'Tidak ada usulan berstatus disetujui yang belum diserahkan dananya oleh Bendahara.';
+    } else if (currentProposalFilterTab === 'DICAIRKAN') {
+      emptyTitle = 'Belum Ada Usulan yang Dicairkan';
+      emptyDesc = 'Usulan yang telah dicairkan kasnya akan muncul di sini untuk penyusunan LPJ.';
+    } else if (currentProposalFilterTab === 'SELESAI') {
+      emptyTitle = 'Belum Ada LPJ Selesai';
+      emptyDesc = 'Kegiatan yang LPJ-nya telah diverifikasi sah oleh bendahara akan diarsipkan di sini.';
+    } else if (proposals.length === 0) {
+      const isGuru = currentUser && currentUser.role === 'GURU';
+      emptyTitle = isGuru ? 'Anda Belum Memiliki Usulan RAB' : 'Belum Ada Usulan Masuk dari Guru';
+      emptyDesc = isGuru 
+        ? 'Anda belum mengajukan rencana anggaran kegiatan. Tekan tombol di bawah untuk membuat usulan baru.'
+        : 'Saat ini belum ada proposal kegiatan yang diajukan oleh guru pembina sekolah.';
+    }
 
     container.innerHTML = `
-      <div style="text-align: center; padding: 50px 20px; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-subtle);">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-subtle); margin-bottom: 12px;">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-        </svg>
-        <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-main);">${emptyTitle}</div>
-        <p style="font-size: 0.82rem; color: var(--text-muted); margin: 6px 0 16px;">
+      <div style="text-align: center; padding: 45px 20px; background: #ffffff; border-radius: var(--radius-lg); border: 1.5px dashed var(--border-subtle); margin-top: 4px;">
+        <i class="ti ti-folder-off" style="font-size: 2.5rem; color: #94a3b8; display: block; margin-bottom: 12px;"></i>
+        <div style="font-weight: 700; font-size: 1rem; color: var(--text-main);">${emptyTitle}</div>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin: 6px 0 16px; max-width: 480px; margin-inline: auto;">
           ${emptyDesc}
         </p>
-        <button class="btn btn-primary btn-sm" onclick="switchRabSubTab('form')">
-          + Buat Usulan RAB Sekarang
-        </button>
+        ${currentProposalFilterTab !== 'ALL' ? `
+          <button class="btn btn-outline-success btn-sm" onclick="filterProposalTab('ALL')">
+            <i class="ti ti-folders"></i> Lihat Semua Usulan (${proposals.length})
+          </button>
+        ` : `
+          <button class="btn btn-primary btn-sm" onclick="switchRabSubTab('form')">
+            + Buat Usulan RAB Sekarang
+          </button>
+        `}
       </div>
     `;
     return;
   }
 
-  proposals.forEach(p => {
+  filtered.forEach(p => {
     let statusLabel = p.status.replace(/_/g, ' ');
     if (p.status === 'MENUNGGU_REVIEW') statusLabel = 'Menunggu Review Bendahara';
     if (p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') statusLabel = 'Menunggu Persetujuan Kepsek';
