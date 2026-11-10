@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.3.1">
+  <link rel="stylesheet" href="/css/style.css?v=2.3.2">
 </head>
 <body>
 
@@ -176,6 +176,10 @@
           <button class="desktop-tab-btn" id="tabDeskRiwayat" onclick="switchView('riwayat')">
             <i class="ti ti-file-text" style="font-size: 1.15rem; margin-right: 6px;"></i>
             Riwayat Proposal
+          </button>
+          <button class="desktop-tab-btn" id="tabDeskLaporan" onclick="switchView('laporan')">
+            <i class="ti ti-file-analytics" style="font-size: 1.15rem; margin-right: 6px;"></i>
+            Laporan & LPJ
           </button>
         </nav>
 
@@ -509,6 +513,133 @@
       </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- VIEW 4: LAPORAN REALISASI & LPJ (FASE 5)   -->
+    <!-- ========================================== -->
+    <div class="app-view" id="viewLaporan">
+      <!-- 1. Header Halaman Laporan -->
+      <div class="dashboard-header-compact">
+        <div class="header-left">
+          <h1 class="page-title-compact">
+            <i class="ti ti-file-analytics" style="color: var(--primary);"></i>
+            Laporan Realisasi &amp; LPJ Belanja
+          </h1>
+          <span class="badge-counter" id="lpjCountBadge">0 Kegiatan</span>
+        </div>
+        <div class="header-right-actions">
+          <a href="/api/export/lpj/excel" class="btn btn-secondary btn-sm" id="btnExportLpjExcel" title="Unduh data rekapitulasi realisasi belanja ke format Excel">
+            <i class="ti ti-file-spreadsheet" style="color: #059669;"></i>
+            Ekspor Excel (.xlsx)
+          </a>
+        </div>
+      </div>
+
+      <!-- 2. Ringkasan 4-Metrik Keuangan LPJ (FlexAdmin Green Financial Cards) -->
+      <section class="metrics-grid-compact" style="margin-bottom: 16px;">
+        <!-- Total Kas Dicairkan -->
+        <div class="metric-card-compact indigo">
+          <div class="metric-compact-left">
+            <span class="metric-compact-label">Total Kas Cair</span>
+            <div class="metric-compact-val" id="statLpjKasCair">Rp 0</div>
+          </div>
+          <div class="metric-compact-icon indigo">
+            <i class="ti ti-cash"></i>
+          </div>
+        </div>
+
+        <!-- Realisasi Belanja Riil -->
+        <div class="metric-card-compact amber">
+          <div class="metric-compact-left">
+            <span class="metric-compact-label">Belanja Riil (Nota)</span>
+            <div class="metric-compact-val" id="statLpjBelanjaRiil">Rp 0</div>
+          </div>
+          <div class="metric-compact-icon amber">
+            <i class="ti ti-receipt"></i>
+          </div>
+        </div>
+
+        <!-- Sisa Kas Disetor Kembali -->
+        <div class="metric-card-compact emerald">
+          <div class="metric-compact-left">
+            <span class="metric-compact-label">Kas Disetor Kembali</span>
+            <div class="metric-compact-val" id="statLpjSisaSetor">Rp 0</div>
+          </div>
+          <div class="metric-compact-icon emerald">
+            <i class="ti ti-coins"></i>
+          </div>
+        </div>
+
+        <!-- Kelengkapan Berkas Nota -->
+        <div class="metric-card-compact cyan">
+          <div class="metric-compact-left">
+            <span class="metric-compact-label">Kelengkapan Nota</span>
+            <div class="metric-compact-val" id="statLpjNotaCount">0 / 0 Berkas</div>
+          </div>
+          <div class="metric-compact-icon cyan">
+            <i class="ti ti-paperclip"></i>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Banner Edukatif Guru: Pengunggahan Nota Pembelian -->
+      <div class="lpj-guru-banner">
+        <div class="lpj-guru-banner-content">
+          <div class="lpj-guru-banner-icon">
+            <i class="ti ti-camera"></i>
+          </div>
+          <div>
+            <div class="lpj-guru-banner-title">Unggah Bukti Nota &amp; Kuitansi Pembelian</div>
+            <div class="lpj-guru-banner-desc">
+              Bagi Bapak/Ibu Guru pembina yang telah menerima pencairan kas, segera unggah foto kuitansi/struk belanja atau file PDF nota pada tombol <strong>"Upload Nota"</strong> di tabel bawah untuk diverifikasi oleh Bendahara Sekolah.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Bilah Filter & Pencarian Laporan -->
+      <div class="table-controls-card" style="margin-bottom: 14px;">
+        <div class="table-controls-row">
+          <div class="search-input-wrap">
+            <i class="ti ti-search search-icon"></i>
+            <input type="text" id="inputSearchLpj" class="form-input search-input" placeholder="Cari kegiatan, nomor surat, pos anggaran, atau nama guru..." oninput="renderLpjView()">
+          </div>
+          <div class="filter-controls-group">
+            <select class="form-select filter-select" id="selectStatusLpjFilter" onchange="renderLpjView()">
+              <option value="ALL">Semua Status LPJ</option>
+              <option value="NEED_NOTA">⚠️ Belum Upload Nota (Siap LPJ)</option>
+              <option value="MENUNGGU_VERIFIKASI_LPJ">⏳ Menunggu Verifikasi Bendahara</option>
+              <option value="SELESAI">✅ LPJ Terverifikasi &amp; Sah</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Kontainer Tabel Rekap Laporan LPJ & Nota Pembelian -->
+      <div class="rkas-table-card">
+        <div class="table-responsive">
+          <table class="rkas-table" id="tableLpj">
+            <thead>
+              <tr>
+                <th style="width: 48px; text-align: center;">No</th>
+                <th style="min-width: 130px;">No. Usulan &amp; Tgl</th>
+                <th style="min-width: 220px;">Nama Kegiatan &amp; Pembina</th>
+                <th style="min-width: 170px;">Pos RKAS</th>
+                <th style="min-width: 125px; text-align: right;">Dana Kas Cair</th>
+                <th style="min-width: 125px; text-align: right;">Belanja Riil</th>
+                <th style="min-width: 125px; text-align: right;">Sisa Kas Setor</th>
+                <th style="min-width: 130px; text-align: center;">Bukti Nota</th>
+                <th style="min-width: 135px; text-align: center;">Status LPJ</th>
+                <th style="min-width: 140px; text-align: center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="lpjTableBody">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- ===================================================================== -->
@@ -613,6 +744,10 @@
     <a href="javascript:void(0)" class="nav-item" id="navRiwayat" onclick="switchView('riwayat')">
       <i class="ti ti-file-text" style="font-size: 1.35rem;"></i>
       <span>Proposal</span>
+    </a>
+    <a href="javascript:void(0)" class="nav-item" id="navLaporan" onclick="switchView('laporan')">
+      <i class="ti ti-file-analytics" style="font-size: 1.35rem;"></i>
+      <span>Laporan</span>
     </a>
     <a href="javascript:void(0)" class="nav-item" id="navAkun" onclick="openRoleModal()">
       <i class="ti ti-user-circle" style="font-size: 1.35rem;"></i>

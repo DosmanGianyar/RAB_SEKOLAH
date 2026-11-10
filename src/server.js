@@ -658,6 +658,100 @@ app.get('/api/export/rkas/excel', (req, res) => {
   }
 });
 
+// Export Rekapitulasi LPJ & Realisasi Kas ke Excel (.xlsx)
+app.get('/api/export/lpj/excel', requireAuth, (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : null;
+    const role = req.user ? req.user.role : null;
+    const list = getPengajuanList(userId, role);
+
+    // Filter kegiatan yang minimal sudah dicairkan atau memiliki data LPJ
+    const lpjList = list.filter(p => 
+      p.status === 'DICAIRKAN' || 
+      p.status === 'MENUNGGU_VERIFIKASI_LPJ' || 
+      p.status === 'SELESAI' || 
+      p.lpj_id
+    );
+
+    let totalCairAll = 0;
+    let totalRiilAll = 0;
+    let totalSisaAll = 0;
+
+    const dataRows = lpjList.map((item, idx) => {
+      const danaCair = item.lpj_total_cair !== null && item.lpj_total_cair !== undefined ? item.lpj_total_cair : (item.total_dana_disetujui || 0);
+      const belanjaRiil = item.lpj_total_belanja_riil !== null && item.lpj_total_belanja_riil !== undefined ? item.lpj_total_belanja_riil : 0;
+      const sisaKas = item.lpj_sisa_pengembalian !== null && item.lpj_sisa_pengembalian !== undefined ? item.lpj_sisa_pengembalian : (danaCair - belanjaRiil);
+      const adaNota = item.lpj_file_nota_url ? 'ADA (Terlampir)' : 'BELUM ADA';
+
+      totalCairAll += danaCair;
+      totalRiilAll += belanjaRiil;
+      totalSisaAll += sisaKas;
+
+      let statusLpjLabel = 'Belum Ada LPJ (Kas Dicairkan)';
+      if (item.status === 'MENUNGGU_VERIFIKASI_LPJ') statusLpjLabel = 'Menunggu Verifikasi Bendahara';
+      if (item.status === 'SELESAI') statusLpjLabel = 'Disahkan & Selesai';
+
+      return {
+        'No': idx + 1,
+        'No. Usulan': item.nomor_surat_ajuan || '-',
+        'Nama Kegiatan': item.nama_kegiatan,
+        'Pemohon (Guru)': `${item.pemohon_nama} (${item.pemohon_unit})`,
+        'Pos Anggaran RKAS': item.nama_pos,
+        'Tgl Pelaksanaan': `${item.tanggal_mulai || '-'} s/d ${item.tanggal_selesai || '-'}`,
+        'Dana Kas Cair (Rp)': danaCair,
+        'Belanja Riil (Rp)': belanjaRiil,
+        'Sisa Kas Disetor (Rp)': sisaKas,
+        'Bukti Nota': adaNota,
+        'Status LPJ': statusLpjLabel,
+        'Catatan Guru': item.lpj_catatan || '-'
+      };
+    });
+
+    dataRows.push({
+      'No': '',
+      'No. Usulan': '',
+      'Nama Kegiatan': 'TOTAL REKAPITULASI REALISASI LPJ',
+      'Pemohon (Guru)': '',
+      'Pos Anggaran RKAS': '',
+      'Tgl Pelaksanaan': '',
+      'Dana Kas Cair (Rp)': totalCairAll,
+      'Belanja Riil (Rp)': totalRiilAll,
+      'Sisa Kas Disetor (Rp)': totalSisaAll,
+      'Bukti Nota': '',
+      'Status LPJ': '',
+      'Catatan Guru': ''
+    });
+
+    const ws = XLSX.utils.json_to_sheet(dataRows);
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 20 },
+      { wch: 38 },
+      { wch: 28 },
+      { wch: 32 },
+      { wch: 24 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 16 },
+      { wch: 28 },
+      { wch: 30 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Rekapitulasi LPJ & Realisasi');
+
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="REKAP_LPJ_REALISASI_SMAN1_GIANYAR.xlsx"');
+    res.send(buffer);
+  } catch (err) {
+    console.error('Export LPJ Excel error:', err);
+    res.status(500).send('Gagal mengekspor data LPJ ke Excel: ' + err.message);
+  }
+});
+
 // 3. Render Lembar Disposisi & Pengesahan RAB Resmi (A4 Print-Ready)
 app.get('/cetak/:id', async (req, res) => {
   try {

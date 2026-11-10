@@ -448,6 +448,13 @@ function switchView(viewName) {
     if (tabDesk) tabDesk.classList.add('active');
     document.getElementById('navRiwayat').classList.add('active');
     loadProposalsList();
+  } else if (viewName === 'laporan') {
+    document.getElementById('viewLaporan').classList.add('active');
+    const tabDesk = document.getElementById('tabDeskLaporan');
+    if (tabDesk) tabDesk.classList.add('active');
+    const navLaporan = document.getElementById('navLaporan');
+    if (navLaporan) navLaporan.classList.add('active');
+    loadProposalsList().then(() => renderLpjView());
   }
 
   // Scroll to top saat berpindah tampilan
@@ -1610,6 +1617,9 @@ async function loadProposalsList() {
 
       document.getElementById('proposalCountBadge').textContent = `${currentProposals.length} Proposal`;
       renderProposalsList(currentProposals);
+      if (activeViewName === 'laporan') {
+        renderLpjView();
+      }
     }
   } catch (err) {
     container.innerHTML = '<div style="color:var(--rose); padding: 20px;">Gagal memuat usulan kegiatan.</div>';
@@ -3084,3 +3094,206 @@ async function handleBendaharaLpjAction(tindakan) {
     }
   }
 }
+
+// ==========================================================================
+// FASE 5: HALAMAN LAPORAN REALISASI & ARSIP LPJ TERPADU
+// ==========================================================================
+
+function handleLpjFilterChange() {
+  renderLpjView();
+}
+
+function renderLpjView() {
+  const tbody = document.getElementById('lpjTableBody');
+  if (!tbody) return;
+
+  // Filter proposal yang relevan dengan laporan pertanggungjawaban
+  // (Minimal DICAIRKAN, MENUNGGU_VERIFIKASI_LPJ, SELESAI, atau yang memiliki data LPJ)
+  const allLpjEligible = currentProposals.filter(p => 
+    p.status === 'DICAIRKAN' || 
+    p.status === 'MENUNGGU_VERIFIKASI_LPJ' || 
+    p.status === 'SELESAI' || 
+    p.lpj_id
+  );
+
+  // Hitung 4 Metrik Keuangan LPJ
+  let totalKasCair = 0;
+  let totalBelanjaRiil = 0;
+  let totalSisaSetor = 0;
+  let countNotaAda = 0;
+
+  allLpjEligible.forEach(p => {
+    const cair = p.lpj_total_cair !== null && p.lpj_total_cair !== undefined ? Number(p.lpj_total_cair) : Number(p.total_dana_disetujui || 0);
+    const riil = p.lpj_total_belanja_riil !== null && p.lpj_total_belanja_riil !== undefined ? Number(p.lpj_total_belanja_riil) : 0;
+    const sisa = p.lpj_sisa_pengembalian !== null && p.lpj_sisa_pengembalian !== undefined ? Number(p.lpj_sisa_pengembalian) : (cair - riil);
+
+    totalKasCair += cair;
+    totalBelanjaRiil += riil;
+    totalSisaSetor += sisa;
+    if (p.lpj_file_nota_url) countNotaAda++;
+  });
+
+  const statKasCair = document.getElementById('statLpjKasCair');
+  const statBelanjaRiil = document.getElementById('statLpjBelanjaRiil');
+  const statSisaSetor = document.getElementById('statLpjSisaSetor');
+  const statNotaCount = document.getElementById('statLpjNotaCount');
+  const badgeLpjCount = document.getElementById('lpjCountBadge');
+
+  if (statKasCair) statKasCair.textContent = formatRupiah(totalKasCair);
+  if (statBelanjaRiil) statBelanjaRiil.textContent = formatRupiah(totalBelanjaRiil);
+  if (statSisaSetor) statSisaSetor.textContent = formatRupiah(totalSisaSetor);
+  if (statNotaCount) statNotaCount.textContent = `${countNotaAda} / ${allLpjEligible.length} Berkas`;
+  if (badgeLpjCount) badgeLpjCount.textContent = `${allLpjEligible.length} Kegiatan`;
+
+  // Search & Filter Status
+  const searchInput = document.getElementById('inputSearchLpj');
+  const statusSelect = document.getElementById('selectStatusLpjFilter');
+  const kw = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  const filterStatus = statusSelect ? statusSelect.value : 'ALL';
+
+  let filtered = allLpjEligible;
+
+  if (filterStatus === 'NEED_NOTA') {
+    filtered = filtered.filter(p => p.status === 'DICAIRKAN' && !p.lpj_file_nota_url);
+  } else if (filterStatus === 'MENUNGGU_VERIFIKASI_LPJ') {
+    filtered = filtered.filter(p => p.status === 'MENUNGGU_VERIFIKASI_LPJ');
+  } else if (filterStatus === 'SELESAI') {
+    filtered = filtered.filter(p => p.status === 'SELESAI');
+  }
+
+  if (kw) {
+    filtered = filtered.filter(p => 
+      (p.nama_kegiatan || '').toLowerCase().includes(kw) ||
+      (p.nomor_surat_ajuan || '').toLowerCase().includes(kw) ||
+      (p.pemohon_nama || '').toLowerCase().includes(kw) ||
+      (p.nama_pos || '').toLowerCase().includes(kw)
+    );
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+          <div style="font-size: 1.75rem; margin-bottom: 6px;">📂</div>
+          <div style="font-weight: 700; color: var(--text-main);">Tidak ada data laporan kegiatan.</div>
+          <div style="font-size: 0.8rem; margin-top: 4px;">
+            ${allLpjEligible.length === 0 ? 'Belum ada kegiatan yang kasnya dicairkan atau memiliki berkas pertanggungjawaban.' : 'Tidak ada hasil yang sesuai dengan kriteria pencarian / filter Anda.'}
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+  const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
+
+  let rowsHtml = '';
+  filtered.forEach((p, idx) => {
+    const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
+    const danaCair = p.lpj_total_cair !== null && p.lpj_total_cair !== undefined ? Number(p.lpj_total_cair) : Number(p.total_dana_disetujui || 0);
+    const belanjaRiil = p.lpj_total_belanja_riil !== null && p.lpj_total_belanja_riil !== undefined ? Number(p.lpj_total_belanja_riil) : 0;
+    const sisaKas = p.lpj_sisa_pengembalian !== null && p.lpj_sisa_pengembalian !== undefined ? Number(p.lpj_sisa_pengembalian) : (danaCair - belanjaRiil);
+
+    // Bukti Nota Cell
+    let notaCell = '';
+    if (p.lpj_file_nota_url) {
+      notaCell = `
+        <a href="${p.lpj_file_nota_url}" target="_blank" class="btn btn-outline-success btn-xs" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; font-weight:700; display:inline-flex; align-items:center; gap:4px;" title="Buka berkas bukti nota kuitansi">
+          <i class="ti ti-file-check"></i> Lihat Nota
+        </a>
+      `;
+    } else {
+      notaCell = `
+        <span style="color:#94a3b8; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+          <i class="ti ti-alert-circle"></i> Belum Ada
+        </span>
+      `;
+    }
+
+    // Status Pill
+    let statusBadge = '';
+    if (p.status === 'DICAIRKAN') {
+      statusBadge = `<span class="status-pill DICAIRKAN" style="font-size:0.68rem;">Siap Upload LPJ</span>`;
+    } else if (p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+      statusBadge = `<span class="status-pill MENUNGGU_VERIFIKASI_LPJ" style="font-size:0.68rem;">Verifikasi Bendahara</span>`;
+    } else if (p.status === 'SELESAI') {
+      statusBadge = `<span class="status-pill SELESAI" style="font-size:0.68rem;">✅ Sah &amp; Selesai</span>`;
+    } else {
+      statusBadge = `<span class="status-pill" style="font-size:0.68rem;">${p.status.replace(/_/g, ' ')}</span>`;
+    }
+
+    // Action Buttons
+    let actionsHtml = `
+      <div style="display:flex; gap:4px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-xs" onclick="openProposalDetail(${p.id})" title="Lihat Rincian Kegiatan">
+          <i class="ti ti-eye"></i> Detail
+        </button>
+    `;
+
+    if (isOwnerGuru && (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ')) {
+      actionsHtml += `
+        <button class="btn btn-primary btn-xs" onclick="openSubmitLpjModal(${p.id})" title="Unggah bukti nota kuitansi & serahkan LPJ">
+          <i class="ti ti-upload"></i> ${p.lpj_file_nota_url ? 'Ganti Nota' : 'Upload Nota'}
+        </button>
+      `;
+    }
+
+    if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+      actionsHtml += `
+        <button class="btn btn-warning btn-xs" style="background:#d97706; border-color:#d97706; color:#fff;" onclick="openVerifikasiLpjModal(${p.id})" title="Periksa berkas nota & sahkan LPJ">
+          <i class="ti ti-clipboard-check"></i> Verifikasi
+        </button>
+      `;
+    }
+
+    actionsHtml += `
+        <a href="/cetak/${p.id}" target="_blank" class="btn btn-secondary btn-xs" title="Cetak Disposisi & Rincian">
+          <i class="ti ti-printer"></i>
+        </a>
+      </div>
+    `;
+
+    rowsHtml += `
+      <tr>
+        <td style="text-align: center; color: var(--text-muted); font-size: 0.8rem;">${idx + 1}</td>
+        <td>
+          <div style="font-weight: 800; font-family: monospace; font-size: 0.78rem; color: var(--primary);">${escapeHtml(p.nomor_surat_ajuan)}</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">📅 ${p.created_at || '-'}</div>
+        </td>
+        <td>
+          <div style="font-weight: 700; color: var(--text-main); font-size: 0.86rem; line-height: 1.35;">${escapeHtml(p.nama_kegiatan)}</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+            👤 ${escapeHtml(p.pemohon_nama)} <span style="color:var(--text-light);">(${escapeHtml(p.pemohon_unit)})</span>
+          </div>
+        </td>
+        <td>
+          <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-body); line-height: 1.3;">${escapeHtml(p.nama_pos)}</div>
+        </td>
+        <td style="text-align: right; font-weight: 700; color: #0f172a; font-size: 0.86rem; white-space: nowrap;">
+          ${formatRupiah(danaCair)}
+        </td>
+        <td style="text-align: right; font-weight: 800; color: #047857; font-size: 0.86rem; white-space: nowrap;">
+          ${belanjaRiil > 0 ? formatRupiah(belanjaRiil) : '<span style="color:#94a3b8; font-weight:500;">-</span>'}
+        </td>
+        <td style="text-align: right; font-weight: 700; font-size: 0.86rem; white-space: nowrap; color: ${sisaKas > 0 ? '#059669' : 'var(--text-muted)'};">
+          ${sisaKas > 0 ? formatRupiah(sisaKas) : 'Rp 0'}
+        </td>
+        <td style="text-align: center; white-space: nowrap;">
+          ${notaCell}
+        </td>
+        <td style="text-align: center; white-space: nowrap;">
+          ${statusBadge}
+        </td>
+        <td style="text-align: center; white-space: nowrap;">
+          ${actionsHtml}
+        </td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = rowsHtml;
+}
+
+window.renderLpjView = renderLpjView;
+window.handleLpjFilterChange = handleLpjFilterChange;

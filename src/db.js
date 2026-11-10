@@ -845,10 +845,19 @@ function getPengajuanList(userId = null, role = null) {
            u.unit_bagian AS pemohon_unit,
            u.role AS pemohon_role,
            pos.nama_pos,
-           pos.tahun_ajaran
+           pos.tahun_ajaran,
+           lpj.id AS lpj_id,
+           lpj.total_dana_cair AS lpj_total_cair,
+           lpj.total_belanja_riil AS lpj_total_belanja_riil,
+           lpj.sisa_pengembalian_dana AS lpj_sisa_pengembalian,
+           lpj.file_nota_url AS lpj_file_nota_url,
+           lpj.status_lpj AS lpj_status,
+           lpj.catatan_lpj AS lpj_catatan,
+           lpj.created_at AS lpj_created_at
     FROM pengajuan_kegiatan p
     JOIN users u ON p.user_id = u.id
     JOIN pos_anggaran pos ON p.pos_anggaran_id = pos.id
+    LEFT JOIN lpj_pertanggungjawaban lpj ON lpj.pengajuan_id = p.id
   `;
 
   const params = [];
