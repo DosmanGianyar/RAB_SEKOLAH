@@ -2263,6 +2263,403 @@ body {
 }
 
 /* ========================================================================== */
+/* DASHBOARD UTAMA SAMBUTAN ELEGAN (VIEW HOME)                                */
+/* ========================================================================== */
+.home-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 60%, #ecfdf5 100%);
+  border: 1.5px solid #a7f3d0;
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.home-hero-content {
+  flex: 1;
+  max-width: 720px;
+}
+
+.home-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #065f46;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.home-hero-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+
+.home-hero-title span#homeGreetingName {
+  color: #059669;
+}
+
+.home-hero-desc {
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+.home-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.home-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  color: #334155;
+}
+
+.home-meta-pill i {
+  color: #059669;
+  font-size: 0.95rem;
+}
+
+.home-hero-illustration {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-hero-circle {
+  width: 100px;
+  height: 100px;
+  background: #ffffff;
+  border: 3px solid #86efac;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.15);
+  padding: 8px;
+}
+
+.home-hero-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Home Section Header */
+.home-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.home-section-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.home-section-subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+/* Home Stats Grid (4 Cards) */
+.home-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 1024px) {
+  .home-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .home-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.home-stat-card {
+  background: #ffffff;
+  border: 1.5px solid var(--border-card);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.home-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.home-stat-card.border-indigo { border-left: 4px solid #4f46e5; }
+.home-stat-card.border-amber { border-left: 4px solid #d97706; }
+.home-stat-card.border-cyan { border-left: 4px solid #0891b2; }
+.home-stat-card.border-emerald { border-left: 4px solid #059669; }
+
+.home-stat-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.home-stat-icon-wrap.indigo { background: #e0e7ff; color: #4338ca; }
+.home-stat-icon-wrap.amber { background: #fef3c7; color: #b45309; }
+.home-stat-icon-wrap.cyan { background: #cffafe; color: #0e7490; }
+.home-stat-icon-wrap.emerald { background: #d1fae5; color: #047857; }
+
+.home-stat-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-stat-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.3px;
+  display: block;
+}
+
+.home-stat-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 3px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-stat-value.text-indigo { color: #3730a3; }
+.home-stat-value.text-amber { color: #b45309; }
+.home-stat-value.text-cyan { color: #0e7490; }
+.home-stat-value.text-emerald { color: #047857; }
+
+.home-stat-hint {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Home Grid 2 Columns */
+.home-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+@media (max-width: 900px) {
+  .home-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.home-panel-card {
+  background: #ffffff;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.home-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.home-panel-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* SNP List */
+.home-snp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.home-snp-item {
+  background: #f8fafc;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.home-snp-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+}
+
+.home-snp-bar {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.home-snp-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+/* Quick Actions Grid */
+.home-quick-actions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.home-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+
+.home-action-btn:hover {
+  background: #ffffff;
+  border-color: #059669;
+  transform: translateX(3px);
+  box-shadow: 0 3px 10px rgba(5, 150, 105, 0.1);
+}
+
+.home-action-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.home-action-icon.green { background: #dcfce7; color: #059669; }
+.home-action-icon.blue { background: #dbeafe; color: #2563eb; }
+.home-action-icon.purple { background: #f3e8ff; color: #7c3aed; }
+.home-action-icon.emerald { background: #ecfdf5; color: #047857; }
+
+.home-action-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-action-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.home-action-desc {
+  font-size: 0.72rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-action-arrow {
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+
+.home-action-btn:hover .home-action-arrow {
+  color: #059669;
+  transform: translateX(2px);
+}
+
+.home-quote-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+}
+
+@media (max-width: 640px) {
+  .home-hero-card {
+    padding: 20px 18px;
+    flex-direction: column-reverse;
+    text-align: center;
+    gap: 14px;
+  }
+  .home-hero-meta {
+    justify-content: center;
+  }
+  .home-hero-title {
+    font-size: 1.3rem;
+  }
+}
+
+/* ========================================================================== */
 /* SUB-NAV SWITCHER: PENGAJUAN RAB (FORM BARU VS RIWAYAT PROPOSAL)            */
 /* ========================================================================== */
 .subnav-switcher-bar {

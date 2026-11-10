@@ -503,7 +503,12 @@ function switchView(viewName) {
   // Update status navbar mobile
   document.querySelectorAll('.mobile-nav-bar .nav-item').forEach(btn => btn.classList.remove('active'));
 
-  if (viewName === 'dashboard') {
+  if (viewName === 'home') {
+    const vHome = document.getElementById('viewHome');
+    if (vHome) vHome.classList.add('active');
+    loadSummaryStats();
+    updateHomeGreeting();
+  } else if (viewName === 'dashboard') {
     const vDash = document.getElementById('viewDashboard');
     if (vDash) vDash.classList.add('active');
     const tabDesk = document.getElementById('tabDeskDashboard');
@@ -831,15 +836,68 @@ async function loadSummaryStats() {
     const data = await res.json();
     if (data.success && data.summary) {
       const s = data.summary;
-      document.getElementById('statTotalPagu').textContent = formatRupiah(s.total_pagu);
-      document.getElementById('statTerserap').textContent = formatRupiah(s.total_terserap);
-      document.getElementById('statTercadangkan').textContent = formatRupiah(s.total_tercadangkan);
-      document.getElementById('statSisaAktif').textContent = formatRupiah(s.sisa_pagu_aktif);
+      // Metrik Dashboard Pagu
+      const elPagu = document.getElementById('statTotalPagu');
+      if (elPagu) elPagu.textContent = formatRupiah(s.total_pagu);
+      const elTerserap = document.getElementById('statTerserap');
+      if (elTerserap) elTerserap.textContent = formatRupiah(s.total_terserap);
+      const elTercadangkan = document.getElementById('statTercadangkan');
+      if (elTercadangkan) elTercadangkan.textContent = formatRupiah(s.total_tercadangkan);
+      const elSisa = document.getElementById('statSisaAktif');
+      if (elSisa) elSisa.textContent = formatRupiah(s.sisa_pagu_aktif);
+
+      // Metrik Dashboard Utama Sambutan (View Home)
+      const elHomePagu = document.getElementById('homeTotalPagu');
+      if (elHomePagu) elHomePagu.textContent = formatRupiah(s.total_pagu);
+      const elHomeTerserap = document.getElementById('homeTotalTerserap');
+      if (elHomeTerserap) elHomeTerserap.textContent = formatRupiah(s.total_terserap);
+      const elHomeTercadangkan = document.getElementById('homeTercadangkan');
+      if (elHomeTercadangkan) elHomeTercadangkan.textContent = formatRupiah(s.total_tercadangkan);
+      const elHomeSisa = document.getElementById('homeSisaAktif');
+      if (elHomeSisa) elHomeSisa.textContent = formatRupiah(s.sisa_pagu_aktif);
+
+      const elHomePersen = document.getElementById('homePersenTerserap');
+      if (elHomePersen) elHomePersen.textContent = `${s.persentase_terserap || 0}%`;
+
+      const elHomePendingCount = document.getElementById('homeCountPending');
+      if (elHomePendingCount) {
+        elHomePendingCount.textContent = s.count_pending > 0 
+          ? `${s.count_pending} usulan menunggu persetujuan` 
+          : 'Tidak ada usulan pending';
+      }
     }
   } catch (err) {
     console.error('Error loading stats:', err);
   }
 }
+
+function updateHomeGreeting() {
+  const now = new Date();
+  const hour = now.getHours();
+  let greeting = 'Selamat Datang';
+  if (hour >= 4 && hour < 11) greeting = 'Selamat Pagi';
+  else if (hour >= 11 && hour < 15) greeting = 'Selamat Siang';
+  else if (hour >= 15 && hour < 18) greeting = 'Selamat Sore';
+  else greeting = 'Selamat Malam';
+
+  const elGreeting = document.getElementById('homeGreetingTime');
+  if (elGreeting) elGreeting.textContent = greeting;
+
+  if (currentUser) {
+    const elName = document.getElementById('homeGreetingName');
+    if (elName) elName.textContent = currentUser.nama_lengkap || currentUser.username;
+
+    const elRole = document.getElementById('homeUserRole');
+    if (elRole) {
+      if (currentUser.role === 'GURU') elRole.textContent = 'GURU PEMBINA / UNIT';
+      else if (currentUser.role === 'BENDAHARA') elRole.textContent = 'BENDAHARA SEKOLAH';
+      else if (currentUser.role === 'KEPALA_SEKOLAH') elRole.textContent = 'KEPALA SEKOLAH';
+      else if (currentUser.role === 'ANALISIS_SDM') elRole.textContent = 'ANALISIS SDM APARATUR';
+      else elRole.textContent = currentUser.role;
+    }
+  }
+}
+window.updateHomeGreeting = updateHomeGreeting;
 
 async function loadPosAnggaran() {
   const tbody = document.getElementById('posTableBody');
