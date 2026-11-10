@@ -423,6 +423,30 @@ function setupEventListeners() {
   });
 }
 
+// --- Sub-Tab Switcher Pengajuan RAB (Form Baru vs Riwayat Proposal) ---
+function switchRabSubTab(tabName) {
+  const btnForm = document.getElementById('btnSubnavFormRab');
+  const btnRiwayat = document.getElementById('btnSubnavRiwayatRab');
+  const paneForm = document.getElementById('subTabRabForm');
+  const paneRiwayat = document.getElementById('subTabRabRiwayat');
+
+  if (tabName === 'riwayat') {
+    if (btnForm) btnForm.classList.remove('active');
+    if (btnRiwayat) btnRiwayat.classList.add('active');
+    if (paneForm) paneForm.style.display = 'none';
+    if (paneRiwayat) paneRiwayat.style.display = 'block';
+    loadProposalsList();
+  } else {
+    if (btnForm) btnForm.classList.add('active');
+    if (btnRiwayat) btnRiwayat.classList.remove('active');
+    if (paneForm) paneForm.style.display = 'block';
+    if (paneRiwayat) paneRiwayat.style.display = 'none';
+    populatePosDropdown();
+    calculateGrandTotal();
+  }
+}
+window.switchRabSubTab = switchRabSubTab;
+
 // --- 1. View Switching Logic (Mobile & Desktop) ---
 function switchView(viewName) {
   activeViewName = viewName;
@@ -436,27 +460,44 @@ function switchView(viewName) {
   document.querySelectorAll('.mobile-nav-bar .nav-item').forEach(btn => btn.classList.remove('active'));
 
   if (viewName === 'dashboard') {
-    document.getElementById('viewDashboard').classList.add('active');
+    const vDash = document.getElementById('viewDashboard');
+    if (vDash) vDash.classList.add('active');
     const tabDesk = document.getElementById('tabDeskDashboard');
     if (tabDesk) tabDesk.classList.add('active');
-    document.getElementById('navHome').classList.add('active');
+    const navH = document.getElementById('navHome');
+    if (navH) navH.classList.add('active');
     loadSummaryStats();
     loadPosAnggaran();
   } else if (viewName === 'ajukan') {
-    document.getElementById('viewAjukan').classList.add('active');
+    const vAjukan = document.getElementById('viewAjukan');
+    if (vAjukan) vAjukan.classList.add('active');
     const tabDesk = document.getElementById('tabDeskAjukan');
     if (tabDesk) tabDesk.classList.add('active');
-    document.getElementById('navAjukan').classList.add('active');
-    populatePosDropdown();
-    calculateGrandTotal();
+    const navAjukan = document.getElementById('navAjukan');
+    if (navAjukan) navAjukan.classList.add('active');
+    // Default tampilkan form
+    switchRabSubTab('form');
   } else if (viewName === 'riwayat') {
-    document.getElementById('viewRiwayat').classList.add('active');
-    const tabDesk = document.getElementById('tabDeskRiwayat');
+    const vAjukan = document.getElementById('viewAjukan');
+    if (vAjukan) vAjukan.classList.add('active');
+    const tabDesk = document.getElementById('tabDeskAjukan');
     if (tabDesk) tabDesk.classList.add('active');
-    document.getElementById('navRiwayat').classList.add('active');
-    loadProposalsList();
+    const navAjukan = document.getElementById('navAjukan');
+    if (navAjukan) navAjukan.classList.add('active');
+    // Beralih ke sub-tab riwayat usulan
+    switchRabSubTab('riwayat');
+  } else if (viewName === 'verifikasi') {
+    const vAjukan = document.getElementById('viewAjukan');
+    if (vAjukan) vAjukan.classList.add('active');
+    const tabVerif = document.getElementById('tabDeskVerifikasi');
+    if (tabVerif) tabVerif.classList.add('active');
+    const navVerif = document.getElementById('navVerifikasi');
+    if (navVerif) navVerif.classList.add('active');
+    // Beralih ke sub-tab riwayat usulan
+    switchRabSubTab('riwayat');
   } else if (viewName === 'laporan') {
-    document.getElementById('viewLaporan').classList.add('active');
+    const vLap = document.getElementById('viewLaporan');
+    if (vLap) vLap.classList.add('active');
     const tabDesk = document.getElementById('tabDeskLaporan');
     if (tabDesk) tabDesk.classList.add('active');
     const navLaporan = document.getElementById('navLaporan');
@@ -1625,7 +1666,11 @@ async function loadProposalsList() {
         }
       }
 
-      document.getElementById('proposalCountBadge').textContent = `${currentProposals.length} Proposal`;
+      const badge = document.getElementById('proposalCountBadge');
+      if (badge) {
+        badge.textContent = `${currentProposals.length}`;
+        badge.title = `${currentProposals.length} Usulan Terdaftar`;
+      }
       renderProposalsList(currentProposals);
       if (activeViewName === 'laporan') {
         renderLpjView();
@@ -1657,7 +1702,7 @@ function renderProposalsList(proposals) {
         <p style="font-size: 0.82rem; color: var(--text-muted); margin: 6px 0 16px;">
           ${emptyDesc}
         </p>
-        <button class="btn btn-primary btn-sm" onclick="switchView('ajukan')">
+        <button class="btn btn-primary btn-sm" onclick="switchRabSubTab('form')">
           + Buat Usulan RAB Sekarang
         </button>
       </div>

@@ -2232,6 +2232,64 @@ body {
   color: #059669;
 }
 
+/* ========================================================================== */
+/* SUB-NAV SWITCHER: PENGAJUAN RAB (FORM BARU VS RIWAYAT PROPOSAL)            */
+/* ========================================================================== */
+.subnav-switcher-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 5px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1.5px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.subnav-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.subnav-pill-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.subnav-pill-btn.active {
+  background: #ffffff;
+  color: var(--primary) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.subnav-counter-pill {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #e2e8f0;
+  color: #475569;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.subnav-pill-btn.active .subnav-counter-pill {
+  background: #ecfdf5;
+  color: #059669;
+}
+
 .lpj-foto-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

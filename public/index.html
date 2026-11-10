@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.3.5">
+  <link rel="stylesheet" href="/css/style.css?v=2.3.6">
 </head>
 <body>
 
@@ -170,12 +170,12 @@
             Pagu Anggaran
           </button>
           <button class="desktop-tab-btn" id="tabDeskAjukan" onclick="switchView('ajukan')">
-            <i class="ti ti-circle-plus" style="font-size: 1.15rem; margin-right: 6px;"></i>
-            Ajukan RAB Baru
+            <i class="ti ti-notes" style="font-size: 1.15rem; margin-right: 6px;"></i>
+            Pengajuan RAB
           </button>
-          <button class="desktop-tab-btn" id="tabDeskRiwayat" onclick="switchView('riwayat')">
-            <i class="ti ti-file-text" style="font-size: 1.15rem; margin-right: 6px;"></i>
-            Riwayat Proposal
+          <button class="desktop-tab-btn" id="tabDeskVerifikasi" onclick="switchView('verifikasi')">
+            <i class="ti ti-checklist" style="font-size: 1.15rem; margin-right: 6px;"></i>
+            Persetujuan & Disposisi
           </button>
           <button class="desktop-tab-btn" id="tabDeskLaporan" onclick="switchView('laporan')">
             <i class="ti ti-file-analytics" style="font-size: 1.15rem; margin-right: 6px;"></i>
@@ -380,138 +380,152 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- VIEW 2: FORM AJUKAN RAB BARU (FASE 2)     -->
+    <!-- VIEW 2: PENGAJUAN RAB & RIWAYAT USULAN     -->
     <!-- ========================================== -->
     <div class="app-view" id="viewAjukan">
-      <div class="form-card">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-          <div>
-            <div class="phase-pill" style="margin-bottom: 6px;">FASE 2: Pengajuan Guru</div>
-            <h2 class="phase-title" style="font-size: 1.35rem;">Formulir Usulan Kegiatan & RAB</h2>
-            <p class="phase-desc">Isi rincian kegiatan dan susun tabel rincian belanja barang/jasa di bawah ini.</p>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="switchView('dashboard')">
-            ← Kembali
-          </button>
-        </div>
-
-        <form id="formPengajuanRab">
-          <!-- Form Header: Informasi Kegiatan -->
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Pilih Pos Anggaran yang Dibebani (RKAS 2026) *</label>
-              <div style="margin-bottom: 6px;">
-                <input type="text" id="filterPosDropdownInput" class="form-input" style="font-size: 0.82rem; padding: 6px 12px; border-color: var(--primary);" placeholder="🔍 Ketik nama kegiatan (cth: DBL, Pramuka, PMR, Ujian, ATK)..." oninput="handleFilterPosDropdown(this.value)">
-              </div>
-              <select class="form-select" id="selectPosAnggaran" required onchange="handlePosSelected()">
-                <option value="">-- Pilih Pos Anggaran RKAS --</option>
-                <!-- Populated via JS -->
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Nama Kegiatan *</label>
-              <input type="text" class="form-input" id="inputNamaKegiatan" placeholder="Cth: Pelatihan Dasar Kepemimpinan Siswa (LDKS)" required>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Latar Belakang / Deskripsi Singkat Kegiatan</label>
-            <textarea class="form-textarea" id="inputLatarBelakang" rows="2" placeholder="Jelaskan secara ringkas maksud dan tujuan kegiatan ini..."></textarea>
-          </div>
-
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Tanggal Mulai Kegiatan *</label>
-              <input type="date" class="form-input" id="inputTglMulai" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tanggal Selesai Kegiatan *</label>
-              <input type="date" class="form-input" id="inputTglSelesai" required>
-            </div>
-          </div>
-
-          <!-- Dynamic Line Items Section (Mobile-First Cards / Spreadsheet) -->
-          <div class="dynamic-items-header">
-            <div>
-              <div class="dynamic-items-title">
-                Rincian Baris Belanja (RAB Dinamis)
-                <span class="badge-counter" id="itemCountBadge">1 Item</span>
-              </div>
-              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
-                Tambahkan baris belanja barang, konsumsi, transportasi, atau honorarium.
-              </div>
-            </div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="addItemRow()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              + Tambah Baris
-            </button>
-          </div>
-
-          <!-- Container Kartu Baris Belanja Dinamis -->
-          <div class="rab-items-stack" id="rabItemsContainer">
-            <!-- Dynamic rows injected via JS -->
-          </div>
-
-          <!-- Live Budget Validation Alert (Hijau jika aman, Merah jika overbudget) -->
-          <div id="liveBudgetAlertBox" class="live-budget-alert safe" style="display: none;">
-            <svg class="live-budget-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            <div id="liveBudgetAlertText">
-              Pilih pos anggaran terlebih dahulu untuk memantau batas plafon belanja.
-            </div>
-          </div>
-
-          <!-- Action Box: Grand Total & Submit -->
-          <div class="proposal-action-box">
-            <div>
-              <div class="grand-total-label">Total Estimasi Anggaran Diajukan:</div>
-              <div class="grand-total-value" id="displayGrandTotal">Rp 0</div>
-            </div>
-            <div style="display: flex; gap: 10px;">
-              <button type="button" class="btn btn-secondary" onclick="switchView('dashboard')">Batal</button>
-              <button type="submit" class="btn btn-primary" id="btnSubmitProposal">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
-                </svg>
-                Kirim Usulan RAB
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- VIEW 3: RIWAYAT PROPOSAL (FASE 2)          -->
-    <!-- ========================================== -->
-    <div class="app-view" id="viewRiwayat">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">
-            <i class="ti ti-history" style="color: var(--primary); margin-right: 4px;"></i>
-            <span id="riwayatViewTitle">Riwayat Usulan & Status RAB</span>
-            <span class="badge-counter" id="proposalCountBadge">0 Proposal</span>
-          </h2>
-          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;" id="riwayatViewSubtitle">
-            Pantau status verifikasi bendahara dan persetujuan Kepala Sekolah secara real-time.
-          </div>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="switchView('ajukan')">
-          <i class="ti ti-plus" style="font-size: 1rem; margin-right: 4px;"></i> Buat Usulan Baru
+      <!-- Sub-Nav Switcher: Form Usulan Baru vs Riwayat Proposal -->
+      <div class="subnav-switcher-bar">
+        <button type="button" class="subnav-pill-btn active" id="btnSubnavFormRab" onclick="switchRabSubTab('form')">
+          <i class="ti ti-plus"></i> Form Pengajuan Baru
+        </button>
+        <button type="button" class="subnav-pill-btn" id="btnSubnavRiwayatRab" onclick="switchRabSubTab('riwayat')">
+          <i class="ti ti-history"></i> Riwayat Proposal
+          <span class="subnav-counter-pill" id="proposalCountBadge">0</span>
         </button>
       </div>
 
-      <div class="proposals-list" id="proposalsListContainer">
-        <!-- Injected via JS -->
+      <!-- PANE A: FORM AJUKAN RAB BARU -->
+      <div id="subTabRabForm" class="subtab-pane">
+        <div class="form-card">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <div>
+              <div class="phase-pill" style="margin-bottom: 6px;">FASE 2: Pengajuan Guru</div>
+              <h2 class="phase-title" style="font-size: 1.35rem;">Formulir Usulan Kegiatan &amp; RAB</h2>
+              <p class="phase-desc">Isi rincian kegiatan dan susun tabel rincian belanja barang/jasa di bawah ini.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="switchRabSubTab('riwayat')">
+              <i class="ti ti-history"></i> Lihat Riwayat Usulan
+            </button>
+          </div>
+
+          <form id="formPengajuanRab">
+            <!-- Form Header: Informasi Kegiatan -->
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Pilih Pos Anggaran yang Dibebani (RKAS 2026) *</label>
+                <div style="margin-bottom: 6px;">
+                  <input type="text" id="filterPosDropdownInput" class="form-input" style="font-size: 0.82rem; padding: 6px 12px; border-color: var(--primary);" placeholder="🔍 Ketik nama kegiatan (cth: DBL, Pramuka, PMR, Ujian, ATK)..." oninput="handleFilterPosDropdown(this.value)">
+                </div>
+                <select class="form-select" id="selectPosAnggaran" required onchange="handlePosSelected()">
+                  <option value="">-- Pilih Pos Anggaran RKAS --</option>
+                  <!-- Populated via JS -->
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Nama Kegiatan *</label>
+                <input type="text" class="form-input" id="inputNamaKegiatan" placeholder="Cth: Pelatihan Dasar Kepemimpinan Siswa (LDKS)" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Latar Belakang / Deskripsi Singkat Kegiatan</label>
+              <textarea class="form-textarea" id="inputLatarBelakang" rows="2" placeholder="Jelaskan secara ringkas maksud dan tujuan kegiatan ini..."></textarea>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Tanggal Mulai Kegiatan *</label>
+                <input type="date" class="form-input" id="inputTglMulai" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tanggal Selesai Kegiatan *</label>
+                <input type="date" class="form-input" id="inputTglSelesai" required>
+              </div>
+            </div>
+
+            <!-- Dynamic Line Items Section (Mobile-First Cards / Spreadsheet) -->
+            <div class="dynamic-items-header">
+              <div>
+                <div class="dynamic-items-title">
+                  Rincian Baris Belanja (RAB Dinamis)
+                  <span class="badge-counter" id="itemCountBadge">1 Item</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                  Tambahkan baris belanja barang, konsumsi, transportasi, atau honorarium.
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addItemRow()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                + Tambah Baris
+              </button>
+            </div>
+
+            <!-- Container Kartu Baris Belanja Dinamis -->
+            <div class="rab-items-stack" id="rabItemsContainer">
+              <!-- Dynamic rows injected via JS -->
+            </div>
+
+            <!-- Live Budget Validation Alert (Hijau jika aman, Merah jika overbudget) -->
+            <div id="liveBudgetAlertBox" class="live-budget-alert safe" style="display: none;">
+              <svg class="live-budget-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <div id="liveBudgetAlertText">
+                Pilih pos anggaran terlebih dahulu untuk memantau batas plafon belanja.
+              </div>
+            </div>
+
+            <!-- Action Box: Grand Total & Submit -->
+            <div class="proposal-action-box">
+              <div>
+                <div class="grand-total-label">Total Estimasi Anggaran Diajukan:</div>
+                <div class="grand-total-value" id="displayGrandTotal">Rp 0</div>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-secondary" onclick="switchRabSubTab('riwayat')">Batal</button>
+                <button type="submit" class="btn btn-primary" id="btnSubmitProposal">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                  </svg>
+                  Kirim Usulan RAB
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- PANE B: RIWAYAT USULAN & STATUS PROPOSAL -->
+      <div id="subTabRabRiwayat" class="subtab-pane" style="display: none;">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">
+              <i class="ti ti-history" style="color: var(--primary); margin-right: 4px;"></i>
+              <span id="riwayatViewTitle">Riwayat Usulan &amp; Status RAB</span>
+            </h2>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;" id="riwayatViewSubtitle">
+              Pantau status verifikasi bendahara dan persetujuan Kepala Sekolah secara real-time.
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="switchRabSubTab('form')">
+            <i class="ti ti-plus" style="font-size: 1rem; margin-right: 4px;"></i> Buat Usulan Baru
+          </button>
+        </div>
+
+        <div class="proposals-list" id="proposalsListContainer">
+          <!-- Injected via JS -->
+        </div>
       </div>
     </div>
+
+    <!-- Hidden compatibility container -->
+    <div class="app-view" id="viewRiwayat" style="display: none;"></div>
 
     <!-- ========================================== -->
     <!-- VIEW 4: LAPORAN REALISASI & LPJ (FASE 5)   -->
@@ -987,12 +1001,12 @@
       <span>Pagu Anggaran</span>
     </a>
     <a href="javascript:void(0)" class="nav-item" id="navAjukan" onclick="switchView('ajukan')">
-      <i class="ti ti-circle-plus" style="font-size: 1.35rem;"></i>
-      <span>Ajukan RAB</span>
+      <i class="ti ti-notes" style="font-size: 1.35rem;"></i>
+      <span>Pengajuan</span>
     </a>
-    <a href="javascript:void(0)" class="nav-item" id="navRiwayat" onclick="switchView('riwayat')">
-      <i class="ti ti-file-text" style="font-size: 1.35rem;"></i>
-      <span>Proposal</span>
+    <a href="javascript:void(0)" class="nav-item" id="navVerifikasi" onclick="switchView('verifikasi')">
+      <i class="ti ti-checklist" style="font-size: 1.35rem;"></i>
+      <span>Persetujuan</span>
     </a>
     <a href="javascript:void(0)" class="nav-item" id="navLaporan" onclick="switchView('laporan')">
       <i class="ti ti-file-analytics" style="font-size: 1.35rem;"></i>
@@ -1635,6 +1649,6 @@
   <!-- Tabler Core JS & SweetAlert2 -->
   <script src="/libs/tabler/js/tabler.min.js"></script>
   <script src="/libs/sweetalert2/sweetalert2.all.min.js"></script>
-  <script src="/js/app.js?v=2.4.0"></script>
+  <script src="/js/app.js?v=2.4.1"></script>
 </body>
 </html>
