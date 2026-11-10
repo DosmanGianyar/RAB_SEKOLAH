@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.3.3">
+  <link rel="stylesheet" href="/css/style.css?v=2.3.5">
 </head>
 <body>
 
@@ -747,8 +747,9 @@
                   Tambahkan nota fisik per rekanan/toko, atau 1 nota gabungan yang merangkum beberapa item rincian.
                 </p>
               </div>
-              <button type="button" class="btn btn-outline-success btn-xs" onclick="addEditorReceiptRow()" style="font-weight: 700; gap: 4px;">
-                <i class="ti ti-plus"></i> Tambah Nota
+              <button type="button" class="btn-lpj-add-action" onclick="addEditorReceiptRow()">
+                <i class="ti ti-plus"></i>
+                <span>Tambah Nota Belanja</span>
               </button>
             </div>
 
@@ -756,6 +757,12 @@
             <div id="editorLpjNotaStack">
               <!-- Populated via JS -->
             </div>
+
+            <!-- Tombol Tambah Nota di Bawah Daftar -->
+            <button type="button" class="btn-lpj-add-block" onclick="addEditorReceiptRow()">
+              <i class="ti ti-circle-plus"></i>
+              <span>+ Tambah Bukti Nota / Kuitansi Lainnya</span>
+            </button>
 
             <!-- Total Belanja Riil Summary Bar -->
             <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 14px 18px; margin: 14px 0;">
@@ -838,8 +845,9 @@
                   Unggah foto-foto pelaksanaan kegiatan (pembukaan, kegiatan inti, penyerahan hadiah, peserta) beserta keterangan untuk dicetak pada lampiran resmi LPJ.
                 </p>
               </div>
-              <button type="button" class="btn btn-outline-success btn-xs" onclick="addEditorFotoRow()" style="font-weight: 700; gap: 4px;">
-                <i class="ti ti-plus"></i> Tambah Foto
+              <button type="button" class="btn-lpj-add-action" onclick="addEditorFotoRow()">
+                <i class="ti ti-camera-plus"></i>
+                <span>Tambah Foto Kegiatan</span>
               </button>
             </div>
 
@@ -847,6 +855,12 @@
             <div id="editorLpjFotoStack" class="lpj-foto-grid">
               <!-- Populated via JS -->
             </div>
+
+            <!-- Tombol Tambah Foto di Bawah Grid -->
+            <button type="button" class="btn-lpj-add-block" onclick="addEditorFotoRow()" style="margin-top: 14px;">
+              <i class="ti ti-camera-plus"></i>
+              <span>+ Tambah Slot Foto Dokumentasi Kegiatan</span>
+            </button>
           </div>
 
           <!-- KARTU 6: Catatan Tambahan -->

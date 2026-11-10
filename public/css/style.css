@@ -2164,6 +2164,74 @@ body {
   border-radius: 20px;
 }
 
+/* Tombol Aksi Tambah Nota & Foto yang Sangat Jelas & Eye-Catching */
+.btn-lpj-add-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #059669 !important;
+  color: #ffffff !important;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #047857;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.28);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+}
+
+.btn-lpj-add-action:hover {
+  background: #047857 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.38);
+  transform: translateY(-1px);
+}
+
+.btn-lpj-add-action:active {
+  transform: translateY(0);
+}
+
+.btn-lpj-add-action i {
+  font-size: 1.05rem;
+  stroke-width: 2.5;
+}
+
+/* Tombol Block Tambah di Bawah List Nota & Foto */
+.btn-lpj-add-block {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: #f0fdf4;
+  border: 2px dashed #34d399;
+  border-radius: var(--radius-md);
+  color: #065f46;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  margin-top: 10px;
+  margin-bottom: 12px;
+}
+
+.btn-lpj-add-block:hover {
+  background: #dcfce7;
+  border-color: #059669;
+  color: #047857;
+  box-shadow: 0 3px 8px rgba(5, 150, 105, 0.15);
+  transform: translateY(-1px);
+}
+
+.btn-lpj-add-block i {
+  font-size: 1.3rem;
+  color: #059669;
+}
+
 .lpj-foto-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

@@ -717,3 +717,4 @@ function renderCetakLpj({ proposal, qrDataUrl, hostUrl }) {
 module.exports = {
   renderCetakLpj
 };
+
