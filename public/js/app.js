@@ -402,10 +402,17 @@ function setupEventListeners() {
     formCairkan.addEventListener('submit', handlePencairanSubmit);
   }
 
-  // Form Submit LPJ (Fase 5)
+  // Form Submit LPJ (Fase 5: Halaman Editor & Modal Fallback)
+  const formEditorLpj = document.getElementById('formEditorLpj');
+  if (formEditorLpj) {
+    formEditorLpj.addEventListener('submit', submitLpjFromEditor);
+  }
   const formLpj = document.getElementById('formSubmitLpj');
   if (formLpj) {
-    formLpj.addEventListener('submit', handleSubmitLpj);
+    formLpj.addEventListener('submit', (e) => {
+      e.preventDefault();
+      submitLpjFromEditor(e);
+    });
   }
 
   // Close modals on overlay click
@@ -2869,22 +2876,30 @@ async function navigateToLpjEditor(proposalId) {
     activeLpjProposal = p;
 
     // Reset Form
-    document.getElementById('editorLpjProposalId').value = p.id;
-    document.getElementById('editorLpjNomorSurat').textContent = p.nomor_surat_ajuan;
-    document.getElementById('editorLpjNamaKegiatan').textContent = p.nama_kegiatan;
-    document.getElementById('editorLpjSubHeader').textContent = `Pemohon: ${p.pemohon_nama} (${p.pemohon_unit}) • Pos Anggaran: ${p.nama_pos}`;
-    document.getElementById('editorLpjTotalDanaCair').textContent = formatRupiah(p.total_dana_disetujui);
+    const elId = document.getElementById('editorLpjProposalId');
+    if (elId) elId.value = p.id;
+    const elNomor = document.getElementById('editorLpjNomorSurat');
+    if (elNomor) elNomor.textContent = p.nomor_surat_ajuan;
+    const elNama = document.getElementById('editorLpjNamaKegiatan');
+    if (elNama) elNama.textContent = p.nama_kegiatan;
+    const elSub = document.getElementById('editorLpjSubHeader');
+    if (elSub) elSub.textContent = `Pemohon: ${p.pemohon_nama} (${p.pemohon_unit}) • Pos Anggaran: ${p.nama_pos}`;
+    const elCair = document.getElementById('editorLpjTotalDanaCairDisplay');
+    if (elCair) elCair.textContent = formatRupiah(p.total_dana_disetujui);
 
     // Setup tombol cetak langsung
-    const btnCetak = document.getElementById('btnEditorCetakLaporan');
-    if (btnCetak) {
-      btnCetak.onclick = () => window.open(`/cetak-lpj/${p.id}`, '_blank');
-      btnCetak.style.display = p.lpj ? 'inline-flex' : 'none';
-    }
+    const btnCetakTop = document.getElementById('btnEditorCetakLpj');
+    const btnCetakBottom = document.getElementById('btnEditorCetakLpjBottom');
+    [btnCetakTop, btnCetakBottom].forEach(btn => {
+      if (btn) {
+        btn.href = `/cetak-lpj/${p.id}`;
+        btn.style.display = p.lpj ? 'inline-flex' : 'none';
+      }
+    });
 
     // Tampilkan Referensi Rincian Item RAB Disetujui
-    const refBox = document.getElementById('editorLpjApprovedRefBox');
-    const refList = document.getElementById('editorLpjApprovedRefList');
+    const refBox = document.getElementById('editorLpjApprovedItemsRefBox');
+    const refList = document.getElementById('editorLpjApprovedItemsList');
     if (refBox && refList) {
       if (p.items && p.items.length > 0) {
         refBox.style.display = 'block';
@@ -2919,25 +2934,31 @@ async function navigateToLpjEditor(proposalId) {
 
     // Isi Nilai Deskripsi & Resume jika sudah ada LPJ
     if (p.lpj) {
-      document.getElementById('editorLpjLatarBelakang').value = p.lpj.catatan_lpj || p.latar_belakang || '';
-      document.getElementById('editorLpjTujuan').value = p.lpj.tujuan_kegiatan || p.tujuan_kegiatan || '';
-      document.getElementById('editorLpjTempat').value = p.lpj.tempat_pelaksanaan || '';
-      document.getElementById('editorLpjPeserta').value = p.lpj.jumlah_peserta || '';
+      const elLat = document.getElementById('editorLpjLatarBelakang');
+      if (elLat) elLat.value = p.lpj.catatan_lpj || p.latar_belakang || '';
+      const elTuj = document.getElementById('editorLpjTujuan');
+      if (elTuj) elTuj.value = p.lpj.tujuan_kegiatan || p.tujuan_kegiatan || '';
+      const elTem = document.getElementById('editorLpjTempat');
+      if (elTem) elTem.value = p.lpj.tempat_pelaksanaan || '';
+      const elPes = document.getElementById('editorLpjPeserta');
+      if (elPes) elPes.value = p.lpj.jumlah_peserta || '';
 
-      document.getElementById('editorLpjResumeHasil').value = p.lpj.resume_hasil || '';
-      document.getElementById('editorLpjKendala').value = p.lpj.kendala || '';
-      document.getElementById('editorLpjSolusi').value = p.lpj.solusi_tindak_lanjut || '';
-      document.getElementById('editorLpjCatatanTambahan').value = p.lpj.catatan_lpj || '';
+      const elRes = document.getElementById('editorLpjResumeHasil');
+      if (elRes) elRes.value = p.lpj.resume_hasil || '';
+      const elKen = document.getElementById('editorLpjKendala');
+      if (elKen) elKen.value = p.lpj.kendala || '';
+      const elSol = document.getElementById('editorLpjSolusi');
+      if (elSol) elSol.value = p.lpj.solusi_tindak_lanjut || '';
+      const elCat = document.getElementById('editorLpjCatatanTambahan');
+      if (elCat) elCat.value = p.lpj.catatan_lpj || '';
 
       // Master PDF file
       if (p.lpj.file_nota_url) {
-        const masterChip = document.getElementById('editorLpjMasterFileChip');
-        const masterName = document.getElementById('editorLpjMasterFileName');
-        const masterPicker = document.getElementById('editorLpjMasterFilePicker');
-        if (masterChip && masterName && masterPicker) {
-          masterChip.style.display = 'inline-flex';
-          masterPicker.style.display = 'none';
-          masterName.textContent = p.lpj.file_nota_url.split('/').pop();
+        const wrap = document.getElementById('editorLpjMasterPreviewWrap');
+        const nameSpan = document.getElementById('editorLpjMasterFileName');
+        if (wrap && nameSpan) {
+          wrap.style.display = 'flex';
+          nameSpan.textContent = p.lpj.file_nota_url.split('/').pop();
         }
       } else {
         clearEditorMasterFile();
@@ -2963,15 +2984,23 @@ async function navigateToLpjEditor(proposalId) {
       }
     } else {
       // Usulan Baru Belum Ada LPJ
-      document.getElementById('editorLpjLatarBelakang').value = p.latar_belakang || '';
-      document.getElementById('editorLpjTujuan').value = p.tujuan_kegiatan || '';
-      document.getElementById('editorLpjTempat').value = '';
-      document.getElementById('editorLpjPeserta').value = '';
+      const elLat = document.getElementById('editorLpjLatarBelakang');
+      if (elLat) elLat.value = p.latar_belakang || '';
+      const elTuj = document.getElementById('editorLpjTujuan');
+      if (elTuj) elTuj.value = p.tujuan_kegiatan || '';
+      const elTem = document.getElementById('editorLpjTempat');
+      if (elTem) elTem.value = '';
+      const elPes = document.getElementById('editorLpjPeserta');
+      if (elPes) elPes.value = '';
 
-      document.getElementById('editorLpjResumeHasil').value = '';
-      document.getElementById('editorLpjKendala').value = '';
-      document.getElementById('editorLpjSolusi').value = '';
-      document.getElementById('editorLpjCatatanTambahan').value = '';
+      const elRes = document.getElementById('editorLpjResumeHasil');
+      if (elRes) elRes.value = '';
+      const elKen = document.getElementById('editorLpjKendala');
+      if (elKen) elKen.value = '';
+      const elSol = document.getElementById('editorLpjSolusi');
+      if (elSol) elSol.value = '';
+      const elCat = document.getElementById('editorLpjCatatanTambahan');
+      if (elCat) elCat.value = '';
 
       clearEditorMasterFile();
 
@@ -2996,10 +3025,10 @@ async function navigateToLpjEditor(proposalId) {
 
 function goBackFromLpjEditor() {
   if (typeof switchView === 'function') {
-    switchView('proposals');
+    switchView('riwayat');
   } else {
     document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
-    const v = document.getElementById('viewProposals');
+    const v = document.getElementById('viewRiwayat');
     if (v) v.classList.add('active');
   }
 }
@@ -3191,7 +3220,7 @@ function clearEditorReceiptFile(event, rowId) {
 function recalculateEditorMultiTotals() {
   const totalBelanja = editorReceiptRows.reduce((sum, r) => sum + (Number(r.nominal) || 0), 0);
   const display = document.getElementById('editorLpjTotalBelanjaDisplay');
-  const hiddenInput = document.getElementById('editorLpjTotalBelanjaInput');
+  const hiddenInput = document.getElementById('editorLpjTotalBelanja');
   if (display) display.textContent = formatRupiah(totalBelanja);
   if (hiddenInput) hiddenInput.value = totalBelanja;
   recalculateEditorCashback();
@@ -3201,13 +3230,14 @@ function recalculateEditorCashback() {
   if (!activeLpjProposal) return;
 
   const danaCair = activeLpjProposal.total_dana_disetujui || 0;
-  const belanjaRiil = Number(document.getElementById('editorLpjTotalBelanjaInput').value) || 0;
+  const inputEl = document.getElementById('editorLpjTotalBelanja');
+  const belanjaRiil = inputEl ? Number(inputEl.value) || 0 : 0;
   const selisih = danaCair - belanjaRiil;
 
-  const box = document.getElementById('editorLpjCalcBox');
-  const title = document.getElementById('editorLpjCalcTitle');
-  const val = document.getElementById('editorLpjCalcVal');
-  const desc = document.getElementById('editorLpjCalcDesc');
+  const box = document.getElementById('editorLpjCashbackBox');
+  const title = document.getElementById('editorLpjCashbackTitle');
+  const val = document.getElementById('editorLpjCashbackVal');
+  const desc = document.getElementById('editorLpjCashbackDesc');
 
   if (!box || !title || !val || !desc) return;
 
@@ -3237,13 +3267,11 @@ function handleEditorMasterFileSelect(event) {
   if (!file) return;
   selectedEditorMasterFile = file;
 
-  const chip = document.getElementById('editorLpjMasterFileChip');
-  const picker = document.getElementById('editorLpjMasterFilePicker');
+  const wrap = document.getElementById('editorLpjMasterPreviewWrap');
   const nameSpan = document.getElementById('editorLpjMasterFileName');
 
-  if (chip && picker && nameSpan) {
-    chip.style.display = 'inline-flex';
-    picker.style.display = 'none';
+  if (wrap && nameSpan) {
+    wrap.style.display = 'flex';
     nameSpan.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
   }
 }
@@ -3255,11 +3283,9 @@ function clearEditorMasterFile(event) {
   const input = document.getElementById('editorLpjMasterFileInput');
   if (input) input.value = '';
 
-  const chip = document.getElementById('editorLpjMasterFileChip');
-  const picker = document.getElementById('editorLpjMasterFilePicker');
-  if (chip && picker) {
-    chip.style.display = 'none';
-    picker.style.display = 'inline-flex';
+  const wrap = document.getElementById('editorLpjMasterPreviewWrap');
+  if (wrap) {
+    wrap.style.display = 'none';
   }
 }
 
@@ -3440,9 +3466,15 @@ async function submitLpjFromEditor(event) {
   });
   formData.append('foto_dokumentasi', JSON.stringify(fotoPayload));
 
-  const btn = document.getElementById('btnEditorSubmitLpj');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="ti ti-loader rotate"></i> Menyimpan Laporan...';
+  const submitBtns = [
+    document.getElementById('btnEditorSubmitLpjBottom'),
+    document.getElementById('btnEditorSubmitLpjTop')
+  ].filter(Boolean);
+
+  submitBtns.forEach(b => {
+    b.disabled = true;
+    b.innerHTML = '<i class="ti ti-loader rotate"></i> Menyimpan Laporan...';
+  });
 
   try {
     const res = await fetch(`/api/pengajuan/${id}/lpj`, {
@@ -3506,8 +3538,10 @@ async function submitLpjFromEditor(event) {
       alert(`Terjadi kesalahan jaringan: ${err.message}`);
     }
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="ti ti-check"></i> Simpan & Serahkan Laporan Pertanggungjawaban (LPJ)';
+    submitBtns.forEach(b => {
+      b.disabled = false;
+      b.innerHTML = '<i class="ti ti-check"></i> Simpan & Serahkan LPJ';
+    });
   }
 }
 
