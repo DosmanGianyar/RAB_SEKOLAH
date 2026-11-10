@@ -8,35 +8,35 @@
 :root {
   /* Tabler UI Theme Integration */
   --tblr-font-sans-serif: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --tblr-primary: #1d4ed8;
-  --tblr-primary-rgb: 29, 78, 216;
-  --tblr-body-bg: #f1f5f9;
+  --tblr-primary: #059669;
+  --tblr-primary-rgb: 5, 150, 105;
+  --tblr-body-bg: #f8fafc;
   --tblr-body-color: #0f172a;
-  --tblr-border-color: #cbd5e1;
-  --tblr-card-border-radius: 14px;
-  --tblr-btn-border-radius: 10px;
+  --tblr-border-color: #e2e8f0;
+  --tblr-card-border-radius: 12px;
+  --tblr-btn-border-radius: 8px;
 
-  /* Clean High-Contrast Institutional Palette */
-  --bg-main: #f1f5f9;
-  /* Slate 100 - Kontras tajam dan tegas terhadap kartu putih */
+  /* Clean High-Contrast Institutional Palette - FlexAdmin Emerald Financial */
+  --bg-main: #f8fafc;
+  /* FlexAdmin slate 50 clean neutral background */
   --bg-surface: #ffffff;
   /* Putih murni untuk kartu utama */
   --bg-card: #ffffff;
-  --bg-card-hover: #f8fafc;
+  --bg-card-hover: #f1f5f9;
   /* Slate 50 */
   --bg-input: #ffffff;
   --bg-subtle: #f8fafc;
 
-  /* Primary Accent: Executive Sapphire / Deep Navy Blue */
-  --primary: #1d4ed8;
-  /* Blue 700 - Berwibawa, tajam, standar institusi resmi */
-  --primary-hover: #1e40af;
-  /* Blue 800 */
-  --primary-light: #eff6ff;
-  /* Blue 50 */
-  --primary-border: #93c5fd;
-  /* Blue 300 - Terbaca jelas dan solid */
-  --primary-glow: rgba(29, 78, 216, 0.22);
+  /* Primary Accent: FlexAdmin Financial Emerald Green */
+  --primary: #059669;
+  /* Emerald 600 - Segar, berwibawa, standar kemakmuran & akuntabilitas kas sekolah */
+  --primary-hover: #047857;
+  /* Emerald 700 */
+  --primary-light: #ecfdf5;
+  /* Emerald 50 */
+  --primary-border: #a7f3d0;
+  /* Emerald 200 */
+  --primary-glow: rgba(5, 150, 105, 0.18);
 
   /* Status Accents (WCAG AAA High Contrast) */
   --emerald: #047857;
@@ -102,7 +102,7 @@
   /* Slate 300 - Garis pembatas jelas dan tegas */
   --border-card: #94a3b8;
   /* Slate 400 - Batas kartu kentara dan terdefinisi */
-  --border-focus: #1d4ed8;
+  --border-focus: #059669;
 
   /* Solid Natural Shadows */
   --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.08);
@@ -148,16 +148,9 @@ body {
   /* Ruang untuk mobile bottom navigation */
 }
 
-/* Background Subtle Gradient */
+/* Background Subtle - Clean Natural Surface (AI Glow Removed) */
 .ambient-glow {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 320px;
-  background: radial-gradient(circle at 50% -20%, rgba(37, 99, 235, 0.07), transparent 70%);
-  pointer-events: none;
-  z-index: 0;
+  display: none !important;
 }
 
 /* Container */
@@ -414,10 +407,10 @@ body {
   margin-left: 8px;
 }
 
-.metric-compact-icon.indigo { background: #eff6ff; color: var(--primary); }
+.metric-compact-icon.indigo { background: #ecfdf5; color: var(--primary); }
 .metric-compact-icon.amber { background: #fffbeb; color: var(--amber); }
 .metric-compact-icon.cyan { background: #ecfeff; color: var(--cyan); }
-.metric-compact-icon.emerald { background: #ecfdf5; color: var(--emerald); }
+.metric-compact-icon.emerald { background: #d1fae5; color: var(--emerald); }
 
 /* Banner Header Institusional */
 .phase-banner {
@@ -445,9 +438,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #dbeafe;
-  color: #1e3a8a;
-  border: 1.5px solid #93c5fd;
+  background: #ecfdf5;
+  color: #064e3b;
+  border: 1.5px solid #a7f3d0;
   padding: 4px 12px;
   border-radius: var(--radius-full);
   font-size: 0.72rem;
@@ -823,15 +816,18 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  background: #059669;
+  border: 1px solid #059669;
   color: #ffffff;
-  box-shadow: 0 4px 12px var(--primary-glow);
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.22);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #1e40af, #1d4ed8);
+  background: #047857;
+  border-color: #047857;
+  color: #ffffff;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.3);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.32);
 }
 
 .btn-secondary {
@@ -1296,9 +1292,9 @@ body {
 
 .pos-type-option.active {
   border-color: var(--primary);
-  background: #eff6ff;
+  background: #ecfdf5;
   color: var(--primary);
-  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 1px 4px rgba(5, 150, 105, 0.12);
 }
 
 .pos-type-option input[type="radio"] {
@@ -1362,9 +1358,9 @@ body {
 }
 
 .item-index-badge {
-  background: #eff6ff;
-  color: #1e40af;
-  border: 1.5px solid #93c5fd;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1.5px solid #a7f3d0;
   font-size: 0.72rem;
   font-weight: 800;
   padding: 3px 10px;
@@ -1411,8 +1407,8 @@ body {
 }
 
 .subtotal-display-box {
-  background: #eff6ff;
-  border: 1.5px solid #93c5fd;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
   border-radius: var(--radius-md);
   padding: 10px 14px;
   display: flex;
@@ -1423,7 +1419,7 @@ body {
 
 .subtotal-label {
   font-size: 0.65rem;
-  color: #1e40af;
+  color: #065f46;
   text-transform: uppercase;
   font-weight: 800;
 }
@@ -1432,7 +1428,7 @@ body {
   font-family: 'Outfit', sans-serif;
   font-size: 1.05rem;
   font-weight: 800;
-  color: #1e3a8a;
+  color: #064e3b;
 }
 
 /* Live Budget Validation Alert Bar */
@@ -1762,7 +1758,7 @@ body {
   border-radius: 50%;
   background: var(--primary);
   border: 2px solid #ffffff;
-  box-shadow: 0 0 0 2px #bfdbfe;
+  box-shadow: 0 0 0 2px #a7f3d0;
 }
 
 .audit-time {
@@ -1816,7 +1812,7 @@ body {
 
 .method-option:hover {
   border-color: var(--primary);
-  background: #eff6ff;
+  background: #ecfdf5;
 }
 
 .method-option input[type="radio"] {
@@ -1850,7 +1846,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #eff6ff;
+  background: #ecfdf5;
   color: var(--primary);
   border: 1.5px solid var(--primary-border);
   padding: 6px 12px;
@@ -1893,9 +1889,9 @@ body {
 }
 
 .lpj-calc-box.exact {
-  background: #eff6ff;
-  border: 1.5px solid #93c5fd;
-  color: #1e40af;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  color: #065f46;
   font-weight: 600;
 }
 
@@ -1919,7 +1915,7 @@ body {
 
 .file-upload-area:hover {
   border-color: var(--primary);
-  background: #eff6ff;
+  background: #ecfdf5;
 }
 
 .file-preview-wrap {
@@ -2021,9 +2017,9 @@ body {
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.05em;
-  color: #1e40af;
-  background: #dbeafe;
-  border: 1.5px solid #93c5fd;
+  color: #064e3b;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
   padding: 4px 10px;
   border-radius: var(--radius-full);
   margin-bottom: 14px;
@@ -2206,22 +2202,23 @@ body {
   gap: 8px;
   width: 100%;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #1d4ed8, #2563eb);
-  border: none;
+  background: #059669;
+  border: 1px solid #059669;
   border-radius: var(--radius-md);
   color: #ffffff;
   font-size: 0.92rem;
   font-weight: 800;
   cursor: pointer;
   transition: var(--transition);
-  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.25);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
   margin-top: 4px;
 }
 
 .btn-login-submit:hover {
-  background: linear-gradient(135deg, #1e40af, #1d4ed8);
+  background: #047857;
+  border-color: #047857;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.35);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
 }
 
 .btn-login-submit:active {
@@ -2282,7 +2279,7 @@ body {
 }
 
 .demo-acc-btn:hover {
-  background: #eff6ff;
+  background: #ecfdf5;
   border-color: var(--primary-border);
   transform: translateX(2px);
   box-shadow: var(--shadow-sm);
@@ -2301,9 +2298,9 @@ body {
 }
 
 .demo-acc-btn.guru .demo-avatar {
-  background: #eff6ff;
-  border: 1.5px solid #2563eb;
-  color: #1d4ed8;
+  background: #ecfdf5;
+  border: 1.5px solid #059669;
+  color: #047857;
 }
 
 .demo-acc-btn.bendahara .demo-avatar {
@@ -2888,9 +2885,9 @@ table td {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 0.75rem;
   font-weight: 700;
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
   padding: 2px 7px;
   border-radius: 4px;
   letter-spacing: 0.3px;
@@ -2912,7 +2909,7 @@ table td {
   font-size: 0.72rem;
 }
 
-/* Tiered / Group Hierarchy Rows (Parent Header) */
+/* Tiered / Group Hierarchy Rows (Parent Header - FlexAdmin Financial Green) */
 .rkas-group-header {
   cursor: pointer;
   user-select: none;
@@ -2922,15 +2919,15 @@ table td {
 .rkas-group-header td {
   padding: 11px 12px !important;
   color: #0f172a;
-  background-color: #edf5fe !important; /* Warna pembeda elegan: Biru lembut institusional untuk baris Parent */
-  border-top: 2px solid #bfdbfe !important;
-  border-bottom: 2px solid #bfdbfe !important;
-  border-right: 1px solid #dbeafe !important;
+  background-color: #f0fdf4 !important; /* Warna pembeda elegan: Hijau lembut institusional untuk baris Parent */
+  border-top: 2px solid #bbf7d0 !important;
+  border-bottom: 2px solid #bbf7d0 !important;
+  border-right: 1px solid #dcfce7 !important;
   font-weight: 700;
 }
 
 .rkas-group-header td:first-child {
-  border-left: 4px solid var(--primary) !important; /* Aksen garis biru di sisi kiri baris parent */
+  border-left: 4px solid var(--primary) !important; /* Aksen garis hijau emerald di sisi kiri baris parent */
 }
 
 .rkas-group-header td:last-child {
@@ -2938,7 +2935,7 @@ table td {
 }
 
 .rkas-group-header:hover td {
-  background-color: #e1effe !important;
+  background-color: #dcfce7 !important;
 }
 
 .group-toggle-btn {
@@ -2947,42 +2944,63 @@ table td {
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 4px;
-  background: #dbeafe;
-  color: #1d4ed8;
+  border-radius: 6px;
+  background: #dcfce7;
+  color: #047857;
   font-size: 0.75rem;
   margin-right: 6px;
-  border: 1px solid #bfdbfe;
+  border: 1px solid #bbf7d0;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s;
 }
 
 .group-toggle-btn:hover {
-  background: #bfdbfe;
-  color: #1e40af;
+  background: #bbf7d0;
+  color: #064e3b;
 }
 
 .rkas-group-header.collapsed .group-toggle-btn i {
   transform: rotate(-90deg);
 }
 
+/* Badge Jumlah Rincian - Sempurna Rata Tengah & Vertikal Bersusun */
 .badge-child-count {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   white-space: nowrap;
   flex-shrink: 0;
-  background: #dbeafe;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 2px 9px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  padding: 2px 10px;
   border-radius: 9999px;
   margin-left: 8px;
   vertical-align: middle;
-  line-height: 1.25;
+  line-height: 1.15;
+  min-width: 58px;
+  box-shadow: 0 1px 2px rgba(5, 150, 105, 0.08);
+}
+
+.badge-child-count .badge-count-num {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #047857;
+  line-height: 1;
+  text-align: center;
+  display: block;
+}
+
+.badge-child-count .badge-count-text {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #059669;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
+  display: block;
 }
 
 /* Sub-Item / Child Row */
@@ -3191,9 +3209,9 @@ table td {
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 700;
-  background: #2563eb;
+  background: #059669;
   color: #ffffff;
-  border: none;
+  border: 1px solid #059669;
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
@@ -3201,7 +3219,8 @@ table td {
 }
 
 .btn-ajukan-pos:hover {
-  background: #1d4ed8;
+  background: #047857;
+  border-color: #047857;
   color: #ffffff;
 }
 
@@ -3302,9 +3321,9 @@ table td {
 .btn-toggle-text {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #3b82f6;
+  color: #047857;
   background: transparent;
-  border: 1px solid #bfdbfe;
+  border: 1px solid #a7f3d0;
   cursor: pointer;
   padding: 3px 7px;
   border-radius: 4px;
@@ -3312,8 +3331,8 @@ table td {
 }
 
 .btn-toggle-text:hover {
-  background: #eff6ff;
-  border-color: #93c5fd;
+  background: #ecfdf5;
+  border-color: #6ee7b7;
 }
 
 /* Bilah Unduh Laporan di Bagian Bawah Tabel RKAS */
@@ -3341,14 +3360,14 @@ table td {
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: #eff6ff;
+  background: #ecfdf5;
   color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.35rem;
   flex-shrink: 0;
-  border: 1px solid #bfdbfe;
+  border: 1px solid #a7f3d0;
 }
 
 .rkas-download-title {

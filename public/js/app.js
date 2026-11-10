@@ -173,7 +173,7 @@ async function handleDeleteProposal(id, nama) {
         icon: 'error',
         title: 'Akses Ditolak',
         text: 'Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang memiliki hak otorisasi untuk menghapus usulan kegiatan.',
-        confirmButtonColor: '#1d4ed8'
+        confirmButtonColor: '#059669'
       });
     } else {
       alert('Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang memiliki hak otorisasi untuk menghapus usulan kegiatan.');
@@ -218,7 +218,7 @@ async function handleDeleteProposal(id, nama) {
           icon: 'success',
           title: 'Berhasil Dihapus',
           text: result.message,
-          confirmButtonColor: '#1d4ed8',
+          confirmButtonColor: '#059669',
           timer: 3000
         });
       } else {
@@ -230,7 +230,7 @@ async function handleDeleteProposal(id, nama) {
           icon: 'error',
           title: 'Gagal Menghapus',
           text: result.message,
-          confirmButtonColor: '#1d4ed8'
+          confirmButtonColor: '#059669'
         });
       } else {
         alert(`❌ Gagal menghapus usulan: ${result.message}`);
@@ -243,7 +243,7 @@ async function handleDeleteProposal(id, nama) {
         icon: 'error',
         title: 'Kesalahan Sistem',
         text: 'Terjadi kesalahan jaringan atau server saat menghapus usulan.',
-        confirmButtonColor: '#1d4ed8'
+        confirmButtonColor: '#059669'
       });
     } else {
       alert('Terjadi kesalahan jaringan atau server saat menghapus usulan.');
@@ -259,7 +259,7 @@ async function handleDeletePosAnggaran(id, nama) {
         icon: 'error',
         title: 'Akses Ditolak',
         text: 'Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang berhak menghapus pos anggaran.',
-        confirmButtonColor: '#1d4ed8'
+        confirmButtonColor: '#059669'
       });
     } else {
       alert('Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang berhak menghapus pos anggaran.');
@@ -303,7 +303,7 @@ async function handleDeletePosAnggaran(id, nama) {
           icon: 'success',
           title: 'Berhasil Dihapus',
           text: result.message,
-          confirmButtonColor: '#1d4ed8',
+          confirmButtonColor: '#059669',
           timer: 3000
         });
       } else {
@@ -315,7 +315,7 @@ async function handleDeletePosAnggaran(id, nama) {
           icon: 'error',
           title: 'Tidak Dapat Dihapus',
           text: result.message,
-          confirmButtonColor: '#1d4ed8'
+          confirmButtonColor: '#059669'
         });
       } else {
         alert(`❌ Gagal menghapus pos anggaran: ${result.message}`);
@@ -328,7 +328,7 @@ async function handleDeletePosAnggaran(id, nama) {
         icon: 'error',
         title: 'Kesalahan Sistem',
         text: 'Terjadi kesalahan jaringan atau server saat menghapus pos anggaran.',
-        confirmButtonColor: '#1d4ed8'
+        confirmButtonColor: '#059669'
       });
     } else {
       alert('Terjadi kesalahan jaringan atau server saat menghapus pos anggaran.');
@@ -627,7 +627,7 @@ async function handleLogout() {
       text: 'Apakah Anda yakin ingin mengakhiri sesi SI-ARTHA DOSMAN?',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#1d4ed8',
+      confirmButtonColor: '#059669',
       cancelButtonColor: '#64748b',
       confirmButtonText: '<i class="ti ti-logout"></i> Ya, Keluar',
       cancelButtonText: 'Batal'
@@ -1002,7 +1002,10 @@ function renderPosAnggaranTable() {
               <i class="ti ti-chevron-${isCollapsed ? 'right' : 'down'}"></i>
             </button>
             <span>📁 ${escapeHtml(g.nama)}</span>
-            <span class="badge-child-count">${g.items.length} Rincian</span>
+            <span class="badge-child-count">
+              <span class="badge-count-num">${g.items.length}</span>
+              <span class="badge-count-text">Rincian</span>
+            </span>
           </div>
         </td>
         <td style="text-align: right; font-weight: 800; color: var(--text-main); font-size: 0.9rem; white-space: nowrap;">

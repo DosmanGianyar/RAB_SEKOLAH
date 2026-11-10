@@ -199,8 +199,8 @@ function renderCetakRkas({ posList, summary }) {
       border: none;
       transition: all 0.2s;
     }
-    .btn-print { background: #1d4ed8; color: #ffffff; }
-    .btn-print:hover { background: #1e40af; }
+    .btn-print { background: #059669; color: #ffffff; }
+    .btn-print:hover { background: #047857; }
     .btn-excel { background: #059669; color: #ffffff; }
     .btn-excel:hover { background: #047857; }
     .btn-back { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
@@ -327,13 +327,13 @@ function renderCetakRkas({ posList, summary }) {
     .font-mono { font-family: monospace; }
     .text-center { text-align: center; }
     .text-right { text-align: right; white-space: nowrap; }
-    .text-primary { color: #1d4ed8; }
+    .text-primary { color: #047857; }
     .text-green { color: #047857; }
     .text-amber { color: #b45309; }
     .text-red { color: #b91c1c; }
     .text-muted { color: #64748b; }
 
-    .snp-label { font-size: 7pt; font-weight: 800; color: #1e40af; }
+    .snp-label { font-size: 7pt; font-weight: 800; color: #065f46; }
     .program-sub { font-size: 6.8pt; color: #64748b; }
     .vol-label { font-size: 6.8pt; color: #64748b; }
 
