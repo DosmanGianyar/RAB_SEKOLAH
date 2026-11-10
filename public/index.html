@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.4.0">
+  <link rel="stylesheet" href="/css/style.css?v=2.4.1">
 </head>
 <body>
 
@@ -714,8 +714,9 @@
             <div class="form-grid-2">
               <div class="form-group">
                 <label class="form-label">Pilih Pos Anggaran yang Dibebani (RKAS 2026) *</label>
-                <div style="margin-bottom: 6px;">
-                  <input type="text" id="filterPosDropdownInput" class="form-input" style="font-size: 0.82rem; padding: 6px 12px; border-color: var(--primary);" placeholder="🔍 Ketik nama kegiatan (cth: DBL, Pramuka, PMR, Ujian, ATK)..." oninput="handleFilterPosDropdown(this.value)">
+                <div class="search-input-wrap" style="margin-bottom: 6px;">
+                  <i class="ti ti-search search-icon"></i>
+                  <input type="text" id="filterPosDropdownInput" class="form-input search-input" style="font-size: 0.82rem; padding-top: 7px; padding-bottom: 7px; border-color: var(--primary);" placeholder="Ketik nama kegiatan (cth: DBL, Pramuka, PMR, Ujian, ATK)..." oninput="handleFilterPosDropdown(this.value)">
                 </div>
                 <select class="form-select" id="selectPosAnggaran" required onchange="handlePosSelected()">
                   <option value="">-- Pilih Pos Anggaran RKAS --</option>
