@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.3.8">
+  <link rel="stylesheet" href="/css/style.css?v=2.3.9">
 </head>
 <body>
 
@@ -165,7 +165,7 @@
 
         <!-- Desktop Navigation Tabs (Visible on Laptop & PC) -->
         <nav class="desktop-nav-tabs">
-          <button class="desktop-tab-btn active" id="tabDeskDashboard" onclick="switchView('dashboard')">
+          <button class="desktop-tab-btn" id="tabDeskDashboard" onclick="switchView('dashboard')">
             <i class="ti ti-layout-grid" style="font-size: 1.15rem; margin-right: 6px;"></i>
             Pagu Anggaran
           </button>
@@ -218,7 +218,7 @@
     <!-- ============================================================== -->
     <!-- VIEW 0: DASHBOARD UTAMA SAMBUTAN RESMI & STATISTIK ANGGARAN    -->
     <!-- ============================================================== -->
-    <div class="app-view" id="viewHome">
+    <div class="app-view active" id="viewHome">
       <!-- 1. Hero Welcome Card -->
       <div class="home-hero-card">
         <div class="home-hero-content">
@@ -470,7 +470,7 @@
     <!-- ========================================== -->
     <!-- VIEW 1: DASHBOARD & PLAFON (FASE 1)       -->
     <!-- ========================================== -->
-    <div class="app-view active" id="viewDashboard">
+    <div class="app-view" id="viewDashboard">
       <!-- 1. Sleek Compact Header Row -->
       <div class="dashboard-header-compact">
         <div class="header-left">
@@ -1255,7 +1255,7 @@
 
   <!-- Mobile Bottom Navigation Bar (Teacher Friendly - Tepat 4 Tombol) -->
   <nav class="mobile-nav-bar">
-    <a href="javascript:void(0)" class="nav-item active" id="navHome" onclick="switchView('dashboard')">
+    <a href="javascript:void(0)" class="nav-item" id="navHome" onclick="switchView('dashboard')">
       <i class="ti ti-layout-grid" style="font-size: 1.35rem;"></i>
       <span>Pagu Anggaran</span>
     </a>
@@ -1904,6 +1904,6 @@
   <!-- Tabler Core JS & SweetAlert2 -->
   <script src="/libs/tabler/js/tabler.min.js"></script>
   <script src="/libs/sweetalert2/sweetalert2.all.min.js"></script>
-  <script src="/js/app.js?v=2.4.3"></script>
+  <script src="/js/app.js?v=2.4.4"></script>
 </body>
 </html>

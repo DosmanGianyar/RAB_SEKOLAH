@@ -6,7 +6,7 @@
 let currentUser = null;
 let currentPosList = [];
 let currentProposals = [];
-let activeViewName = 'dashboard';
+let activeViewName = 'home';
 let selectedSnpFilter = 'ALL';
 let searchKeyword = '';
 let selectedTrafficFilter = 'ALL';
@@ -602,6 +602,7 @@ function showAuthenticatedApp(user) {
   if (appShell) appShell.style.display = 'block';
 
   renderUserHeader(currentUser);
+  switchView('home');
   loadSummaryStats();
   loadPosAnggaran();
   if (activeViewName === 'riwayat') {
