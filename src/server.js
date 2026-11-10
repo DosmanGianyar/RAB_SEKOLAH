@@ -9,6 +9,7 @@ const {
   getPosAnggaranById,
   createPosAnggaran,
   updatePosAnggaran,
+  importRkasFromExcel,
   getAllUsers,
   getUserById,
   authenticateUser,
@@ -179,9 +180,9 @@ app.get('/api/summary', (req, res) => {
   res.json({ success: true, summary });
 });
 
-// Pos Anggaran List
+// Pos Anggaran List (Mendukung filter SNP)
 app.get('/api/pos-anggaran', (req, res) => {
-  const list = getPosAnggaranList();
+  const list = getPosAnggaranList(req.query.snp);
   res.json({ success: true, data: list });
 });
 
@@ -194,6 +195,24 @@ app.get('/api/pos-anggaran/:id', (req, res) => {
   res.json({ success: true, data: item });
 });
 
+// Sync / Import Ulang RKAS dari File Excel (Hanya Bendahara, Kepsek, SDM, Admin)
+app.post('/api/pos-anggaran/sync-rkas', requireAuth, (req, res) => {
+  try {
+    if (req.user.role === 'GURU') {
+      return res.status(403).json({ success: false, message: 'Akses Ditolak: Hanya manajemen yang berhak menyinkronkan data RKAS.' });
+    }
+    const success = importRkasFromExcel();
+    if (success) {
+      const list = getPosAnggaranList();
+      res.json({ success: true, count: list.length, message: `Berhasil menyinkronkan ${list.length} item RKAS 2026 dari Excel resmi!`, data: list });
+    } else {
+      res.status(500).json({ success: false, message: 'Gagal menyinkronkan data RKAS dari file Excel.' });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Add new Pos Anggaran (Hanya Bendahara, Kepsek, Analisis SDM, atau Admin)
 app.post('/api/pos-anggaran', requireAuth, (req, res) => {
   try {
@@ -203,11 +222,11 @@ app.post('/api/pos-anggaran', requireAuth, (req, res) => {
         message: 'Akses Ditolak: Akun Guru tidak memiliki wewenang untuk menambahkan pos anggaran. Hanya Bendahara, Kepala Sekolah, dan Analisis SDM yang berhak mengatur pagu anggaran sekolah.'
       });
     }
-    const { nama_pos, tahun_ajaran, pagu_awal, keterangan } = req.body;
-    if (!nama_pos || !pagu_awal) {
+    const { kode_rekening, snp, program_induk, nama_pos, tahun_ajaran, volume, satuan, tarif_harga, pagu_awal, keterangan } = req.body;
+    if (!nama_pos || pagu_awal === undefined) {
       return res.status(400).json({ success: false, message: 'Nama pos dan pagu awal wajib diisi' });
     }
-    const created = createPosAnggaran({ nama_pos, tahun_ajaran, pagu_awal, keterangan });
+    const created = createPosAnggaran({ kode_rekening, snp, program_induk, nama_pos, tahun_ajaran, volume, satuan, tarif_harga, pagu_awal, keterangan });
     res.json({ success: true, data: created, message: 'Pos anggaran berhasil ditambahkan' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -223,8 +242,8 @@ app.put('/api/pos-anggaran/:id', requireAuth, (req, res) => {
         message: 'Akses Ditolak: Akun Guru tidak memiliki wewenang untuk mengubah pagu pos anggaran.'
       });
     }
-    const { nama_pos, pagu_awal, keterangan } = req.body;
-    const updated = updatePosAnggaran(req.params.id, { nama_pos, pagu_awal, keterangan });
+    const { nama_pos, pagu_awal, keterangan, volume, satuan, tarif_harga, program_induk, kode_rekening, snp } = req.body;
+    const updated = updatePosAnggaran(req.params.id, { nama_pos, pagu_awal, keterangan, volume, satuan, tarif_harga, program_induk, kode_rekening, snp });
     res.json({ success: true, data: updated, message: 'Pos anggaran berhasil diperbarui' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

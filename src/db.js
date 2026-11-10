@@ -30,8 +30,14 @@ function initDatabase() {
 
     CREATE TABLE IF NOT EXISTS pos_anggaran (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      kode_rekening TEXT,
+      snp TEXT,
+      program_induk TEXT,
       nama_pos TEXT NOT NULL,
       tahun_ajaran TEXT NOT NULL,
+      volume REAL DEFAULT 1,
+      satuan TEXT DEFAULT 'kegiatan',
+      tarif_harga REAL DEFAULT 0,
       pagu_awal REAL NOT NULL,
       total_terserap REAL DEFAULT 0,
       pagu_tercadangkan REAL DEFAULT 0,
@@ -164,6 +170,9 @@ function initDatabase() {
   seedInitialData();
 }
 
+// Inisialisasi otomatis skema database saat modul dimuat
+initDatabase();
+
 function seedInitialData() {
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
   if (userCount === 0) {
@@ -179,28 +188,241 @@ function seedInitialData() {
     insertUser.run('daput', '199501012022011002', 'daput', '007007', 'ADMIN', 'Administrator Sistem');
   }
 
+  // Pastikan kolom baru RKAS tersedia pada tabel pos_anggaran
+  const tableInfo = db.prepare("PRAGMA table_info(pos_anggaran)").all();
+  const colNames = tableInfo.map(c => c.name);
+  if (!colNames.includes('kode_rekening')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN kode_rekening TEXT;");
+  if (!colNames.includes('snp')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN snp TEXT;");
+  if (!colNames.includes('program_induk')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN program_induk TEXT;");
+  if (!colNames.includes('volume')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN volume REAL DEFAULT 1;");
+  if (!colNames.includes('satuan')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN satuan TEXT DEFAULT 'kegiatan';");
+  if (!colNames.includes('tarif_harga')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN tarif_harga REAL DEFAULT 0;");
+
   const posCount = db.prepare('SELECT COUNT(*) as count FROM pos_anggaran').get().count;
-  if (posCount === 0) {
-    const insertPos = db.prepare(`
-      INSERT INTO pos_anggaran (nama_pos, tahun_ajaran, pagu_awal, total_terserap, pagu_tercadangkan, keterangan)
-      VALUES (?, ?, ?, ?, ?, ?)
+  if (posCount < 50) {
+    importRkasFromExcel();
+  }
+}
+
+// Importer RKAS Resmi dari Excel (data_luar/rkas.xlsx)
+function importRkasFromExcel(customFilePath = null) {
+  const xlsxPath = customFilePath || path.join(__dirname, '..', 'data_luar', 'rkas.xlsx');
+  if (!fs.existsSync(xlsxPath)) {
+    console.warn('File RKAS Excel tidak ditemukan di:', xlsxPath);
+    return false;
+  }
+
+  try {
+    const XLSX = require('xlsx');
+    const wb = XLSX.readFile(xlsxPath);
+    const sheetName = wb.SheetNames.includes('RKAS 2026 TERBARU') ? 'RKAS 2026 TERBARU' : wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+    function excelTimeToCode(val) {
+      if (typeof val === 'string') return val.trim();
+      if (typeof val === 'number') {
+        const totalSeconds = Math.round(val * 86400);
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = totalSeconds % 60;
+        const pad = (n) => String(n).padStart(2, '0');
+        return pad(h) + '.' + pad(m) + '.' + pad(s);
+      }
+      return '';
+    }
+
+    const posList = [];
+    let currentGroup = null;
+
+    for (let i = 20; i <= 152; i++) {
+      const r = data[i];
+      if (!r) continue;
+
+      const no = r[0];
+      const kode = excelTimeToCode(r[1]);
+      const snpRaw = r[2] ? String(r[2]).trim() : '';
+      const subProgRaw = r[3] ? String(r[3]).replace(/\r?\n/g, ' ').trim() : '';
+      const uraianRaw = r[4] ? String(r[4]).replace(/\r?\n/g, ' ').trim() : '';
+      const vol = r[5] !== undefined ? Number(r[5]) || 0 : 0;
+      const sat = r[6] ? String(r[6]).trim() : '';
+      const tarif = r[7] !== undefined ? Number(r[7]) || 0 : 0;
+      const jml = r[8] !== undefined ? Number(r[8]) || 0 : 0;
+
+      if (no !== undefined && no !== '' && !isNaN(no)) {
+        currentGroup = {
+          no: Number(no),
+          kode: kode || '',
+          snp: snpRaw,
+          subProg: subProgRaw,
+          uraian: uraianRaw,
+          vol,
+          sat,
+          tarif,
+          jml,
+          children: []
+        };
+        posList.push(currentGroup);
+      } else if (currentGroup && (kode || uraianRaw)) {
+        currentGroup.children.push({
+          kode: kode || '',
+          snp: snpRaw || currentGroup.snp,
+          subProg: subProgRaw || currentGroup.subProg,
+          uraian: uraianRaw,
+          vol,
+          sat,
+          tarif,
+          jml
+        });
+      }
+    }
+
+    const dbRecords = [];
+    let currentSnp = 'Standar Proses';
+
+    posList.forEach(g => {
+      let snpName = g.snp;
+      if (snpName.toLowerCase().includes('proses')) snpName = 'Standar Proses';
+      else if (snpName.toLowerCase().includes('sarpras')) snpName = 'Standar Sarana & Prasarana';
+      else if (snpName.toLowerCase().includes('pengelolaan')) snpName = 'Standar Pengelolaan';
+      else if (snpName.toLowerCase().includes('pembiayaan')) snpName = 'Standar Pembiayaan';
+      else snpName = currentSnp;
+      currentSnp = snpName;
+
+      const progName = g.subProg || g.uraian;
+
+      if (g.children.length === 0) {
+        dbRecords.push({
+          kode_rekening: g.kode,
+          snp: snpName,
+          program_induk: progName,
+          nama_pos: g.uraian,
+          volume: g.vol || 1,
+          satuan: g.sat || 'tahun',
+          tarif_harga: g.tarif || g.jml,
+          pagu_awal: g.jml,
+          tahun_ajaran: '2026/2027',
+          keterangan: 'Kelompok ' + g.no + ' • ' + snpName
+        });
+      } else {
+        g.children.forEach(c => {
+          dbRecords.push({
+            kode_rekening: c.kode,
+            snp: snpName,
+            program_induk: progName,
+            nama_pos: c.uraian,
+            volume: c.vol || 1,
+            satuan: c.sat || 'kegiatan',
+            tarif_harga: c.tarif || c.jml,
+            pagu_awal: c.jml,
+            tahun_ajaran: '2026/2027',
+            keterangan: 'Kelompok ' + g.no + ': ' + progName
+          });
+        });
+      }
+    });
+
+    db.exec('PRAGMA foreign_keys = OFF;');
+
+    const existingRows = db.prepare('SELECT id, kode_rekening, nama_pos FROM pos_anggaran').all();
+    const mapByKode = new Map();
+    const mapByNama = new Map();
+    existingRows.forEach(row => {
+      if (row.kode_rekening) mapByKode.set(row.kode_rekening, row.id);
+      if (row.nama_pos) mapByNama.set(row.nama_pos.toLowerCase().trim(), row.id);
+    });
+
+    const updateStmt = db.prepare(`
+      UPDATE pos_anggaran SET
+        snp = ?, program_induk = ?, nama_pos = ?, tahun_ajaran = ?,
+        volume = ?, satuan = ?, tarif_harga = ?, pagu_awal = ?, keterangan = ?
+      WHERE id = ?
     `);
 
-    insertPos.run('Kegiatan Kesiswaan, LDKS & OSIS', '2026/2027', 25000000, 6500000, 1500000, 'Alokasi pembinaan kesiswaan, pemilihan pengurus OSIS, dan kepemimpinan.');
-    insertPos.run('Pengembangan Kurikulum & Pelatihan Guru', '2026/2027', 20000000, 4200000, 0, 'Workshop penyusunan perangkat ajar, IKM, dan diklat peningkatan mutu.');
-    insertPos.run('Pemeliharaan Sarana & Prasarana Sekolah', '2026/2027', 35000000, 12800000, 2500000, 'Perbaikan fasilitas ruang kelas, laboratorium komputer, dan sanitasi.');
-    insertPos.run('Lomba Akademik, Seni & Olahraga', '2026/2027', 15000000, 3100000, 0, 'Biaya pendaftaran kejuaraan, transportasi peserta didik, dan apresiasi.');
+    const insertStmt = db.prepare(`
+      INSERT INTO pos_anggaran (
+        kode_rekening, snp, program_induk, nama_pos, tahun_ajaran,
+        volume, satuan, tarif_harga, pagu_awal, total_terserap, pagu_tercadangkan, keterangan
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+    `);
+
+    for (const r of dbRecords) {
+      const existingId = (r.kode_rekening && mapByKode.get(r.kode_rekening)) ||
+                         mapByNama.get(r.nama_pos.toLowerCase().trim());
+
+      if (existingId) {
+        updateStmt.run(
+          r.snp,
+          r.program_induk,
+          r.nama_pos,
+          r.tahun_ajaran,
+          r.volume,
+          r.satuan,
+          r.tarif_harga,
+          r.pagu_awal,
+          r.keterangan,
+          existingId
+        );
+      } else {
+        insertStmt.run(
+          r.kode_rekening,
+          r.snp,
+          r.program_induk,
+          r.nama_pos,
+          r.tahun_ajaran,
+          r.volume,
+          r.satuan,
+          r.tarif_harga,
+          r.pagu_awal,
+          r.keterangan
+        );
+      }
+    }
+
+    // Auto-reconcile serapan & cadangan dari seluruh riwayat usulan kegiatan
+    db.prepare('UPDATE pos_anggaran SET total_terserap = 0, pagu_tercadangkan = 0').run();
+    const activeProps = db.prepare(`
+      SELECT pos_anggaran_id, status, total_dana_disetujui, total_dana_diajukan
+      FROM pengajuan_kegiatan
+      WHERE status != 'DITOLAK'
+    `).all();
+
+    for (const p of activeProps) {
+      if (!p.pos_anggaran_id) continue;
+      const nominal = Number(p.total_dana_disetujui) || Number(p.total_dana_diajukan) || 0;
+      if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
+        db.prepare('UPDATE pos_anggaran SET total_terserap = total_terserap + ? WHERE id = ?').run(nominal, p.pos_anggaran_id);
+      } else {
+        db.prepare('UPDATE pos_anggaran SET pagu_tercadangkan = pagu_tercadangkan + ? WHERE id = ?').run(nominal, p.pos_anggaran_id);
+      }
+    }
+
+    db.exec('PRAGMA foreign_keys = ON;');
+
+    console.log(`✅ Sukses mengimpor ${dbRecords.length} pos anggaran RKAS 2026 resmi. Total: Rp ${dbRecords.reduce((s, r) => s + r.pagu_awal, 0).toLocaleString('id-ID')}`);
+    return true;
+  } catch (err) {
+    console.error('Gagal mengimpor data RKAS dari Excel:', err);
+    return false;
   }
 }
 
 // Queries & Calculations
-function getPosAnggaranList() {
-  const rows = db.prepare(`
-    SELECT id, nama_pos, tahun_ajaran, pagu_awal, total_terserap, pagu_tercadangkan, keterangan,
+function getPosAnggaranList(snpFilter = null) {
+  let query = `
+    SELECT id, kode_rekening, snp, program_induk, nama_pos, tahun_ajaran,
+           volume, satuan, tarif_harga, pagu_awal, total_terserap, pagu_tercadangkan, keterangan,
            (pagu_awal - total_terserap - pagu_tercadangkan) AS sisa_pagu
     FROM pos_anggaran
-    ORDER BY id ASC
-  `).all();
+  `;
+  const params = [];
+  if (snpFilter && snpFilter !== 'ALL') {
+    query += ` WHERE snp = ?`;
+    params.push(snpFilter);
+  }
+  query += ` ORDER BY id ASC`;
+
+  const rows = db.prepare(query).all(...params);
 
   return rows.map(item => {
     const persentaseTerserap = item.pagu_awal > 0 ? ((item.total_terserap + item.pagu_tercadangkan) / item.pagu_awal) * 100 : 0;
@@ -221,7 +443,8 @@ function getPosAnggaranList() {
 
 function getPosAnggaranById(id) {
   const item = db.prepare(`
-    SELECT id, nama_pos, tahun_ajaran, pagu_awal, total_terserap, pagu_tercadangkan, keterangan,
+    SELECT id, kode_rekening, snp, program_induk, nama_pos, tahun_ajaran,
+           volume, satuan, tarif_harga, pagu_awal, total_terserap, pagu_tercadangkan, keterangan,
            (pagu_awal - total_terserap - pagu_tercadangkan) AS sisa_pagu
     FROM pos_anggaran
     WHERE id = ?
@@ -241,27 +464,52 @@ function getPosAnggaranById(id) {
   };
 }
 
-function createPosAnggaran({ nama_pos, tahun_ajaran, pagu_awal, keterangan }) {
+function createPosAnggaran({ kode_rekening, snp, program_induk, nama_pos, tahun_ajaran, volume, satuan, tarif_harga, pagu_awal, keterangan }) {
   const stmt = db.prepare(`
-    INSERT INTO pos_anggaran (nama_pos, tahun_ajaran, pagu_awal, total_terserap, pagu_tercadangkan, keterangan)
-    VALUES (?, ?, ?, 0, 0, ?)
+    INSERT INTO pos_anggaran (
+      kode_rekening, snp, program_induk, nama_pos, tahun_ajaran,
+      volume, satuan, tarif_harga, pagu_awal, total_terserap, pagu_tercadangkan, keterangan
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
   `);
-  const result = stmt.run(nama_pos, tahun_ajaran || '2026/2027', Number(pagu_awal) || 0, keterangan || '');
+  const result = stmt.run(
+    kode_rekening || '',
+    snp || 'Standar Proses',
+    program_induk || 'Program Umum',
+    nama_pos,
+    tahun_ajaran || '2026/2027',
+    Number(volume) || 1,
+    satuan || 'kegiatan',
+    Number(tarif_harga) || Number(pagu_awal) || 0,
+    Number(pagu_awal) || 0,
+    keterangan || ''
+  );
   return getPosAnggaranById(result.lastInsertRowid);
 }
 
-function updatePosAnggaran(id, { nama_pos, pagu_awal, keterangan }) {
+function updatePosAnggaran(id, { nama_pos, pagu_awal, keterangan, volume, satuan, tarif_harga, program_induk, kode_rekening, snp }) {
   const stmt = db.prepare(`
     UPDATE pos_anggaran
     SET nama_pos = COALESCE(?, nama_pos),
         pagu_awal = COALESCE(?, pagu_awal),
-        keterangan = COALESCE(?, keterangan)
+        keterangan = COALESCE(?, keterangan),
+        volume = COALESCE(?, volume),
+        satuan = COALESCE(?, satuan),
+        tarif_harga = COALESCE(?, tarif_harga),
+        program_induk = COALESCE(?, program_induk),
+        kode_rekening = COALESCE(?, kode_rekening),
+        snp = COALESCE(?, snp)
     WHERE id = ?
   `);
   stmt.run(
     nama_pos !== undefined ? nama_pos : null,
     pagu_awal !== undefined ? Number(pagu_awal) : null,
     keterangan !== undefined ? keterangan : null,
+    volume !== undefined ? Number(volume) : null,
+    satuan !== undefined ? satuan : null,
+    tarif_harga !== undefined ? Number(tarif_harga) : null,
+    program_induk !== undefined ? program_induk : null,
+    kode_rekening !== undefined ? kode_rekening : null,
+    snp !== undefined ? snp : null,
     id
   );
   return getPosAnggaranById(id);
@@ -1015,6 +1263,7 @@ module.exports = {
   getPosAnggaranById,
   createPosAnggaran,
   updatePosAnggaran,
+  importRkasFromExcel,
   getAllUsers,
   getUserById,
   authenticateUser,

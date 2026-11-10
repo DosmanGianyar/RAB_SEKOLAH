@@ -7,6 +7,19 @@ let currentUser = null;
 let currentPosList = [];
 let currentProposals = [];
 let activeViewName = 'dashboard';
+let selectedSnpFilter = 'ALL';
+let searchKeyword = '';
+let selectedTrafficFilter = 'ALL';
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 // Format Rupiah Helper
 function formatRupiah(val) {
@@ -180,6 +193,10 @@ function updateRolePermissionsUI(user) {
   const btnAddPos = document.getElementById('btnAddPos');
   if (btnAddPos) {
     btnAddPos.style.display = isGuru ? 'none' : 'inline-flex';
+  }
+  const btnSyncRkas = document.getElementById('btnSyncRkas');
+  if (btnSyncRkas) {
+    btnSyncRkas.style.display = isGuru ? 'none' : 'inline-flex';
   }
 }
 
@@ -395,109 +412,316 @@ async function loadSummaryStats() {
 }
 
 async function loadPosAnggaran() {
-  const container = document.getElementById('budgetCardsList');
-  container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">Memuat data pos anggaran...</div>';
+  const tbody = document.getElementById('posTableBody');
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="ti ti-loader spin-icon" style="font-size: 1.5rem; display: block; margin-bottom: 8px;"></i>Memuat data pagu RKAS...</td></tr>';
+  }
 
   try {
     const res = await fetch('/api/pos-anggaran');
     const data = await res.json();
     if (data.success && data.data) {
       currentPosList = data.data;
-      document.getElementById('posCountBadge').textContent = `${currentPosList.length} Pos Aktif`;
-      renderPosAnggaranCards(currentPosList);
+
+      // Update counters
+      const countAll = currentPosList.length;
+      const countProses = currentPosList.filter(p => (p.snp || '').includes('Proses')).length;
+      const countSarpras = currentPosList.filter(p => (p.snp || '').includes('Sarana')).length;
+      const countPengelolaan = currentPosList.filter(p => (p.snp || '').includes('Pengelolaan')).length;
+      const countPembiayaan = currentPosList.filter(p => (p.snp || '').includes('Pembiayaan')).length;
+
+      if (document.getElementById('posCountBadge')) document.getElementById('posCountBadge').textContent = `${countAll} Pos`;
+      if (document.getElementById('countSnpAll')) document.getElementById('countSnpAll').textContent = countAll;
+      if (document.getElementById('countSnpProses')) document.getElementById('countSnpProses').textContent = countProses;
+      if (document.getElementById('countSnpSarpras')) document.getElementById('countSnpSarpras').textContent = countSarpras;
+      if (document.getElementById('countSnpPengelolaan')) document.getElementById('countSnpPengelolaan').textContent = countPengelolaan;
+      if (document.getElementById('countSnpPembiayaan')) document.getElementById('countSnpPembiayaan').textContent = countPembiayaan;
+
+      renderPosAnggaranTable();
+      populatePosDropdown();
     }
   } catch (err) {
-    container.innerHTML = '<div style="color:var(--rose); padding: 20px;">Gagal memuat pos anggaran.</div>';
+    console.error('Error loading pos anggaran:', err);
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="11" style="color:var(--rose); padding: 30px; text-align: center;">Gagal memuat pos anggaran dari server.</td></tr>';
+    }
   }
 }
 
-function renderPosAnggaranCards(list) {
-  const container = document.getElementById('budgetCardsList');
-  container.innerHTML = '';
+function renderPosAnggaranTable() {
+  const tbody = document.getElementById('posTableBody');
+  const tfoot = document.getElementById('posTableFoot');
+  if (!tbody) return;
 
-  if (list.length === 0) {
-    container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">Belum ada pos anggaran terdaftar.</div>';
+  tbody.innerHTML = '';
+
+  const isGuru = currentUser && currentUser.role === 'GURU';
+
+  // Apply filters
+  let filtered = currentPosList.filter(item => {
+    // 1. SNP Filter
+    if (selectedSnpFilter !== 'ALL' && item.snp !== selectedSnpFilter) {
+      return false;
+    }
+
+    // 2. Traffic Filter
+    if (selectedTrafficFilter !== 'ALL' && item.trafficLight !== selectedTrafficFilter) {
+      return false;
+    }
+
+    // 3. Search Keyword
+    if (searchKeyword) {
+      const matchNama = (item.nama_pos || '').toLowerCase().includes(searchKeyword);
+      const matchKode = (item.kode_rekening || '').toLowerCase().includes(searchKeyword);
+      const matchProg = (item.program_induk || '').toLowerCase().includes(searchKeyword);
+      const matchSnp = (item.snp || '').toLowerCase().includes(searchKeyword);
+      if (!matchNama && !matchKode && !matchProg && !matchSnp) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="11" style="text-align: center; padding: 45px 20px; color: var(--text-muted);">
+          <div style="font-size: 1.8rem; margin-bottom: 8px;">🔍</div>
+          <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-main);">Tidak ada pos anggaran yang sesuai kriteria</div>
+          <div style="font-size: 0.8rem; margin-top: 4px;">Coba ubah kata kunci pencarian atau ganti filter Standar SNP.</div>
+        </td>
+      </tr>
+    `;
+    if (tfoot) tfoot.innerHTML = '';
     return;
   }
 
-  const canManagePos = currentUser && currentUser.role !== 'GURU';
-
-  list.forEach(item => {
+  // Render Rows
+  filtered.forEach((item, idx) => {
     let trafficLabel = 'AMAN';
     if (item.trafficLight === 'yellow') trafficLabel = 'WASPADA';
-    if (item.trafficLight === 'red') trafficLabel = 'KRITIS / PENUH';
+    if (item.trafficLight === 'red') trafficLabel = 'KRITIS';
 
-    const card = document.createElement('div');
-    card.className = 'budget-card';
-    card.innerHTML = `
-      <div class="budget-card-top">
-        <div>
-          <h3 class="budget-name">${item.nama_pos}</h3>
-          <div class="budget-year">T.A. ${item.tahun_ajaran} ${item.keterangan ? '• ' + item.keterangan : ''}</div>
-        </div>
-        <span class="traffic-badge ${item.trafficLight}">
-          <span class="traffic-dot"></span>
-          ${trafficLabel}
-        </span>
-      </div>
+    let snpBadgeClass = 'proses';
+    let snpShort = 'Proses';
+    const snpStr = item.snp || '';
+    if (snpStr.includes('Sarana')) {
+      snpBadgeClass = 'sarpras';
+      snpShort = 'Sarpras';
+    } else if (snpStr.includes('Pengelolaan')) {
+      snpBadgeClass = 'pengelolaan';
+      snpShort = 'Pengelolaan';
+    } else if (snpStr.includes('Pembiayaan')) {
+      snpBadgeClass = 'pembiayaan';
+      snpShort = 'Pembiayaan';
+    }
 
-      <div class="budget-progress-wrap">
-        <div class="progress-info">
-          <span>Serapan (${item.persentaseTerserap}%)</span>
-          <span>Tersedia: <strong>${formatRupiah(item.sisa_pagu)}</strong></span>
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align: center; color: var(--text-subtle); font-size: 0.82rem; font-weight: 600;">${idx + 1}</td>
+      <td>
+        <span class="kode-badge" title="Kode Rekening RKAS">${escapeHtml(item.kode_rekening || '-')}</span>
+      </td>
+      <td>
+        <span class="snp-tag-badge ${snpBadgeClass}">${snpShort}</span>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; line-height: 1.3;" title="${escapeHtml(item.program_induk || '')}">
+          ${escapeHtml(item.program_induk || '-')}
         </div>
-        <div class="progress-track">
-          <div class="progress-bar ${item.trafficLight}" style="width: ${item.persentaseTerserap}%"></div>
+      </td>
+      <td>
+        <strong style="color: var(--text-main); font-size: 0.88rem; display: block;">${escapeHtml(item.nama_pos)}</strong>
+        ${item.keterangan ? `<div style="font-size: 0.73rem; color: var(--text-subtle); margin-top: 3px;">${escapeHtml(item.keterangan)}</div>` : ''}
+      </td>
+      <td style="text-align: center; font-size: 0.82rem; color: var(--text-muted);">
+        <strong>${item.volume || 1}</strong> <span style="font-size: 0.75rem;">${escapeHtml(item.satuan || 'kegiatan')}</span>
+      </td>
+      <td style="text-align: right; font-weight: 700; color: var(--text-main); font-size: 0.88rem;">
+        ${formatRupiah(item.pagu_awal)}
+      </td>
+      <td style="text-align: right; font-weight: 600; color: var(--amber); font-size: 0.85rem;">
+        ${formatRupiah(item.total_terserap)}
+      </td>
+      <td style="text-align: right; font-weight: 500; color: var(--text-subtle); font-size: 0.82rem;">
+        ${formatRupiah(item.pagu_tercadangkan)}
+      </td>
+      <td style="text-align: right; font-weight: 800; font-size: 0.88rem; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
+        ${formatRupiah(item.sisa_pagu)}
+      </td>
+      <td style="text-align: center;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <span class="traffic-pill-badge ${item.trafficLight}">
+            <span class="traffic-dot"></span>
+            ${trafficLabel} (${item.persentaseTerserap}%)
+          </span>
+          <div class="mini-progress-bar" title="Serapan ${item.persentaseTerserap}%">
+            <div class="mini-progress-fill ${item.trafficLight}" style="width: ${Math.min(item.persentaseTerserap, 100)}%;"></div>
+          </div>
         </div>
-      </div>
-
-      <div class="budget-stats-breakdown">
-        <div class="breakdown-item">
-          <div class="breakdown-label">Pagu Plafon</div>
-          <div class="breakdown-val">${formatRupiah(item.pagu_awal)}</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-label">Realisasi Kas</div>
-          <div class="breakdown-val" style="color: var(--amber);">${formatRupiah(item.total_terserap)}</div>
-        </div>
-        <div class="breakdown-item">
-          <div class="breakdown-label">Sisa Aktif</div>
-          <div class="breakdown-val active-sisa">${formatRupiah(item.sisa_pagu)}</div>
-        </div>
-      </div>
-
-      <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-        <div style="font-size: 0.72rem; color: var(--text-subtle);">
-          Pending Review: <strong>${formatRupiah(item.pagu_tercadangkan)}</strong>
-        </div>
-        ${canManagePos ? `
-        <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})">
-          <i class="ti ti-edit" style="font-size: 0.9rem;"></i>
-          Edit Pagu
-        </button>
-        ` : ''}
-      </div>
+      </td>
+      <td style="text-align: center;">
+        ${isGuru ? `
+          <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
+            <i class="ti ti-plus"></i> Ajukan
+          </button>
+        ` : `
+          <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
+            <i class="ti ti-edit"></i> Edit
+          </button>
+        `}
+      </td>
     `;
+    tbody.appendChild(tr);
+  });
 
-    container.appendChild(card);
+  // Calculate & Render Footer Totals
+  if (tfoot) {
+    const totalPagu = filtered.reduce((s, it) => s + (it.pagu_awal || 0), 0);
+    const totalTerserap = filtered.reduce((s, it) => s + (it.total_terserap || 0), 0);
+    const totalPending = filtered.reduce((s, it) => s + (it.pagu_tercadangkan || 0), 0);
+    const totalSisa = filtered.reduce((s, it) => s + (it.sisa_pagu || 0), 0);
+
+    tfoot.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: right; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">
+          Sub-Total (${filtered.length} Pos) :
+        </td>
+        <td style="text-align: right; font-weight: 800; color: var(--primary); font-size: 0.9rem;">
+          ${formatRupiah(totalPagu)}
+        </td>
+        <td style="text-align: right; font-weight: 700; color: var(--amber); font-size: 0.88rem;">
+          ${formatRupiah(totalTerserap)}
+        </td>
+        <td style="text-align: right; font-weight: 600; color: var(--text-muted); font-size: 0.85rem;">
+          ${formatRupiah(totalPending)}
+        </td>
+        <td style="text-align: right; font-weight: 800; color: var(--emerald); font-size: 0.9rem;">
+          ${formatRupiah(totalSisa)}
+        </td>
+        <td colspan="2"></td>
+      </tr>
+    `;
+  }
+}
+
+function filterBySnp(snp) {
+  selectedSnpFilter = snp;
+  document.querySelectorAll('.snp-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.snp === snp);
+  });
+  renderPosAnggaranTable();
+}
+
+function handlePosSearch(val) {
+  searchKeyword = (val || '').trim().toLowerCase();
+  const btnClear = document.getElementById('btnClearSearch');
+  if (btnClear) {
+    btnClear.style.display = searchKeyword ? 'inline-block' : 'none';
+  }
+  renderPosAnggaranTable();
+}
+
+function clearPosSearch() {
+  const input = document.getElementById('searchPosInput');
+  if (input) input.value = '';
+  handlePosSearch('');
+}
+
+function handleTrafficFilter(val) {
+  selectedTrafficFilter = val || 'ALL';
+  renderPosAnggaranTable();
+}
+
+function ajukanPosSpesifik(id) {
+  switchView('ajukan');
+  const filterInput = document.getElementById('filterPosDropdownInput');
+  if (filterInput) filterInput.value = '';
+  populatePosDropdown('');
+  const select = document.getElementById('selectPosAnggaran');
+  if (select) {
+    select.value = String(id);
+    handlePosSelected();
+  }
+}
+
+async function handleSyncRkasExcel() {
+  if (currentUser && currentUser.role === 'GURU') {
+    alert('Akses Ditolak: Hanya Manajemen/Bendahara yang dapat menyinkronkan data RKAS.');
+    return;
+  }
+  if (!confirm('Apakah Anda yakin ingin menyinkronkan ulang data pagu dari file Excel data_luar/rkas.xlsx?')) {
+    return;
+  }
+  const btn = document.getElementById('btnSyncRkas');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader spin-icon"></i> Menyinkronkan...';
+  }
+  try {
+    const res = await fetch('/api/pos-anggaran/sync-rkas', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showNotification(`✓ ${data.message} (${data.count} pos diimpor)`);
+      await loadSummaryStats();
+      await loadPosAnggaran();
+    } else {
+      alert(`Gagal sinkronisasi: ${data.message}`);
+    }
+  } catch (err) {
+    console.error('Error syncing RKAS:', err);
+    alert('Terjadi kesalahan koneksi saat sinkronisasi.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-refresh" style="font-size: 1rem;"></i> Sync Excel RKAS';
+    }
+  }
+}
+
+// Populate Pos Anggaran Dropdown in Proposal Form (Grouped & Filterable)
+function populatePosDropdown(filterText = '') {
+  const select = document.getElementById('selectPosAnggaran');
+  if (!select) return;
+  const selectedVal = select.value;
+  select.innerHTML = '<option value="">-- Pilih Pos Anggaran RKAS --</option>';
+
+  const kw = (filterText || '').trim().toLowerCase();
+  const list = kw
+    ? currentPosList.filter(p =>
+        (p.nama_pos || '').toLowerCase().includes(kw) ||
+        (p.kode_rekening || '').toLowerCase().includes(kw) ||
+        (p.program_induk || '').toLowerCase().includes(kw) ||
+        (p.snp || '').toLowerCase().includes(kw)
+      )
+    : currentPosList;
+
+  // Group by program_induk or snp
+  const groups = {};
+  list.forEach(pos => {
+    const grpKey = pos.program_induk || pos.snp || 'Lain-lain';
+    if (!groups[grpKey]) groups[grpKey] = [];
+    groups[grpKey].push(pos);
+  });
+
+  Object.keys(groups).forEach(grpName => {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = grpName;
+    groups[grpName].forEach(pos => {
+      const opt = document.createElement('option');
+      opt.value = pos.id;
+      const kodePrefix = pos.kode_rekening ? `[${pos.kode_rekening}] ` : '';
+      opt.textContent = `${kodePrefix}${pos.nama_pos} (Sisa: ${formatRupiah(pos.sisa_pagu)})`;
+      if (selectedVal && Number(selectedVal) === pos.id) {
+        opt.selected = true;
+      }
+      optgroup.appendChild(opt);
+    });
+    select.appendChild(optgroup);
   });
 }
 
-// Populate Pos Anggaran Dropdown in Proposal Form
-function populatePosDropdown() {
-  const select = document.getElementById('selectPosAnggaran');
-  const selectedVal = select.value;
-  select.innerHTML = '<option value="">-- Pilih Pos Anggaran yang Dibebani --</option>';
-
-  currentPosList.forEach(pos => {
-    const opt = document.createElement('option');
-    opt.value = pos.id;
-    opt.textContent = `${pos.nama_pos} (Sisa Pagu: ${formatRupiah(pos.sisa_pagu)})`;
-    if (selectedVal && Number(selectedVal) === pos.id) {
-      opt.selected = true;
-    }
-    select.appendChild(opt);
-  });
+function handleFilterPosDropdown(keyword) {
+  populatePosDropdown(keyword);
 }
 
 // --- 4. FASE 2: DYNAMIC RAB LINE ITEMS & BUDGET VALIDATION ---
@@ -1444,6 +1668,12 @@ function openAddPosModal() {
   document.getElementById('modalPosTitle').textContent = 'Tambah Pos Anggaran Baru';
   document.getElementById('formPosAnggaran').reset();
   document.getElementById('posIdInput').value = '';
+  document.getElementById('inputKodeRekening').value = '';
+  document.getElementById('selectSnp').value = 'Standar Proses';
+  document.getElementById('inputProgramInduk').value = '';
+  document.getElementById('inputVolume').value = '1';
+  document.getElementById('inputSatuan').value = 'kegiatan';
+  document.getElementById('inputTahunAjaran').value = '2026/2027';
   document.getElementById('modalPos').classList.add('active');
 }
 
@@ -1457,7 +1687,12 @@ function openEditPosModal(id) {
 
   document.getElementById('modalPosTitle').textContent = 'Ubah Plafon Pos Anggaran';
   document.getElementById('posIdInput').value = item.id;
+  document.getElementById('inputKodeRekening').value = item.kode_rekening || '';
+  document.getElementById('selectSnp').value = item.snp || 'Standar Proses';
+  document.getElementById('inputProgramInduk').value = item.program_induk || '';
   document.getElementById('inputNamaPos').value = item.nama_pos;
+  document.getElementById('inputVolume').value = item.volume || 1;
+  document.getElementById('inputSatuan').value = item.satuan || 'kegiatan';
   document.getElementById('inputTahunAjaran').value = item.tahun_ajaran;
   document.getElementById('inputPaguAwal').value = item.pagu_awal;
   document.getElementById('inputKeterangan').value = item.keterangan || '';
@@ -1477,10 +1712,15 @@ async function handleSavePosAnggaran(e) {
   }
   const id = document.getElementById('posIdInput').value;
   const payload = {
-    nama_pos: document.getElementById('inputNamaPos').value,
-    tahun_ajaran: document.getElementById('inputTahunAjaran').value,
+    kode_rekening: document.getElementById('inputKodeRekening').value.trim(),
+    snp: document.getElementById('selectSnp').value,
+    program_induk: document.getElementById('inputProgramInduk').value.trim(),
+    nama_pos: document.getElementById('inputNamaPos').value.trim(),
+    volume: Number(document.getElementById('inputVolume').value) || 1,
+    satuan: document.getElementById('inputSatuan').value.trim() || 'kegiatan',
     pagu_awal: Number(document.getElementById('inputPaguAwal').value),
-    keterangan: document.getElementById('inputKeterangan').value
+    tahun_ajaran: document.getElementById('inputTahunAjaran').value.trim(),
+    keterangan: document.getElementById('inputKeterangan').value.trim()
   };
 
   try {
