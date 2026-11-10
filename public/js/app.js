@@ -1341,7 +1341,16 @@ function addItemRow(defaults = {}) {
 function removeItemRow(btn) {
   const container = document.getElementById('rabItemsContainer');
   if (container.children.length <= 1) {
-    alert('Minimal harus ada 1 baris rincian belanja dalam proposal.');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Minimal 1 Item',
+        text: 'Minimal harus ada 1 baris rincian belanja dalam proposal usulan kegiatan.',
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert('Minimal harus ada 1 baris rincian belanja dalam proposal.');
+    }
     return;
   }
   const card = btn.closest('.item-row-card');
@@ -1443,7 +1452,16 @@ async function handleSubmitProposal(e) {
   const selectPos = document.getElementById('selectPosAnggaran');
   const posId = selectPos.value;
   if (!posId) {
-    alert('Harap pilih Pos Anggaran yang dibebani.');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Pilih Pos Anggaran',
+        text: 'Harap pilih Pos Anggaran yang dibebani terlebih dahulu sebelum mengirim usulan.',
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert('Harap pilih Pos Anggaran yang dibebani.');
+    }
     return;
   }
 
@@ -1459,7 +1477,16 @@ async function handleSubmitProposal(e) {
     const harga_satuan = parseRupiahInput(card.querySelector('.item-harga').value);
 
     if (!deskripsi) {
-      alert('Deskripsi item belanja tidak boleh kosong.');
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Deskripsi Item Kosong',
+          text: 'Deskripsi item belanja tidak boleh kosong. Harap lengkapi uraian seluruh rincian barang/jasa.',
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        alert('Deskripsi item belanja tidak boleh kosong.');
+      }
       return;
     }
 
@@ -1479,6 +1506,15 @@ async function handleSubmitProposal(e) {
   btnSubmit.disabled = true;
   btnSubmit.textContent = 'Mengirim Usulan...';
 
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: 'Mengirim Usulan RAB...',
+      text: 'Mendaftarkan usulan ke sistem dan mencadangkan pagu anggaran...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+  }
+
   try {
     const res = await fetch('/api/pengajuan', {
       method: 'POST',
@@ -1488,7 +1524,17 @@ async function handleSubmitProposal(e) {
 
     const data = await res.json();
     if (data.success) {
-      showNotification(`🎉 ${data.message}`);
+      if (typeof Swal !== 'undefined') {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Usulan Berhasil Dikirim!',
+          text: data.message,
+          confirmButtonColor: '#059669',
+          confirmButtonText: 'Buka Riwayat Proposal'
+        });
+      } else {
+        showNotification(`🎉 ${data.message}`);
+      }
       document.getElementById('formPengajuanRab').reset();
       // Reset items ke 1 baris
       container.innerHTML = '';
@@ -1498,11 +1544,29 @@ async function handleSubmitProposal(e) {
       await loadPosAnggaran();
       switchView('riwayat');
     } else {
-      alert(data.message || 'Gagal mengajukan proposal.');
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Mengajukan Proposal',
+          text: data.message || 'Gagal mengajukan proposal.',
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        alert(data.message || 'Gagal mengajukan proposal.');
+      }
     }
   } catch (err) {
     console.error('Error submitting proposal:', err);
-    alert('Terjadi kesalahan koneksi.');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kesalahan Jaringan',
+        text: 'Terjadi kesalahan jaringan atau server saat mengirimkan usulan.',
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert('Terjadi kesalahan koneksi.');
+    }
   } finally {
     btnSubmit.disabled = false;
     btnSubmit.innerHTML = `
