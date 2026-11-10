@@ -354,7 +354,7 @@
         <div class="rkas-filter-toolbar">
           <div class="search-input-wrap">
             <i class="ti ti-search search-icon"></i>
-            <input type="text" id="searchPosInput" class="rkas-search-box" placeholder="Ketik nama kegiatan, kode rekening (misal: 03.03), atau program induk..." oninput="handlePosSearch(this.value)">
+            <input type="text" id="searchPosInput" class="rkas-search-box" placeholder="Ketik nama kegiatan, kode rekening (misal: 03.03), atau kelompok (cth: PMR, Pramuka)..." oninput="handlePosSearch(this.value)">
             <button type="button" class="btn-clear-search" id="btnClearSearch" onclick="clearPosSearch()" style="display: none;">✕</button>
           </div>
           <div class="filter-controls-group">
@@ -364,6 +364,12 @@
               <option value="yellow">🟡 WASPADA (Serapan 70% - 89%)</option>
               <option value="red">🔴 KRITIS / PENUH (Serapan ≥ 90%)</option>
             </select>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnExpandAll" onclick="toggleAllGroups(true)" title="Buka seluruh rincian sub-kegiatan">
+              <i class="ti ti-layout-navbar-expand"></i> Buka Semua
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnCollapseAll" onclick="toggleAllGroups(false)" title="Tutup ke tingkat kelompok induk">
+              <i class="ti ti-layout-navbar-collapse"></i> Tutup Semua
+            </button>
           </div>
         </div>
 

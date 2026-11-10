@@ -30,6 +30,9 @@ function initDatabase() {
 
     CREATE TABLE IF NOT EXISTS pos_anggaran (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      no_kelompok INTEGER,
+      kode_kelompok TEXT,
+      nama_kelompok TEXT,
       kode_rekening TEXT,
       snp TEXT,
       program_induk TEXT,
@@ -191,6 +194,9 @@ function seedInitialData() {
   // Pastikan kolom baru RKAS tersedia pada tabel pos_anggaran
   const tableInfo = db.prepare("PRAGMA table_info(pos_anggaran)").all();
   const colNames = tableInfo.map(c => c.name);
+  if (!colNames.includes('no_kelompok')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN no_kelompok INTEGER;");
+  if (!colNames.includes('kode_kelompok')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN kode_kelompok TEXT;");
+  if (!colNames.includes('nama_kelompok')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN nama_kelompok TEXT;");
   if (!colNames.includes('kode_rekening')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN kode_rekening TEXT;");
   if (!colNames.includes('snp')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN snp TEXT;");
   if (!colNames.includes('program_induk')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN program_induk TEXT;");
@@ -290,9 +296,15 @@ function importRkasFromExcel(customFilePath = null) {
       currentSnp = snpName;
 
       const progName = g.subProg || g.uraian;
+      const kelompokNama = g.uraian;
+      const kelompokKode = g.kode;
+      const kelompokNo = g.no;
 
       if (g.children.length === 0) {
         dbRecords.push({
+          no_kelompok: kelompokNo,
+          kode_kelompok: kelompokKode,
+          nama_kelompok: kelompokNama,
           kode_rekening: g.kode,
           snp: snpName,
           program_induk: progName,
@@ -307,6 +319,9 @@ function importRkasFromExcel(customFilePath = null) {
       } else {
         g.children.forEach(c => {
           dbRecords.push({
+            no_kelompok: kelompokNo,
+            kode_kelompok: kelompokKode,
+            nama_kelompok: kelompokNama,
             kode_rekening: c.kode,
             snp: snpName,
             program_induk: progName,
@@ -316,7 +331,7 @@ function importRkasFromExcel(customFilePath = null) {
             tarif_harga: c.tarif || c.jml,
             pagu_awal: c.jml,
             tahun_ajaran: '2026/2027',
-            keterangan: 'Kelompok ' + g.no + ': ' + progName
+            keterangan: 'Kelompok ' + g.no + ': ' + kelompokNama
           });
         });
       }
@@ -334,6 +349,7 @@ function importRkasFromExcel(customFilePath = null) {
 
     const updateStmt = db.prepare(`
       UPDATE pos_anggaran SET
+        no_kelompok = ?, kode_kelompok = ?, nama_kelompok = ?,
         snp = ?, program_induk = ?, nama_pos = ?, tahun_ajaran = ?,
         volume = ?, satuan = ?, tarif_harga = ?, pagu_awal = ?, keterangan = ?
       WHERE id = ?
@@ -341,9 +357,10 @@ function importRkasFromExcel(customFilePath = null) {
 
     const insertStmt = db.prepare(`
       INSERT INTO pos_anggaran (
+        no_kelompok, kode_kelompok, nama_kelompok,
         kode_rekening, snp, program_induk, nama_pos, tahun_ajaran,
         volume, satuan, tarif_harga, pagu_awal, total_terserap, pagu_tercadangkan, keterangan
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
     `);
 
     for (const r of dbRecords) {
@@ -352,6 +369,9 @@ function importRkasFromExcel(customFilePath = null) {
 
       if (existingId) {
         updateStmt.run(
+          r.no_kelompok,
+          r.kode_kelompok,
+          r.nama_kelompok,
           r.snp,
           r.program_induk,
           r.nama_pos,
@@ -365,6 +385,9 @@ function importRkasFromExcel(customFilePath = null) {
         );
       } else {
         insertStmt.run(
+          r.no_kelompok,
+          r.kode_kelompok,
+          r.nama_kelompok,
           r.kode_rekening,
           r.snp,
           r.program_induk,
@@ -410,7 +433,7 @@ function importRkasFromExcel(customFilePath = null) {
 // Queries & Calculations
 function getPosAnggaranList(snpFilter = null) {
   let query = `
-    SELECT id, kode_rekening, snp, program_induk, nama_pos, tahun_ajaran,
+    SELECT id, no_kelompok, kode_kelompok, nama_kelompok, kode_rekening, snp, program_induk, nama_pos, tahun_ajaran,
            volume, satuan, tarif_harga, pagu_awal, total_terserap, pagu_tercadangkan, keterangan,
            (pagu_awal - total_terserap - pagu_tercadangkan) AS sisa_pagu
     FROM pos_anggaran
@@ -420,7 +443,7 @@ function getPosAnggaranList(snpFilter = null) {
     query += ` WHERE snp = ?`;
     params.push(snpFilter);
   }
-  query += ` ORDER BY id ASC`;
+  query += ` ORDER BY no_kelompok ASC, id ASC`;
 
   const rows = db.prepare(query).all(...params);
 
@@ -443,7 +466,7 @@ function getPosAnggaranList(snpFilter = null) {
 
 function getPosAnggaranById(id) {
   const item = db.prepare(`
-    SELECT id, kode_rekening, snp, program_induk, nama_pos, tahun_ajaran,
+    SELECT id, no_kelompok, kode_kelompok, nama_kelompok, kode_rekening, snp, program_induk, nama_pos, tahun_ajaran,
            volume, satuan, tarif_harga, pagu_awal, total_terserap, pagu_tercadangkan, keterangan,
            (pagu_awal - total_terserap - pagu_tercadangkan) AS sisa_pagu
     FROM pos_anggaran

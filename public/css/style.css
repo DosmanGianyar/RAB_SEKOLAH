@@ -2576,6 +2576,141 @@ table td {
   white-space: nowrap;
 }
 
+.kode-badge.group {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+  font-weight: 800;
+  font-size: 0.76rem;
+}
+
+.kode-badge.sub {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #cbd5e1;
+  font-size: 0.72rem;
+}
+
+/* Tiered / Group Hierarchy Rows */
+.rkas-group-header {
+  background: #f8fafc;
+  border-top: 1.5px solid #cbd5e1 !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-fast);
+}
+
+.rkas-group-header:hover {
+  background: #f1f5f9;
+}
+
+.rkas-group-header td {
+  padding: 11px 14px !important;
+  color: #0f172a;
+}
+
+.group-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.75rem;
+  margin-right: 6px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s;
+}
+
+.group-toggle-btn:hover {
+  background: #cbd5e1;
+}
+
+.rkas-group-header.collapsed .group-toggle-btn i {
+  transform: rotate(-90deg);
+}
+
+.badge-child-count {
+  display: inline-block;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* Sub-Item / Child Row */
+.rkas-child-row {
+  background: #ffffff;
+  transition: background-color var(--transition-fast);
+}
+
+.rkas-child-row:hover {
+  background: #f8fafc;
+}
+
+.rkas-child-row td {
+  padding: 10px 14px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  font-size: 0.83rem;
+}
+
+.tree-line-indicator {
+  color: #94a3b8;
+  font-family: monospace;
+  font-size: 0.82rem;
+  margin-right: 2px;
+}
+
+.child-indent-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding-left: 10px;
+}
+
+.child-bullet {
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.child-item-title {
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.35;
+}
+
+.child-item-sub {
+  font-size: 0.72rem;
+  color: var(--text-subtle);
+  margin-top: 2px;
+}
+
+/* Single Item Row */
+.rkas-single-row {
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.rkas-single-row:hover {
+  background: #f8fafc;
+}
+
+.rkas-single-row td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
 .snp-tag-badge {
   display: inline-flex;
   align-items: center;

@@ -10,6 +10,7 @@ let activeViewName = 'dashboard';
 let selectedSnpFilter = 'ALL';
 let searchKeyword = '';
 let selectedTrafficFilter = 'ALL';
+let collapsedGroups = new Set();
 
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -448,6 +449,26 @@ async function loadPosAnggaran() {
   }
 }
 
+function toggleGroup(noKelompok) {
+  if (collapsedGroups.has(noKelompok)) {
+    collapsedGroups.delete(noKelompok);
+  } else {
+    collapsedGroups.add(noKelompok);
+  }
+  renderPosAnggaranTable();
+}
+
+function toggleAllGroups(expand) {
+  if (expand) {
+    collapsedGroups.clear();
+  } else {
+    currentPosList.forEach(p => {
+      if (p.no_kelompok) collapsedGroups.add(p.no_kelompok);
+    });
+  }
+  renderPosAnggaranTable();
+}
+
 function renderPosAnggaranTable() {
   const tbody = document.getElementById('posTableBody');
   const tfoot = document.getElementById('posTableFoot');
@@ -474,8 +495,10 @@ function renderPosAnggaranTable() {
       const matchNama = (item.nama_pos || '').toLowerCase().includes(searchKeyword);
       const matchKode = (item.kode_rekening || '').toLowerCase().includes(searchKeyword);
       const matchProg = (item.program_induk || '').toLowerCase().includes(searchKeyword);
+      const matchKelompok = (item.nama_kelompok || '').toLowerCase().includes(searchKeyword);
+      const matchKodeKel = (item.kode_kelompok || '').toLowerCase().includes(searchKeyword);
       const matchSnp = (item.snp || '').toLowerCase().includes(searchKeyword);
-      if (!matchNama && !matchKode && !matchProg && !matchSnp) {
+      if (!matchNama && !matchKode && !matchProg && !matchKelompok && !matchKodeKel && !matchSnp) {
         return false;
       }
     }
@@ -497,15 +520,28 @@ function renderPosAnggaranTable() {
     return;
   }
 
-  // Render Rows
-  filtered.forEach((item, idx) => {
-    let trafficLabel = 'AMAN';
-    if (item.trafficLight === 'yellow') trafficLabel = 'WASPADA';
-    if (item.trafficLight === 'red') trafficLabel = 'KRITIS';
+  // Group items by no_kelompok (1 to 35)
+  const groupMap = new Map();
+  filtered.forEach(item => {
+    const gNo = item.no_kelompok || 999;
+    if (!groupMap.has(gNo)) {
+      groupMap.set(gNo, {
+        no: gNo,
+        kode: item.kode_kelompok || item.kode_rekening,
+        nama: item.nama_kelompok || item.nama_pos,
+        program_induk: item.program_induk,
+        snp: item.snp,
+        items: []
+      });
+    }
+    groupMap.get(gNo).items.push(item);
+  });
 
+  // Render Groups & Sub-Items
+  groupMap.forEach(g => {
     let snpBadgeClass = 'proses';
     let snpShort = 'Proses';
-    const snpStr = item.snp || '';
+    const snpStr = g.snp || '';
     if (snpStr.includes('Sarana')) {
       snpBadgeClass = 'sarpras';
       snpShort = 'Sarpras';
@@ -517,61 +553,233 @@ function renderPosAnggaranTable() {
       snpShort = 'Pembiayaan';
     }
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="text-align: center; color: var(--text-subtle); font-size: 0.82rem; font-weight: 600;">${idx + 1}</td>
-      <td>
-        <span class="kode-badge" title="Kode Rekening RKAS">${escapeHtml(item.kode_rekening || '-')}</span>
-      </td>
-      <td>
-        <span class="snp-tag-badge ${snpBadgeClass}">${snpShort}</span>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; line-height: 1.3;" title="${escapeHtml(item.program_induk || '')}">
-          ${escapeHtml(item.program_induk || '-')}
-        </div>
-      </td>
-      <td>
-        <strong style="color: var(--text-main); font-size: 0.88rem; display: block;">${escapeHtml(item.nama_pos)}</strong>
-        ${item.keterangan ? `<div style="font-size: 0.73rem; color: var(--text-subtle); margin-top: 3px;">${escapeHtml(item.keterangan)}</div>` : ''}
-      </td>
-      <td style="text-align: center; font-size: 0.82rem; color: var(--text-muted);">
-        <strong>${item.volume || 1}</strong> <span style="font-size: 0.75rem;">${escapeHtml(item.satuan || 'kegiatan')}</span>
-      </td>
-      <td style="text-align: right; font-weight: 700; color: var(--text-main); font-size: 0.88rem;">
-        ${formatRupiah(item.pagu_awal)}
-      </td>
-      <td style="text-align: right; font-weight: 600; color: var(--amber); font-size: 0.85rem;">
-        ${formatRupiah(item.total_terserap)}
-      </td>
-      <td style="text-align: right; font-weight: 500; color: var(--text-subtle); font-size: 0.82rem;">
-        ${formatRupiah(item.pagu_tercadangkan)}
-      </td>
-      <td style="text-align: right; font-weight: 800; font-size: 0.88rem; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
-        ${formatRupiah(item.sisa_pagu)}
-      </td>
-      <td style="text-align: center;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <span class="traffic-pill-badge ${item.trafficLight}">
-            <span class="traffic-dot"></span>
-            ${trafficLabel} (${item.persentaseTerserap}%)
-          </span>
-          <div class="mini-progress-bar" title="Serapan ${item.persentaseTerserap}%">
-            <div class="mini-progress-fill ${item.trafficLight}" style="width: ${Math.min(item.persentaseTerserap, 100)}%;"></div>
+    const gTotalPagu = g.items.reduce((s, it) => s + (it.pagu_awal || 0), 0);
+    const gTotalTerserap = g.items.reduce((s, it) => s + (it.total_terserap || 0), 0);
+    const gTotalPending = g.items.reduce((s, it) => s + (it.pagu_tercadangkan || 0), 0);
+    const gTotalSisa = g.items.reduce((s, it) => s + (it.sisa_pagu || 0), 0);
+    const gPersen = gTotalPagu > 0 ? ((gTotalTerserap + gTotalPending) / gTotalPagu) * 100 : 0;
+    const gTraffic = gPersen >= 90 ? 'red' : (gPersen >= 70 ? 'yellow' : 'green');
+    let gTrafficLabel = 'AMAN';
+    if (gTraffic === 'yellow') gTrafficLabel = 'WASPADA';
+    if (gTraffic === 'red') gTrafficLabel = 'KRITIS';
+
+    // Single item check: Home Visit (1), Honor Guru (33), Honor Pegawai (34), Jasa Kebersihan (35)
+    // or when the group has only 1 item and item name is identical to group name
+    const isSingle = g.items.length === 1 && (
+      [1, 33, 34, 35].includes(g.no) ||
+      g.items[0].nama_pos.trim().toLowerCase() === g.nama.trim().toLowerCase() ||
+      g.items[0].kode_rekening === g.kode
+    );
+
+    if (isSingle) {
+      // Direct Single Row
+      const item = g.items[0];
+      let itemTrafficLabel = 'AMAN';
+      if (item.trafficLight === 'yellow') itemTrafficLabel = 'WASPADA';
+      if (item.trafficLight === 'red') itemTrafficLabel = 'KRITIS';
+
+      const tr = document.createElement('tr');
+      tr.className = 'rkas-single-row';
+      tr.innerHTML = `
+        <td style="text-align: center; color: var(--text-main); font-size: 0.88rem; font-weight: 800;">
+          ${g.no}
+        </td>
+        <td>
+          <span class="kode-badge group" title="Kode Rekening RKAS">${escapeHtml(item.kode_rekening || '-')}</span>
+        </td>
+        <td>
+          <span class="snp-tag-badge ${snpBadgeClass}">${snpShort}</span>
+        </td>
+        <td>
+          <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.3;" title="${escapeHtml(item.program_induk || '')}">
+            ${escapeHtml(item.program_induk || '-')}
           </div>
-        </div>
-      </td>
-      <td style="text-align: center;">
-        ${isGuru ? `
-          <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
-            <i class="ti ti-plus"></i> Ajukan
+        </td>
+        <td>
+          <strong style="color: var(--text-main); font-size: 0.88rem; display: block;">${escapeHtml(item.nama_pos)}</strong>
+          ${item.keterangan ? `<div style="font-size: 0.72rem; color: var(--text-subtle); margin-top: 2px;">${escapeHtml(item.keterangan)}</div>` : ''}
+        </td>
+        <td style="text-align: center; font-size: 0.82rem; color: var(--text-muted);">
+          <strong>${item.volume || 1}</strong> <span style="font-size: 0.74rem;">${escapeHtml(item.satuan || 'kegiatan')}</span>
+        </td>
+        <td style="text-align: right; font-weight: 700; color: var(--text-main); font-size: 0.88rem;">
+          ${formatRupiah(item.pagu_awal)}
+        </td>
+        <td style="text-align: right; font-weight: 600; color: var(--amber); font-size: 0.85rem;">
+          ${formatRupiah(item.total_terserap)}
+        </td>
+        <td style="text-align: right; font-weight: 500; color: var(--text-subtle); font-size: 0.82rem;">
+          ${formatRupiah(item.pagu_tercadangkan)}
+        </td>
+        <td style="text-align: right; font-weight: 800; font-size: 0.88rem; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
+          ${formatRupiah(item.sisa_pagu)}
+        </td>
+        <td style="text-align: center;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
+            <span class="traffic-pill-badge ${item.trafficLight}" style="font-size: 0.7rem; padding: 1px 6px;">
+              <span class="traffic-dot"></span>
+              ${itemTrafficLabel} (${item.persentaseTerserap}%)
+            </span>
+            <div class="mini-progress-bar" title="Serapan ${item.persentaseTerserap}%">
+              <div class="mini-progress-fill ${item.trafficLight}" style="width: ${Math.min(item.persentaseTerserap, 100)}%;"></div>
+            </div>
+          </div>
+        </td>
+        <td style="text-align: center;">
+          ${isGuru ? `
+            <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
+              <i class="ti ti-plus"></i> Ajukan
+            </button>
+          ` : `
+            <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
+              <i class="ti ti-edit"></i> Edit
+            </button>
+          `}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    } else {
+      // Multi-Item Group Row (Tingkat Induk / Header Kelompok)
+      // When searching, force expand so user can see matches
+      const isCollapsed = searchKeyword ? false : collapsedGroups.has(g.no);
+
+      const trGroup = document.createElement('tr');
+      trGroup.className = `rkas-group-header ${isCollapsed ? 'collapsed' : ''}`;
+      trGroup.onclick = () => toggleGroup(g.no);
+      trGroup.title = 'Klik untuk melipat / membuka rincian sub-kegiatan';
+      trGroup.innerHTML = `
+        <td style="text-align: center; color: var(--primary); font-size: 0.9rem; font-weight: 800;">
+          <button type="button" class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(${g.no})">
+            <i class="ti ti-chevron-${isCollapsed ? 'right' : 'down'}"></i>
           </button>
-        ` : `
-          <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
-            <i class="ti ti-edit"></i> Edit
-          </button>
-        `}
-      </td>
-    `;
-    tbody.appendChild(tr);
+          ${g.no}
+        </td>
+        <td>
+          <span class="kode-badge group" title="Kode Kelompok">${escapeHtml(g.kode || '-')}</span>
+        </td>
+        <td>
+          <span class="snp-tag-badge ${snpBadgeClass}">${snpShort}</span>
+        </td>
+        <td>
+          <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.3;" title="${escapeHtml(g.program_induk || '')}">
+            ${escapeHtml(g.program_induk || '-')}
+          </div>
+        </td>
+        <td>
+          <div style="font-size: 0.9rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span>📁 ${escapeHtml(g.nama)}</span>
+            <span class="badge-child-count">${g.items.length} Rincian</span>
+          </div>
+        </td>
+        <td style="text-align: center; color: var(--text-muted); font-size: 0.78rem; font-weight: 600;">
+          ${g.items.length} item
+        </td>
+        <td style="text-align: right; font-weight: 800; color: var(--text-main); font-size: 0.9rem;">
+          ${formatRupiah(gTotalPagu)}
+        </td>
+        <td style="text-align: right; font-weight: 700; color: var(--amber); font-size: 0.86rem;">
+          ${formatRupiah(gTotalTerserap)}
+        </td>
+        <td style="text-align: right; font-weight: 600; color: var(--text-subtle); font-size: 0.82rem;">
+          ${formatRupiah(gTotalPending)}
+        </td>
+        <td style="text-align: right; font-weight: 800; font-size: 0.9rem; color: ${gTotalSisa <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
+          ${formatRupiah(gTotalSisa)}
+        </td>
+        <td style="text-align: center;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
+            <span class="traffic-pill-badge ${gTraffic}" style="font-size: 0.7rem; padding: 1px 6px;">
+              <span class="traffic-dot"></span>
+              ${gTrafficLabel} (${Math.round(gPersen)}%)
+            </span>
+            <div class="mini-progress-bar" title="Serapan Kelompok ${Math.round(gPersen)}%">
+              <div class="mini-progress-fill ${gTraffic}" style="width: ${Math.min(gPersen, 100)}%;"></div>
+            </div>
+          </div>
+        </td>
+        <td style="text-align: center;">
+          <span style="font-size: 0.72rem; color: var(--text-subtle); font-weight: 700;">
+            ${isCollapsed ? '▶ Buka' : '▼ Tutup'}
+          </span>
+        </td>
+      `;
+      tbody.appendChild(trGroup);
+
+      // Render Sub-Rows (Rincian Kegiatan Tingkat 2)
+      if (!isCollapsed) {
+        g.items.forEach((item, cIdx) => {
+          let itemTrafficLabel = 'AMAN';
+          if (item.trafficLight === 'yellow') itemTrafficLabel = 'WASPADA';
+          if (item.trafficLight === 'red') itemTrafficLabel = 'KRITIS';
+
+          const trChild = document.createElement('tr');
+          trChild.className = 'rkas-child-row';
+          trChild.innerHTML = `
+            <td style="text-align: center; color: var(--text-subtle); font-size: 0.78rem; font-weight: 600;">
+              <span class="tree-line-indicator">└─</span> ${g.no}.${cIdx + 1}
+            </td>
+            <td>
+              <span class="kode-badge sub" title="Kode Sub-Kegiatan">${escapeHtml(item.kode_rekening || '-')}</span>
+            </td>
+            <td style="text-align: center;">
+              <span style="font-size: 0.72rem; color: var(--text-subtle); font-weight: 600;">↳</span>
+            </td>
+            <td>
+              <div style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.2;">
+                ${escapeHtml(g.nama)}
+              </div>
+            </td>
+            <td>
+              <div class="child-indent-wrap">
+                <span class="child-bullet">•</span>
+                <div>
+                  <div class="child-item-title">${escapeHtml(item.nama_pos)}</div>
+                  ${item.keterangan ? `<div class="child-item-sub">${escapeHtml(item.keterangan)}</div>` : ''}
+                </div>
+              </div>
+            </td>
+            <td style="text-align: center; font-size: 0.82rem; color: var(--text-muted);">
+              <strong>${item.volume || 1}</strong> <span style="font-size: 0.74rem;">${escapeHtml(item.satuan || 'kegiatan')}</span>
+            </td>
+            <td style="text-align: right; font-weight: 600; color: var(--text-main); font-size: 0.86rem;">
+              ${formatRupiah(item.pagu_awal)}
+            </td>
+            <td style="text-align: right; font-weight: 600; color: var(--amber); font-size: 0.84rem;">
+              ${formatRupiah(item.total_terserap)}
+            </td>
+            <td style="text-align: right; font-weight: 500; color: var(--text-subtle); font-size: 0.82rem;">
+              ${formatRupiah(item.pagu_tercadangkan)}
+            </td>
+            <td style="text-align: right; font-weight: 700; font-size: 0.86rem; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
+              ${formatRupiah(item.sisa_pagu)}
+            </td>
+            <td style="text-align: center;">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                <span class="traffic-pill-badge ${item.trafficLight}" style="font-size: 0.68rem; padding: 1px 6px;">
+                  <span class="traffic-dot"></span>
+                  ${itemTrafficLabel} (${item.persentaseTerserap}%)
+                </span>
+                <div class="mini-progress-bar" style="width: 50px;">
+                  <div class="mini-progress-fill ${item.trafficLight}" style="width: ${Math.min(item.persentaseTerserap, 100)}%;"></div>
+                </div>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              ${isGuru ? `
+                <button class="btn-ajukan-pos" onclick="ajukanPosSpesifik(${item.id})" title="Ajukan Usulan RAB untuk Kegiatan Ini">
+                  <i class="ti ti-plus"></i> Ajukan
+                </button>
+              ` : `
+                <button class="btn btn-secondary btn-sm" onclick="openEditPosModal(${item.id})" title="Ubah Plafon Pos">
+                  <i class="ti ti-edit"></i> Edit
+                </button>
+              `}
+            </td>
+          `;
+          tbody.appendChild(trChild);
+        });
+      }
+    }
   });
 
   // Calculate & Render Footer Totals
@@ -584,7 +792,7 @@ function renderPosAnggaranTable() {
     tfoot.innerHTML = `
       <tr>
         <td colspan="5" style="text-align: right; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">
-          Sub-Total (${filtered.length} Pos) :
+          Sub-Total (${groupMap.size} Kelompok / ${filtered.length} Rincian) :
         </td>
         <td style="text-align: right; font-weight: 800; color: var(--primary); font-size: 0.9rem;">
           ${formatRupiah(totalPagu)}
@@ -678,7 +886,7 @@ async function handleSyncRkasExcel() {
   }
 }
 
-// Populate Pos Anggaran Dropdown in Proposal Form (Grouped & Filterable)
+// Populate Pos Anggaran Dropdown in Proposal Form (Grouped by Tingkat Kelompok)
 function populatePosDropdown(filterText = '') {
   const select = document.getElementById('selectPosAnggaran');
   if (!select) return;
@@ -690,23 +898,32 @@ function populatePosDropdown(filterText = '') {
     ? currentPosList.filter(p =>
         (p.nama_pos || '').toLowerCase().includes(kw) ||
         (p.kode_rekening || '').toLowerCase().includes(kw) ||
+        (p.nama_kelompok || '').toLowerCase().includes(kw) ||
+        (p.kode_kelompok || '').toLowerCase().includes(kw) ||
         (p.program_induk || '').toLowerCase().includes(kw) ||
         (p.snp || '').toLowerCase().includes(kw)
       )
     : currentPosList;
 
-  // Group by program_induk or snp
-  const groups = {};
+  // Group by no_kelompok
+  const groups = new Map();
   list.forEach(pos => {
-    const grpKey = pos.program_induk || pos.snp || 'Lain-lain';
-    if (!groups[grpKey]) groups[grpKey] = [];
-    groups[grpKey].push(pos);
+    const gKey = pos.no_kelompok || 999;
+    if (!groups.has(gKey)) {
+      const gKode = pos.kode_kelompok ? `[${pos.kode_kelompok}] ` : '';
+      const gNama = pos.nama_kelompok || pos.program_induk || 'Kelompok Umum';
+      groups.set(gKey, {
+        label: `${gKode}${gNama}`,
+        items: []
+      });
+    }
+    groups.get(gKey).items.push(pos);
   });
 
-  Object.keys(groups).forEach(grpName => {
+  groups.forEach(grp => {
     const optgroup = document.createElement('optgroup');
-    optgroup.label = grpName;
-    groups[grpName].forEach(pos => {
+    optgroup.label = grp.label;
+    grp.items.forEach(pos => {
       const opt = document.createElement('option');
       opt.value = pos.id;
       const kodePrefix = pos.kode_rekening ? `[${pos.kode_rekening}] ` : '';
