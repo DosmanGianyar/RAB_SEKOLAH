@@ -205,7 +205,8 @@ function seedInitialData() {
   if (!colNames.includes('tarif_harga')) db.exec("ALTER TABLE pos_anggaran ADD COLUMN tarif_harga REAL DEFAULT 0;");
 
   const posCount = db.prepare('SELECT COUNT(*) as count FROM pos_anggaran').get().count;
-  if (posCount < 50) {
+  const nullKelompok = db.prepare('SELECT COUNT(*) as count FROM pos_anggaran WHERE no_kelompok IS NULL').get().count;
+  if (posCount < 100 || nullKelompok > 0) {
     importRkasFromExcel();
   }
 }

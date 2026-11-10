@@ -2,6 +2,7 @@ node_modules/
 .DS_Store
 *.log
 *.exe
-rab_sekolah.db*
+rab_sekolah.db-wal
+rab_sekolah.db-shm
 uploads/nota/*
 !uploads/nota/.gitkeep
