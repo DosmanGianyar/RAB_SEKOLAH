@@ -512,3 +512,4 @@ function renderCetakRkas({ posList, summary }) {
 module.exports = {
   renderCetakRkas
 };
+
