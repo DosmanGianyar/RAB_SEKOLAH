@@ -222,11 +222,39 @@ app.post('/api/pos-anggaran', requireAuth, (req, res) => {
         message: 'Akses Ditolak: Akun Guru tidak memiliki wewenang untuk menambahkan pos anggaran. Hanya Bendahara, Kepala Sekolah, dan Analisis SDM yang berhak mengatur pagu anggaran sekolah.'
       });
     }
-    const { kode_rekening, snp, program_induk, nama_pos, tahun_ajaran, volume, satuan, tarif_harga, pagu_awal, keterangan } = req.body;
+    const {
+      no_kelompok,
+      kode_kelompok,
+      nama_kelompok,
+      kode_rekening,
+      snp,
+      program_induk,
+      nama_pos,
+      tahun_ajaran,
+      volume,
+      satuan,
+      tarif_harga,
+      pagu_awal,
+      keterangan
+    } = req.body;
     if (!nama_pos || pagu_awal === undefined) {
       return res.status(400).json({ success: false, message: 'Nama pos dan pagu awal wajib diisi' });
     }
-    const created = createPosAnggaran({ kode_rekening, snp, program_induk, nama_pos, tahun_ajaran, volume, satuan, tarif_harga, pagu_awal, keterangan });
+    const created = createPosAnggaran({
+      no_kelompok,
+      kode_kelompok,
+      nama_kelompok,
+      kode_rekening,
+      snp,
+      program_induk,
+      nama_pos,
+      tahun_ajaran,
+      volume,
+      satuan,
+      tarif_harga,
+      pagu_awal,
+      keterangan
+    });
     res.json({ success: true, data: created, message: 'Pos anggaran berhasil ditambahkan' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -242,8 +270,34 @@ app.put('/api/pos-anggaran/:id', requireAuth, (req, res) => {
         message: 'Akses Ditolak: Akun Guru tidak memiliki wewenang untuk mengubah pagu pos anggaran.'
       });
     }
-    const { nama_pos, pagu_awal, keterangan, volume, satuan, tarif_harga, program_induk, kode_rekening, snp } = req.body;
-    const updated = updatePosAnggaran(req.params.id, { nama_pos, pagu_awal, keterangan, volume, satuan, tarif_harga, program_induk, kode_rekening, snp });
+    const {
+      nama_pos,
+      pagu_awal,
+      keterangan,
+      volume,
+      satuan,
+      tarif_harga,
+      program_induk,
+      kode_rekening,
+      snp,
+      no_kelompok,
+      kode_kelompok,
+      nama_kelompok
+    } = req.body;
+    const updated = updatePosAnggaran(req.params.id, {
+      nama_pos,
+      pagu_awal,
+      keterangan,
+      volume,
+      satuan,
+      tarif_harga,
+      program_induk,
+      kode_rekening,
+      snp,
+      no_kelompok,
+      kode_kelompok,
+      nama_kelompok
+    });
     res.json({ success: true, data: updated, message: 'Pos anggaran berhasil diperbarui' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

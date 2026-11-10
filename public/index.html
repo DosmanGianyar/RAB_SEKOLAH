@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.1.1">
+  <link rel="stylesheet" href="/css/style.css?v=2.2.0">
 </head>
 <body>
 
@@ -1052,56 +1052,74 @@
 
   <!-- Modal: Add / Edit Pos Anggaran -->
   <div class="modal-overlay" id="modalPos">
-    <div class="modal-box">
+    <div class="modal-box" style="max-width: 620px;">
       <div class="modal-header">
-        <div class="modal-title" id="modalPosTitle">Tambah Pos Anggaran</div>
+        <div class="modal-title" id="modalPosTitle">Tambah Pos Anggaran Baru</div>
         <button class="btn btn-secondary btn-icon-only btn-sm" id="btnClosePosModal">✕</button>
       </div>
       <form id="formPosAnggaran">
         <div class="modal-body">
           <input type="hidden" id="posIdInput">
 
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Kode Rekening RKAS</label>
-              <input type="text" class="form-input" id="inputKodeRekening" placeholder="Cth: 03.03.08.06">
+          <!-- Pilihan Tipe Pos (Sub-Kegiatan vs Kelompok Baru) -->
+          <div class="pos-type-selector-wrap" id="posTypeSelectorWrap">
+            <label class="form-label">Tipe Struktur Anggaran</label>
+            <div class="pos-type-toggle">
+              <label class="pos-type-option active" id="labelTypeSub">
+                <input type="radio" name="posStructureType" id="typeSub" value="SUB" checked onchange="handlePosStructureTypeChange()">
+                <span>📁 Masukkan ke Kelompok yang Ada</span>
+              </label>
+              <label class="pos-type-option" id="labelTypeParent">
+                <input type="radio" name="posStructureType" id="typeParent" value="PARENT" onchange="handlePosStructureTypeChange()">
+                <span>✨ Buat Kelompok Induk Baru</span>
+              </label>
             </div>
-            <div class="form-group">
-              <label class="form-label">Standar Pendidikan (SNP)</label>
-              <select class="form-select" id="selectSnp">
-                <option value="Standar Proses">Standar Proses</option>
-                <option value="Standar Sarana & Prasarana">Standar Sarana & Prasarana</option>
-                <option value="Standar Pengelolaan">Standar Pengelolaan</option>
-                <option value="Standar Pembiayaan">Standar Pembiayaan</option>
-              </select>
+            <div class="pos-type-hint" id="posTypeHint">
+              💡 Pilih kelompok induk (folder) di bawah, kode rincian otomatis disiapkan.
             </div>
           </div>
 
+          <!-- Section A: Pilihan Kelompok Induk (Hanya muncul jika mode SUB) -->
+          <div class="form-group" id="groupSelectWrapper">
+            <label class="form-label">Pilih Kelompok Induk (Parent) *</label>
+            <select class="form-select" id="selectParentGroup" onchange="handleParentGroupSelected()">
+              <!-- Diisi otomatis melalui JS dari daftar 35 kelompok yang ada -->
+            </select>
+          </div>
+
+          <!-- Section B: Buat Kelompok Baru (Hanya muncul jika mode PARENT) -->
+          <div id="newParentFieldsWrap" style="display: none;">
+            <div class="form-group">
+              <label class="form-label">Nama Kelompok Induk (Parent Folder) *</label>
+              <input type="text" class="form-input" id="inputNamaKelompokBaru" placeholder="Cth: Ekstrakurikuler Robotik & AI / Kegiatan Studi Wisata">
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Kode Kelompok Induk (3 Blok) *</label>
+                <input type="text" class="form-input" id="inputKodeKelompokBaru" placeholder="Cth: 03.03.36">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Standar Pendidikan (SNP) *</label>
+                <select class="form-select" id="selectSnp">
+                  <option value="Standar Proses">Standar Proses</option>
+                  <option value="Standar Sarana & Prasarana">Standar Sarana & Prasarana</option>
+                  <option value="Standar Pengelolaan">Standar Pengelolaan</option>
+                  <option value="Standar Pembiayaan">Standar Pembiayaan</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Program Induk -->
           <div class="form-group">
             <label class="form-label">Program Induk / Sub-Program</label>
-            <input type="text" class="form-input" id="inputProgramInduk" placeholder="Cth: Program Pembinaan Kesiswaan dan Kepemimpinan Siswa">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Nama Pos Anggaran (Uraian Kegiatan) *</label>
-            <input type="text" class="form-input" id="inputNamaPos" placeholder="Cth: Honda DBL Bali Series" required>
+            <input type="text" class="form-input" id="inputProgramInduk" placeholder="Cth: Pelaksanaan Kegiatan Pembelajaran dan ekstrakurikuler">
           </div>
 
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Volume Acuan</label>
-              <input type="number" class="form-input" id="inputVolume" value="1" min="1">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Satuan</label>
-              <input type="text" class="form-input" id="inputSatuan" value="kegiatan" placeholder="kegiatan / tahun / bungkus">
-            </div>
-          </div>
-
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Pagu Plafon Awal (Rp) *</label>
-              <input type="number" class="form-input" id="inputPaguAwal" placeholder="25000000" min="0" step="1000" required>
+              <label class="form-label">Kode Rekening RKAS *</label>
+              <input type="text" class="form-input" id="inputKodeRekening" placeholder="Cth: 03.03.08.06" required>
             </div>
             <div class="form-group">
               <label class="form-label">Tahun Ajaran *</label>
@@ -1109,9 +1127,30 @@
             </div>
           </div>
 
+          <!-- Rincian Pos Anggaran -->
           <div class="form-group">
-            <label class="form-label">Keterangan / Deskripsi Pos</label>
-            <textarea class="form-textarea" id="inputKeterangan" rows="2" placeholder="Tujuan atau peruntukan belanja pos ini..."></textarea>
+            <label class="form-label">Uraian / Nama Kegiatan Belanja (Rincian) *</label>
+            <input type="text" class="form-input" id="inputNamaPos" placeholder="Cth: Konsumsi Pembinaan & Sertifikat Pelatihan" required>
+          </div>
+
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label class="form-label">Volume</label>
+              <input type="number" class="form-input" id="inputVolume" value="1" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Satuan</label>
+              <input type="text" class="form-input" id="inputSatuan" value="kegiatan" placeholder="kegiatan / orang / bungkus">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pagu Plafon (Rp) *</label>
+              <input type="number" class="form-input" id="inputPaguAwal" placeholder="25000000" min="0" step="1000" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Keterangan Tambahan</label>
+            <textarea class="form-textarea" id="inputKeterangan" rows="2" placeholder="Catatan atau tujuan peruntukan belanja pos ini..."></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -1126,6 +1165,6 @@
 
   <!-- Tabler Core JS & App Logic -->
   <script src="/libs/tabler/js/tabler.min.js"></script>
-  <script src="/js/app.js?v=2.1.0"></script>
+  <script src="/js/app.js?v=2.2.0"></script>
 </body>
 </html>

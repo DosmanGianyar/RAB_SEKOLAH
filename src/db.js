@@ -494,17 +494,80 @@ function getPosAnggaranById(id) {
   };
 }
 
-function createPosAnggaran({ kode_rekening, snp, program_induk, nama_pos, tahun_ajaran, volume, satuan, tarif_harga, pagu_awal, keterangan }) {
+function createPosAnggaran({
+  no_kelompok,
+  kode_kelompok,
+  nama_kelompok,
+  kode_rekening,
+  snp,
+  program_induk,
+  nama_pos,
+  tahun_ajaran,
+  volume,
+  satuan,
+  tarif_harga,
+  pagu_awal,
+  keterangan
+}) {
+  let finalNoKelompok = no_kelompok ? Number(no_kelompok) : null;
+  let finalKodeKelompok = kode_kelompok ? kode_kelompok.trim() : null;
+  let finalNamaKelompok = nama_kelompok ? nama_kelompok.trim() : null;
+  const cleanKodeRekening = (kode_rekening || '').trim();
+
+  // Jika kelompok belum ditentukan, deteksi otomatis dari kode rekening
+  if (!finalKodeKelompok && cleanKodeRekening) {
+    const parts = cleanKodeRekening.split('.');
+    if (parts.length >= 4) {
+      // Format Sub (4 blok): XX.XX.XX.YY -> 3 blok pertama adalah kode kelompok induk
+      finalKodeKelompok = parts.slice(0, 3).join('.');
+    } else {
+      // Format Single / Parent (3 blok atau kurang)
+      finalKodeKelompok = cleanKodeRekening;
+    }
+  }
+
+  // Jika ada kode kelompok, cari apakah sudah ada di database
+  if (finalKodeKelompok) {
+    const existingGroup = db.prepare(`
+      SELECT no_kelompok, kode_kelompok, nama_kelompok, snp, program_induk 
+      FROM pos_anggaran 
+      WHERE kode_kelompok = ? AND no_kelompok IS NOT NULL 
+      LIMIT 1
+    `).get(finalKodeKelompok);
+
+    if (existingGroup) {
+      if (!finalNoKelompok) finalNoKelompok = existingGroup.no_kelompok;
+      if (!finalNamaKelompok) finalNamaKelompok = existingGroup.nama_kelompok;
+      if (!snp) snp = existingGroup.snp;
+      if (!program_induk) program_induk = existingGroup.program_induk;
+    }
+  }
+
+  // Jika no_kelompok masih kosong, tetapkan nomor urut kelompok baru
+  if (!finalNoKelompok) {
+    const maxNo = db.prepare(`SELECT MAX(no_kelompok) as maxNo FROM pos_anggaran`).get();
+    finalNoKelompok = (maxNo && maxNo.maxNo) ? maxNo.maxNo + 1 : 1;
+  }
+
+  if (!finalNamaKelompok) {
+    finalNamaKelompok = nama_pos;
+  }
+
   const stmt = db.prepare(`
     INSERT INTO pos_anggaran (
+      no_kelompok, kode_kelompok, nama_kelompok,
       kode_rekening, snp, program_induk, nama_pos, tahun_ajaran,
       volume, satuan, tarif_harga, pagu_awal, total_terserap, pagu_tercadangkan, keterangan
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
   `);
+
   const result = stmt.run(
-    kode_rekening || '',
+    finalNoKelompok,
+    finalKodeKelompok,
+    finalNamaKelompok,
+    cleanKodeRekening,
     snp || 'Standar Proses',
-    program_induk || 'Program Umum',
+    program_induk || 'Pelaksanaan Kegiatan Pembelajaran dan ekstrakurikuler',
     nama_pos,
     tahun_ajaran || '2026/2027',
     Number(volume) || 1,
@@ -513,10 +576,24 @@ function createPosAnggaran({ kode_rekening, snp, program_induk, nama_pos, tahun_
     Number(pagu_awal) || 0,
     keterangan || ''
   );
+
   return getPosAnggaranById(result.lastInsertRowid);
 }
 
-function updatePosAnggaran(id, { nama_pos, pagu_awal, keterangan, volume, satuan, tarif_harga, program_induk, kode_rekening, snp }) {
+function updatePosAnggaran(id, {
+  nama_pos,
+  pagu_awal,
+  keterangan,
+  volume,
+  satuan,
+  tarif_harga,
+  program_induk,
+  kode_rekening,
+  snp,
+  no_kelompok,
+  kode_kelompok,
+  nama_kelompok
+}) {
   const stmt = db.prepare(`
     UPDATE pos_anggaran
     SET nama_pos = COALESCE(?, nama_pos),
@@ -527,7 +604,10 @@ function updatePosAnggaran(id, { nama_pos, pagu_awal, keterangan, volume, satuan
         tarif_harga = COALESCE(?, tarif_harga),
         program_induk = COALESCE(?, program_induk),
         kode_rekening = COALESCE(?, kode_rekening),
-        snp = COALESCE(?, snp)
+        snp = COALESCE(?, snp),
+        no_kelompok = COALESCE(?, no_kelompok),
+        kode_kelompok = COALESCE(?, kode_kelompok),
+        nama_kelompok = COALESCE(?, nama_kelompok)
     WHERE id = ?
   `);
   stmt.run(
@@ -540,6 +620,9 @@ function updatePosAnggaran(id, { nama_pos, pagu_awal, keterangan, volume, satuan
     program_induk !== undefined ? program_induk : null,
     kode_rekening !== undefined ? kode_rekening : null,
     snp !== undefined ? snp : null,
+    no_kelompok !== undefined ? Number(no_kelompok) : null,
+    kode_kelompok !== undefined ? kode_kelompok : null,
+    nama_kelompok !== undefined ? nama_kelompok : null,
     id
   );
   return getPosAnggaranById(id);

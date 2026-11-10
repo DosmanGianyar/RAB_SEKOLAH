@@ -1861,6 +1861,124 @@ function closeKepsekModal() {
 }
 
 // --- 6. Add / Edit Pos Anggaran Modal (From Phase 1) ---
+
+function populateParentGroupDropdown() {
+  const select = document.getElementById('selectParentGroup');
+  if (!select) return;
+  select.innerHTML = '';
+
+  const groupsMap = new Map();
+  currentPosList.forEach(item => {
+    const kKode = item.kode_kelompok || (item.kode_rekening ? item.kode_rekening.split('.').slice(0, 3).join('.') : null);
+    if (kKode && !groupsMap.has(kKode)) {
+      groupsMap.set(kKode, {
+        no: item.no_kelompok || 999,
+        kode: kKode,
+        nama: item.nama_kelompok || item.nama_pos,
+        snp: item.snp || 'Standar Proses',
+        program_induk: item.program_induk || '',
+        existingCodes: []
+      });
+    }
+    if (kKode && item.kode_rekening) {
+      groupsMap.get(kKode).existingCodes.push(item.kode_rekening.trim());
+    }
+  });
+
+  // Urutkan berdasarkan no_kelompok
+  const sorted = Array.from(groupsMap.values()).sort((a, b) => a.no - b.no);
+  sorted.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.kode;
+    opt.textContent = `[${g.kode}] ${g.nama}`;
+    opt.dataset.no = g.no;
+    opt.dataset.nama = g.nama;
+    opt.dataset.snp = g.snp;
+    opt.dataset.program = g.program_induk;
+    opt.dataset.codes = JSON.stringify(g.existingCodes);
+    select.appendChild(opt);
+  });
+}
+
+function handleParentGroupSelected() {
+  const select = document.getElementById('selectParentGroup');
+  if (!select || !select.selectedOptions || select.selectedOptions.length === 0) return;
+  const opt = select.selectedOptions[0];
+
+  const snp = opt.dataset.snp || 'Standar Proses';
+  const program = opt.dataset.program || '';
+  const baseCode = opt.value; // e.g. "03.03.04"
+
+  const snpSelect = document.getElementById('selectSnp');
+  if (snpSelect) snpSelect.value = snp;
+
+  const progInput = document.getElementById('inputProgramInduk');
+  if (progInput) progInput.value = program;
+
+  // Hitung nomor rincian sub-kegiatan berikutnya (.01, .02, dst.)
+  let existingCodes = [];
+  try {
+    existingCodes = JSON.parse(opt.dataset.codes || '[]');
+  } catch (e) {
+    existingCodes = [];
+  }
+
+  let maxSubNum = 0;
+  existingCodes.forEach(c => {
+    if (c.startsWith(baseCode + '.')) {
+      const subPart = c.substring(baseCode.length + 1);
+      const num = parseInt(subPart, 10);
+      if (!isNaN(num) && num > maxSubNum) {
+        maxSubNum = num;
+      }
+    }
+  });
+
+  const nextSubNum = String(maxSubNum + 1).padStart(2, '0');
+  const suggestedCode = `${baseCode}.${nextSubNum}`;
+
+  const kodeInput = document.getElementById('inputKodeRekening');
+  if (kodeInput) kodeInput.value = suggestedCode;
+}
+
+function handlePosStructureTypeChange() {
+  const isSub = document.getElementById('typeSub').checked;
+  const groupSelectWrapper = document.getElementById('groupSelectWrapper');
+  const newParentFieldsWrap = document.getElementById('newParentFieldsWrap');
+  const labelSub = document.getElementById('labelTypeSub');
+  const labelParent = document.getElementById('labelTypeParent');
+  const hint = document.getElementById('posTypeHint');
+
+  if (labelSub) labelSub.classList.toggle('active', isSub);
+  if (labelParent) labelParent.classList.toggle('active', !isSub);
+
+  if (isSub) {
+    if (groupSelectWrapper) groupSelectWrapper.style.display = 'block';
+    if (newParentFieldsWrap) newParentFieldsWrap.style.display = 'none';
+    if (hint) hint.innerHTML = '💡 <strong>Sub-Kegiatan:</strong> Kode rekening anak otomatis menginduk ke folder kelompok yang Anda pilih.';
+    handleParentGroupSelected();
+  } else {
+    if (groupSelectWrapper) groupSelectWrapper.style.display = 'none';
+    if (newParentFieldsWrap) newParentFieldsWrap.style.display = 'block';
+    if (hint) hint.innerHTML = '✨ <strong>Kelompok Induk Baru:</strong> Masukkan nama folder induk dan kode 3 blok (misal: <code>03.03.36</code>).';
+
+    // Cari no_kelompok tertinggi + 1 untuk saran kode baru
+    let maxNo = 0;
+    currentPosList.forEach(p => {
+      if (p.no_kelompok && p.no_kelompok > maxNo) maxNo = p.no_kelompok;
+    });
+    const nextGroupNo = String(maxNo + 1).padStart(2, '0');
+    const inputKodeKel = document.getElementById('inputKodeKelompokBaru');
+    if (inputKodeKel && !inputKodeKel.value) {
+      inputKodeKel.value = `03.03.${nextGroupNo}`;
+    }
+    const inputKodeRek = document.getElementById('inputKodeRekening');
+    if (inputKodeRek && inputKodeKel) {
+      inputKodeRek.value = `${inputKodeKel.value}.01`;
+    }
+  }
+}
+
 function openAddPosModal() {
   if (currentUser && currentUser.role === 'GURU') {
     alert('Akses Ditolak: Akun Guru tidak memiliki wewenang untuk menambahkan pos anggaran. Hanya Bendahara, Kepala Sekolah, dan Analisis SDM yang berhak mengatur pagu anggaran sekolah.');
@@ -1869,12 +1987,18 @@ function openAddPosModal() {
   document.getElementById('modalPosTitle').textContent = 'Tambah Pos Anggaran Baru';
   document.getElementById('formPosAnggaran').reset();
   document.getElementById('posIdInput').value = '';
-  document.getElementById('inputKodeRekening').value = '';
-  document.getElementById('selectSnp').value = 'Standar Proses';
-  document.getElementById('inputProgramInduk').value = '';
+
+  const selectorWrap = document.getElementById('posTypeSelectorWrap');
+  if (selectorWrap) selectorWrap.style.display = 'block';
+
+  document.getElementById('typeSub').checked = true;
   document.getElementById('inputVolume').value = '1';
   document.getElementById('inputSatuan').value = 'kegiatan';
   document.getElementById('inputTahunAjaran').value = '2026/2027';
+
+  populateParentGroupDropdown();
+  handlePosStructureTypeChange();
+
   document.getElementById('modalPos').classList.add('active');
 }
 
@@ -1888,6 +2012,15 @@ function openEditPosModal(id) {
 
   document.getElementById('modalPosTitle').textContent = 'Ubah Plafon Pos Anggaran';
   document.getElementById('posIdInput').value = item.id;
+
+  // Sembunyikan toggle tipe saat edit pos yang sudah ada
+  const selectorWrap = document.getElementById('posTypeSelectorWrap');
+  if (selectorWrap) selectorWrap.style.display = 'none';
+  const groupSelectWrapper = document.getElementById('groupSelectWrapper');
+  if (groupSelectWrapper) groupSelectWrapper.style.display = 'none';
+  const newParentFieldsWrap = document.getElementById('newParentFieldsWrap');
+  if (newParentFieldsWrap) newParentFieldsWrap.style.display = 'none';
+
   document.getElementById('inputKodeRekening').value = item.kode_rekening || '';
   document.getElementById('selectSnp').value = item.snp || 'Standar Proses';
   document.getElementById('inputProgramInduk').value = item.program_induk || '';
@@ -1911,8 +2044,9 @@ async function handleSavePosAnggaran(e) {
     alert('Akses Ditolak: Akun Guru tidak memiliki wewenang untuk menyimpan pos anggaran.');
     return;
   }
+
   const id = document.getElementById('posIdInput').value;
-  const payload = {
+  let payload = {
     kode_rekening: document.getElementById('inputKodeRekening').value.trim(),
     snp: document.getElementById('selectSnp').value,
     program_induk: document.getElementById('inputProgramInduk').value.trim(),
@@ -1923,6 +2057,24 @@ async function handleSavePosAnggaran(e) {
     tahun_ajaran: document.getElementById('inputTahunAjaran').value.trim(),
     keterangan: document.getElementById('inputKeterangan').value.trim()
   };
+
+  if (!id) {
+    const isSub = document.getElementById('typeSub').checked;
+    if (isSub) {
+      const selectGroup = document.getElementById('selectParentGroup');
+      if (selectGroup && selectGroup.selectedOptions && selectGroup.selectedOptions.length > 0) {
+        const opt = selectGroup.selectedOptions[0];
+        payload.no_kelompok = Number(opt.dataset.no);
+        payload.kode_kelompok = opt.value;
+        payload.nama_kelompok = opt.dataset.nama;
+      }
+    } else {
+      const namaKelBaru = (document.getElementById('inputNamaKelompokBaru').value || '').trim();
+      const kodeKelBaru = (document.getElementById('inputKodeKelompokBaru').value || '').trim();
+      if (namaKelBaru) payload.nama_kelompok = namaKelBaru;
+      if (kodeKelBaru) payload.kode_kelompok = kodeKelBaru;
+    }
+  }
 
   try {
     let url = '/api/pos-anggaran';
@@ -1943,8 +2095,8 @@ async function handleSavePosAnggaran(e) {
     if (data.success) {
       closePosModal();
       showNotification(data.message || 'Pos anggaran berhasil disimpan!');
-      loadSummaryStats();
-      loadPosAnggaran();
+      await loadSummaryStats();
+      await loadPosAnggaran();
     } else {
       alert(data.message || 'Gagal menyimpan');
     }
