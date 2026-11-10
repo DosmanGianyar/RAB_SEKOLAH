@@ -1596,7 +1596,7 @@ body {
   color: #064e3b;
 }
 
-/* Bilah Aksi Kartu Usulan (Baris ke-2 Rapi) */
+/* Bilah Aksi Kartu Usulan (Harmonisasi Presisi Tinggi & Elegan) */
 .proposal-actions-row {
   display: flex;
   align-items: center;
@@ -1606,6 +1606,29 @@ body {
   margin-top: 8px;
   border-top: 1px dashed var(--border-subtle);
   flex-wrap: wrap;
+}
+
+.proposal-actions-row .btn,
+.proposal-actions-row .btn-print-action {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 13px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+  box-sizing: border-box;
+  text-decoration: none;
+  vertical-align: middle;
+}
+
+.proposal-actions-row .btn i,
+.proposal-actions-row .btn-print-action i {
+  font-size: 0.95rem;
 }
 
 /* Status Badges */
@@ -1853,22 +1876,28 @@ body {
 .btn-print-action {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   background: #ecfdf5;
-  color: var(--primary);
-  border: 1.5px solid var(--primary-border);
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  padding: 0 13px;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 8px;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
   text-decoration: none;
   transition: var(--transition);
+  box-sizing: border-box;
 }
 
 .btn-print-action:hover {
-  background: var(--primary);
+  background: #059669;
   color: #ffffff;
-  border-color: var(--primary);
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
 }
 
 /* ==========================================================================

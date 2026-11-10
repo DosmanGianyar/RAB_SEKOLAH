@@ -1691,8 +1691,8 @@ function renderProposalsList(proposals) {
       `;
     } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
       roleActionBtn = `
-        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})">
-          <i class="ti ti-file-invoice"></i> Buat LPJ
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})" title="Unggah bukti nota kuitansi belanja & selesaikan LPJ">
+          <i class="ti ti-upload"></i> Upload Nota &amp; Buat LPJ
         </button>
       `;
     } else if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
@@ -1703,8 +1703,8 @@ function renderProposalsList(proposals) {
       `;
     } else if (isOwnerGuru && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
       roleActionBtn = `
-        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})">
-          <i class="ti ti-edit"></i> Edit LPJ
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})" title="Ubah atau ganti lampiran berkas nota LPJ">
+          <i class="ti ti-edit"></i> Edit Nota &amp; LPJ
         </button>
       `;
     }
@@ -1973,7 +1973,7 @@ async function openProposalDetail(id) {
       } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
         const btnLpj = document.createElement('button');
         btnLpj.className = 'btn btn-primary btn-sm';
-        btnLpj.innerHTML = '<i class="ti ti-file-invoice"></i> Buat LPJ Realisasi';
+        btnLpj.innerHTML = '<i class="ti ti-upload"></i> Upload Nota &amp; Buat LPJ';
         btnLpj.onclick = () => {
           closeDetailModal();
           openSubmitLpjModal(p.id);
