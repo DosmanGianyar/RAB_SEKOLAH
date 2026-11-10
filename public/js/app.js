@@ -2000,6 +2000,15 @@ async function openProposalDetail(id) {
           openSubmitLpjModal(p.id);
         };
         footer.appendChild(btnEditLpj);
+      } else if (p.status === 'SELESAI' && p.lpj) {
+        const btnViewLpj = document.createElement('button');
+        btnViewLpj.className = 'btn btn-outline-success btn-sm';
+        btnViewLpj.innerHTML = '<i class="ti ti-file-check"></i> Lihat Berkas LPJ &amp; Nota';
+        btnViewLpj.onclick = () => {
+          closeDetailModal();
+          openVerifikasiLpjModal(p.id);
+        };
+        footer.appendChild(btnViewLpj);
       }
     }
   } catch (err) {
@@ -2804,6 +2813,198 @@ async function handlePencairanSubmit(e) {
 
 let activeLpjProposal = null;
 let selectedLpjFile = null;
+let lpjReceiptRows = [];
+let nextReceiptRowId = 1;
+
+function addLpjReceiptRow(data = null) {
+  const rowId = nextReceiptRowId++;
+  const rowItem = {
+    id: rowId,
+    nama_toko: data ? (data.nama_toko || '') : '',
+    uraian: data ? (data.uraian || '') : '',
+    nominal: data ? (Number(data.nominal) || 0) : 0,
+    file: null,
+    existing_file_url: data ? (data.file_url || null) : null
+  };
+  lpjReceiptRows.push(rowItem);
+
+  const container = document.getElementById('lpjNotaItemsStack');
+  if (!container) return;
+
+  const card = document.createElement('div');
+  card.className = 'lpj-receipt-card';
+  card.id = `receiptRowCard_${rowId}`;
+
+  const rowNum = lpjReceiptRows.length;
+  const initialNominal = rowItem.nominal ? Number(rowItem.nominal).toLocaleString('id-ID') : '';
+
+  let fileStatusHtml = '';
+  if (rowItem.existing_file_url) {
+    const filename = rowItem.existing_file_url.split('/').pop();
+    fileStatusHtml = `
+      <div class="lpj-receipt-preview-chip" id="receiptPreviewChip_${rowId}">
+        <span style="font-size: 1rem;">📎</span>
+        <span class="file-name" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
+        <a href="${rowItem.existing_file_url}" target="_blank" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem;" onclick="event.stopPropagation()">Lihat</a>
+        <button type="button" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem; color: var(--rose);" onclick="clearReceiptRowFile(event, ${rowId})">Ganti</button>
+      </div>
+    `;
+  } else {
+    fileStatusHtml = `
+      <div class="lpj-receipt-file-picker" id="receiptFilePicker_${rowId}" onclick="document.getElementById('receiptFileInput_${rowId}').click()">
+        <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+          <i class="ti ti-camera" style="font-size: 0.95rem; color: var(--primary);"></i> Foto / PDF Nota
+        </span>
+        <span class="btn btn-outline-success btn-xs" style="padding: 2px 8px; font-size: 0.7rem; pointer-events: none;">Pilih File</span>
+      </div>
+      <div class="lpj-receipt-preview-chip" id="receiptPreviewChip_${rowId}" style="display: none;"></div>
+    `;
+  }
+
+  card.innerHTML = `
+    <div class="lpj-receipt-card-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="lpj-receipt-badge" id="receiptBadgeNum_${rowId}">
+          <i class="ti ti-receipt"></i> Nota #${rowNum}
+        </span>
+        <span style="font-size: 0.74rem; color: var(--text-muted);" id="receiptHeaderSubtitle_${rowId}">
+          ${rowItem.nama_toko ? escapeHtml(rowItem.nama_toko) : 'Nota Pembelian / Jasa'}
+        </span>
+      </div>
+      <button type="button" class="btn btn-outline-danger btn-xs" onclick="removeLpjReceiptRow(${rowId})" title="Hapus nota ini" ${lpjReceiptRows.length <= 1 ? 'style="display:none;"' : ''} id="btnRemoveReceipt_${rowId}">
+        <i class="ti ti-trash"></i> Hapus
+      </button>
+    </div>
+
+    <div class="lpj-receipt-grid">
+      <div>
+        <label class="form-label" style="font-size: 0.74rem; font-weight: 700; margin-bottom: 3px;">Nama Toko / Rekanan / Penyedia *</label>
+        <input type="text" class="form-input form-input-sm" id="receiptToko_${rowId}" placeholder="Cth: Toko ATK Sahabat, RM Barokah" value="${escapeHtml(rowItem.nama_toko)}" oninput="updateReceiptRowMeta(${rowId})">
+      </div>
+      <div>
+        <label class="form-label" style="font-size: 0.74rem; font-weight: 700; margin-bottom: 3px;">Uraian Barang / Jasa yang Tertera di Nota</label>
+        <input type="text" class="form-input form-input-sm" id="receiptUraian_${rowId}" placeholder="Cth: Kertas F4 + Spidol Snowman + Lakban" value="${escapeHtml(rowItem.uraian)}" oninput="updateReceiptRowMeta(${rowId})">
+      </div>
+    </div>
+
+    <div class="lpj-receipt-grid-bottom">
+      <div>
+        <label class="form-label" style="font-size: 0.74rem; font-weight: 700; margin-bottom: 3px;">Nominal Fisik Nota (Rp) *</label>
+        <input type="text" inputmode="numeric" class="form-input form-input-sm rupiah-input" id="receiptNominal_${rowId}" placeholder="Cth: 150.000" value="${initialNominal}" oninput="formatCurrencyInput(this); updateReceiptRowNominal(${rowId})">
+      </div>
+      <div>
+        <label class="form-label" style="font-size: 0.74rem; font-weight: 700; margin-bottom: 3px;">Foto / Scan / PDF Nota Fisik</label>
+        <input type="file" id="receiptFileInput_${rowId}" accept="image/*,application/pdf" style="display: none;" onchange="handleReceiptRowFileSelect(event, ${rowId})">
+        <div id="receiptFileArea_${rowId}">
+          ${fileStatusHtml}
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.appendChild(card);
+  updateReceiptRemoveButtons();
+  recalculateMultiLpjTotals();
+}
+
+function removeLpjReceiptRow(rowId) {
+  if (lpjReceiptRows.length <= 1) return;
+  lpjReceiptRows = lpjReceiptRows.filter(r => r.id !== rowId);
+  const card = document.getElementById(`receiptRowCard_${rowId}`);
+  if (card) card.remove();
+
+  // Re-index badges
+  lpjReceiptRows.forEach((r, idx) => {
+    const badge = document.getElementById(`receiptBadgeNum_${r.id}`);
+    if (badge) badge.innerHTML = `<i class="ti ti-receipt"></i> Nota #${idx + 1}`;
+  });
+
+  updateReceiptRemoveButtons();
+  recalculateMultiLpjTotals();
+}
+
+function updateReceiptRemoveButtons() {
+  const show = lpjReceiptRows.length > 1;
+  lpjReceiptRows.forEach(r => {
+    const btn = document.getElementById(`btnRemoveReceipt_${r.id}`);
+    if (btn) btn.style.display = show ? 'inline-flex' : 'none';
+  });
+}
+
+function updateReceiptRowMeta(rowId) {
+  const row = lpjReceiptRows.find(r => r.id === rowId);
+  if (!row) return;
+  const tokoInput = document.getElementById(`receiptToko_${rowId}`);
+  const uraianInput = document.getElementById(`receiptUraian_${rowId}`);
+  if (tokoInput) {
+    row.nama_toko = tokoInput.value.trim();
+    const subtitle = document.getElementById(`receiptHeaderSubtitle_${rowId}`);
+    if (subtitle) subtitle.textContent = row.nama_toko || 'Nota Pembelian / Jasa';
+  }
+  if (uraianInput) row.uraian = uraianInput.value.trim();
+}
+
+function updateReceiptRowNominal(rowId) {
+  const row = lpjReceiptRows.find(r => r.id === rowId);
+  if (!row) return;
+  const nominalInput = document.getElementById(`receiptNominal_${rowId}`);
+  row.nominal = nominalInput ? parseRupiahInput(nominalInput.value) : 0;
+  recalculateMultiLpjTotals();
+}
+
+function handleReceiptRowFileSelect(event, rowId) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const row = lpjReceiptRows.find(r => r.id === rowId);
+  if (!row) return;
+  row.file = file;
+
+  const area = document.getElementById(`receiptFileArea_${rowId}`);
+  if (area) {
+    area.innerHTML = `
+      <div class="lpj-receipt-preview-chip" id="receiptPreviewChip_${rowId}">
+        <span style="font-size: 1rem;">📎</span>
+        <span class="file-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+        <span style="font-size:0.68rem; color:var(--text-muted);">(${Math.round(file.size / 1024)} KB)</span>
+        <button type="button" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem; color: var(--rose); margin-left:auto;" onclick="clearReceiptRowFile(event, ${rowId})">✕ Hapus</button>
+      </div>
+    `;
+  }
+}
+
+function clearReceiptRowFile(event, rowId) {
+  if (event) event.stopPropagation();
+  const row = lpjReceiptRows.find(r => r.id === rowId);
+  if (!row) return;
+  row.file = null;
+  row.existing_file_url = null;
+
+  const input = document.getElementById(`receiptFileInput_${rowId}`);
+  if (input) input.value = '';
+
+  const area = document.getElementById(`receiptFileArea_${rowId}`);
+  if (area) {
+    area.innerHTML = `
+      <div class="lpj-receipt-file-picker" id="receiptFilePicker_${rowId}" onclick="document.getElementById('receiptFileInput_${rowId}').click()">
+        <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+          <i class="ti ti-camera" style="font-size: 0.95rem; color: var(--primary);"></i> Foto / PDF Nota
+        </span>
+        <span class="btn btn-outline-success btn-xs" style="padding: 2px 8px; font-size: 0.7rem; pointer-events: none;">Pilih File</span>
+      </div>
+      <div class="lpj-receipt-preview-chip" id="receiptPreviewChip_${rowId}" style="display: none;"></div>
+    `;
+  }
+}
+
+function recalculateMultiLpjTotals() {
+  const totalBelanja = lpjReceiptRows.reduce((sum, r) => sum + (Number(r.nominal) || 0), 0);
+  const display = document.getElementById('lpjTotalBelanjaRiilDisplay');
+  const hiddenInput = document.getElementById('lpjTotalBelanjaRiil');
+  if (display) display.textContent = formatRupiah(totalBelanja);
+  if (hiddenInput) hiddenInput.value = totalBelanja;
+  recalculateLpjCashback();
+}
 
 async function openSubmitLpjModal(proposalId) {
   const modal = document.getElementById('modalSubmitLpj');
@@ -2822,21 +3023,71 @@ async function openSubmitLpjModal(proposalId) {
       document.getElementById('lpjSubHeader').textContent = `Pemohon: ${p.pemohon_nama} (${p.pemohon_unit}) • Pos: ${p.nama_pos}`;
       document.getElementById('lpjTotalDanaCairDisplay').textContent = formatRupiah(p.total_dana_disetujui);
 
+      // Render referensi item rincian usulan yang telah disetujui
+      const refBox = document.getElementById('lpjApprovedItemsRefBox');
+      const refList = document.getElementById('lpjApprovedItemsList');
+      if (refBox && refList) {
+        if (p.items && p.items.length > 0) {
+          refBox.style.display = 'block';
+          refList.innerHTML = p.items.map(it => {
+            const vol = it.volume_disetujui || it.volume_diajukan;
+            const sat = it.satuan_disetujui || it.satuan_diajukan;
+            const sub = it.subtotal_disetujui || it.subtotal_diajukan;
+            return `
+              <div class="lpj-ref-badge-item" title="${escapeHtml(it.spesifikasi || '')}">
+                <span>${escapeHtml(it.nama_item)}</span>
+                <span style="color:var(--text-muted);">(${vol} ${sat})</span>
+                <strong>${formatRupiah(sub)}</strong>
+              </div>
+            `;
+          }).join('');
+        } else {
+          refBox.style.display = 'none';
+        }
+      }
+
+      // Reset daftar repeater nota
+      const stack = document.getElementById('lpjNotaItemsStack');
+      if (stack) stack.innerHTML = '';
+      lpjReceiptRows = [];
+      nextReceiptRowId = 1;
+
       // Pre-fill jika sudah pernah dibuat sebelumnya
       if (p.lpj) {
-        document.getElementById('lpjTotalBelanjaRiil').value = p.lpj.total_belanja_riil ? Number(p.lpj.total_belanja_riil).toLocaleString('id-ID') : '0';
         document.getElementById('lpjCatatan').value = p.lpj.catatan_lpj || '';
+        
+        // Master bundle preview
         if (p.lpj.file_nota_url) {
           document.getElementById('lpjFilePreviewWrap').style.display = 'flex';
           document.getElementById('lpjFileName').textContent = p.lpj.file_nota_url.split('/').pop();
+        } else {
+          clearLpjFile();
+        }
+
+        // Muat rincian multi-nota
+        if (p.lpj.nota_items && p.lpj.nota_items.length > 0) {
+          p.lpj.nota_items.forEach(item => addLpjReceiptRow(item));
+        } else {
+          addLpjReceiptRow({
+            nama_toko: 'Nota Pembelian',
+            uraian: 'Realisasi anggaran kegiatan',
+            nominal: p.lpj.total_belanja_riil || p.total_dana_disetujui,
+            file_url: p.lpj.file_nota_url
+          });
         }
       } else {
-        document.getElementById('lpjTotalBelanjaRiil').value = p.total_dana_disetujui ? Number(p.total_dana_disetujui).toLocaleString('id-ID') : '0';
         document.getElementById('lpjCatatan').value = '';
         clearLpjFile();
+        // Inisialisasi dengan 1 baris nota awal
+        addLpjReceiptRow({
+          nama_toko: '',
+          uraian: '',
+          nominal: p.total_dana_disetujui || 0,
+          file_url: null
+        });
       }
 
-      recalculateLpjCashback();
+      recalculateMultiLpjTotals();
     }
   } catch (err) {
     console.error('Error fetching proposal for LPJ:', err);
@@ -2848,13 +3099,14 @@ function closeSubmitLpjModal() {
   document.getElementById('modalSubmitLpj').classList.remove('active');
   activeLpjProposal = null;
   selectedLpjFile = null;
+  lpjReceiptRows = [];
 }
 
 function recalculateLpjCashback() {
   if (!activeLpjProposal) return;
 
   const danaCair = activeLpjProposal.total_dana_disetujui || 0;
-  const belanjaRiil = parseRupiahInput(document.getElementById('lpjTotalBelanjaRiil').value);
+  const belanjaRiil = Number(document.getElementById('lpjTotalBelanjaRiil').value) || 0;
   const selisih = danaCair - belanjaRiil;
 
   const box = document.getElementById('lpjCashbackCalcBox');
@@ -2905,12 +3157,55 @@ async function handleSubmitLpj(e) {
   if (!activeLpjProposal) return;
 
   const id = activeLpjProposal.id;
-  const belanjaRiil = parseRupiahInput(document.getElementById('lpjTotalBelanjaRiil').value);
+
+  // Pastikan seluruh data input baris terkini tersinkronisasi
+  lpjReceiptRows.forEach(r => {
+    const tokoInput = document.getElementById(`receiptToko_${r.id}`);
+    const uraianInput = document.getElementById(`receiptUraian_${r.id}`);
+    const nominalInput = document.getElementById(`receiptNominal_${r.id}`);
+    if (tokoInput) r.nama_toko = tokoInput.value.trim();
+    if (uraianInput) r.uraian = uraianInput.value.trim();
+    if (nominalInput) r.nominal = parseRupiahInput(nominalInput.value);
+  });
+
+  const totalBelanja = lpjReceiptRows.reduce((sum, r) => sum + (Number(r.nominal) || 0), 0);
+  if (totalBelanja <= 0) {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Nominal Nota Kosong',
+        text: 'Harap masukkan nominal belanja riil pada minimal satu nota kuitansi.',
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert('Harap masukkan nominal belanja riil pada minimal satu nota kuitansi.');
+    }
+    return;
+  }
+
   const catatan = document.getElementById('lpjCatatan').value.trim();
 
   const formData = new FormData();
-  formData.append('total_belanja_riil', belanjaRiil);
+  formData.append('total_belanja_riil', totalBelanja);
   formData.append('catatan_lpj', catatan);
+
+  // Lampirkan array item nota dan berkas spesifik per baris
+  const itemsPayload = lpjReceiptRows.map((r, idx) => {
+    const fileKey = `nota_file_${idx}`;
+    if (r.file) {
+      formData.append(fileKey, r.file);
+    }
+    return {
+      nama_toko: r.nama_toko || 'Toko / Rekanan',
+      uraian: r.uraian || '',
+      nominal: r.nominal || 0,
+      file_key: fileKey,
+      existing_file_url: r.existing_file_url || null
+    };
+  });
+  formData.append('nota_items', JSON.stringify(itemsPayload));
+
+  // Berkas bundel dokumen PDF lengkap (opsional)
   if (selectedLpjFile) {
     formData.append('file_nota', selectedLpjFile);
   }
@@ -2941,6 +3236,12 @@ async function handleSubmitLpj(e) {
       loadSummaryStats();
       loadPosAnggaran();
       loadProposalsList();
+      if (typeof renderLpjView === 'function') {
+        const viewLap = document.getElementById('viewLaporan');
+        if (viewLap && viewLap.classList.contains('active')) {
+          renderLpjView();
+        }
+      }
     } else {
       if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -2995,24 +3296,97 @@ async function openVerifikasiLpjModal(proposalId) {
       document.getElementById('verifLpjCatatanGuru').textContent = (lpj && lpj.catatan_lpj) ? lpj.catatan_lpj : '-';
       document.getElementById('verifLpjCatatanBendahara').value = '';
 
+      // Tampilkan tabel rincian multi-nota
+      const tableContainer = document.getElementById('verifLpjNotaItemsTableContainer');
+      const notaItems = (lpj && lpj.nota_items && lpj.nota_items.length > 0) ? lpj.nota_items : [];
+
+      if (tableContainer) {
+        if (notaItems.length > 0) {
+          let rowsHtml = '';
+          notaItems.forEach((it, idx) => {
+            let fileAction = '';
+            if (it.file_url) {
+              const ext = it.file_url.split('.').pop().toLowerCase();
+              const isImg = ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+              fileAction = `
+                <a href="${it.file_url}" target="_blank" class="btn btn-outline-success btn-xs" style="display:inline-flex; align-items:center; gap:4px; font-weight:700;">
+                  <i class="ti ti-${isImg ? 'photo' : 'file-text'}"></i> Buka Nota
+                </a>
+              `;
+            } else {
+              fileAction = `<span style="color:#94a3b8; font-size:0.72rem;">Nota Fisik</span>`;
+            }
+
+            rowsHtml += `
+              <tr>
+                <td style="text-align:center; font-size:0.75rem; color:var(--text-muted);">${idx + 1}</td>
+                <td>
+                  <strong style="color:var(--text-main); font-size:0.82rem;">${escapeHtml(it.nama_toko || 'Toko / Rekanan')}</strong>
+                </td>
+                <td style="font-size:0.8rem; color:var(--text-body);">${escapeHtml(it.uraian || '-')}</td>
+                <td style="text-align:right; font-weight:800; color:#047857; font-size:0.85rem; white-space:nowrap;">
+                  ${formatRupiah(it.nominal)}
+                </td>
+                <td style="text-align:center;">${fileAction}</td>
+              </tr>
+            `;
+          });
+
+          tableContainer.innerHTML = `
+            <div class="table-responsive" style="border:1px solid var(--border-card); border-radius:var(--radius-sm); overflow:hidden; margin-bottom:8px;">
+              <table class="table-compact" style="margin-bottom:0; font-size:0.82rem;">
+                <thead style="background:#f8fafc;">
+                  <tr>
+                    <th style="width:36px; text-align:center;">No</th>
+                    <th>Nama Toko / Rekanan</th>
+                    <th>Uraian Belanja</th>
+                    <th style="text-align:right; width:130px;">Nominal (Rp)</th>
+                    <th style="text-align:center; width:110px;">Bukti Berkas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+                <tfoot style="background:#f1f5f9; font-weight:800;">
+                  <tr>
+                    <td colspan="3" style="text-align:right; font-size:0.82rem;">Total Belanja Terverifikasi:</td>
+                    <td style="text-align:right; color:#047857; font-size:0.9rem;">${formatRupiah(lpj ? lpj.total_belanja_riil : 0)}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          `;
+        } else {
+          tableContainer.innerHTML = `
+            <div style="padding:14px; background:#f8fafc; border:1px dashed var(--border-card); border-radius:var(--radius-sm); text-align:center; color:var(--text-muted); font-size:0.82rem;">
+              Belum ada rincian nota digital yang dilampirkan.
+            </div>
+          `;
+        }
+      }
+
+      // Berkas bundel dokumen PDF
+      const masterContainer = document.getElementById('verifLpjMasterBundleContainer');
       const fileBox = document.getElementById('verifLpjFilePreviewBox');
       if (lpj && lpj.file_nota_url) {
-        fileBox.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.5rem;">📄</span>
-            <div>
-              <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-main);">Berkas Nota / Bukti Kuitansi</div>
-              <div style="font-size: 0.74rem; color: var(--text-muted);">${lpj.file_nota_url.split('/').pop()}</div>
+        if (masterContainer) masterContainer.style.display = 'block';
+        if (fileBox) {
+          fileBox.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 1.5rem;">📄</span>
+              <div>
+                <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-main);">Berkas Kolektif / PDF Bundel Lengkap</div>
+                <div style="font-size: 0.74rem; color: var(--text-muted);">${escapeHtml(lpj.file_nota_url.split('/').pop())}</div>
+              </div>
             </div>
-          </div>
-          <a href="${lpj.file_nota_url}" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
-            👁️ Buka / Unduh Berkas
-          </a>
-        `;
+            <a href="${lpj.file_nota_url}" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
+              👁️ Buka / Unduh Berkas
+            </a>
+          `;
+        }
       } else {
-        fileBox.innerHTML = `
-          <span style="color: var(--text-muted); font-size: 0.82rem;">Tidak ada berkas digital terlampir (Hanya nota fisik fisik diserahkan).</span>
-        `;
+        if (masterContainer) masterContainer.style.display = 'none';
       }
     }
   } catch (err) {
@@ -3197,10 +3571,17 @@ function renderLpjView() {
 
     // Bukti Nota Cell
     let notaCell = '';
-    if (p.lpj_file_nota_url) {
+    const notaCount = p.lpj_nota_count || (p.lpj_file_nota_url ? 1 : 0);
+    if (notaCount > 1) {
+      notaCell = `
+        <button type="button" class="btn btn-outline-success btn-xs" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; font-weight:700; display:inline-flex; align-items:center; gap:4px;" onclick="openVerifikasiLpjModal(${p.id})" title="Periksa ${notaCount} berkas nota fisik">
+          <i class="ti ti-files"></i> ${notaCount} Nota
+        </button>
+      `;
+    } else if (p.lpj_file_nota_url) {
       notaCell = `
         <a href="${p.lpj_file_nota_url}" target="_blank" class="btn btn-outline-success btn-xs" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; font-weight:700; display:inline-flex; align-items:center; gap:4px;" title="Buka berkas bukti nota kuitansi">
-          <i class="ti ti-file-check"></i> Lihat Nota
+          <i class="ti ti-file-check"></i> 1 Nota
         </a>
       `;
     } else {

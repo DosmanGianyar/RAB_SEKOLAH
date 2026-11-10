@@ -681,7 +681,8 @@ app.get('/api/export/lpj/excel', requireAuth, (req, res) => {
       const danaCair = item.lpj_total_cair !== null && item.lpj_total_cair !== undefined ? item.lpj_total_cair : (item.total_dana_disetujui || 0);
       const belanjaRiil = item.lpj_total_belanja_riil !== null && item.lpj_total_belanja_riil !== undefined ? item.lpj_total_belanja_riil : 0;
       const sisaKas = item.lpj_sisa_pengembalian !== null && item.lpj_sisa_pengembalian !== undefined ? item.lpj_sisa_pengembalian : (danaCair - belanjaRiil);
-      const adaNota = item.lpj_file_nota_url ? 'ADA (Terlampir)' : 'BELUM ADA';
+      const notaCount = item.lpj_nota_count || (item.lpj_file_nota_url ? 1 : 0);
+      const adaNota = notaCount > 0 ? `${notaCount} Berkas Terlampir` : 'Belum Ada';
 
       totalCairAll += danaCair;
       totalRiilAll += belanjaRiil;
@@ -701,7 +702,7 @@ app.get('/api/export/lpj/excel', requireAuth, (req, res) => {
         'Dana Kas Cair (Rp)': danaCair,
         'Belanja Riil (Rp)': belanjaRiil,
         'Sisa Kas Disetor (Rp)': sisaKas,
-        'Bukti Nota': adaNota,
+        'Kelengkapan Nota': adaNota,
         'Status LPJ': statusLpjLabel,
         'Catatan Guru': item.lpj_catatan || '-'
       };
@@ -717,7 +718,7 @@ app.get('/api/export/lpj/excel', requireAuth, (req, res) => {
       'Dana Kas Cair (Rp)': totalCairAll,
       'Belanja Riil (Rp)': totalRiilAll,
       'Sisa Kas Disetor (Rp)': totalSisaAll,
-      'Bukti Nota': '',
+      'Kelengkapan Nota': '',
       'Status LPJ': '',
       'Catatan Guru': ''
     });
@@ -815,22 +816,55 @@ app.get('/verifikasi/:token', (req, res) => {
 // FASE 5: MODUL LPJ (LAPORAN PERTANGGUNGJAWABAN) & REKONSILIASI KAS
 // ==========================================================================
 
-// 1. Guru Mengajukan LPJ & Mengunggah Nota Fisik
-app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.single('file_nota'), (req, res) => {
+// 1. Guru Mengajukan LPJ & Mengunggah Nota Fisik (Mendukung Multi-Nota / Gabungan)
+app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => {
   try {
     const { total_belanja_riil, catatan_lpj } = req.body;
-    const file_nota_url = req.file ? `/uploads/nota/${req.file.filename}` : null;
 
-    if (total_belanja_riil === undefined || total_belanja_riil === '') {
-      return res.status(400).json({ success: false, message: 'Nominal total belanja riil wajib diisi.' });
+    // Petakan semua berkas yang terunggah berdasarkan nama field (misal: nota_file_0, nota_file_1, file_nota)
+    const fileMap = {};
+    if (req.files && Array.isArray(req.files)) {
+      req.files.forEach(f => {
+        fileMap[f.fieldname] = `/uploads/nota/${f.filename}`;
+      });
+    }
+
+    // Parsing data item nota jika dikirim dalam bentuk JSON repeater
+    let parsedNotaItems = [];
+    if (req.body.nota_items) {
+      try {
+        parsedNotaItems = typeof req.body.nota_items === 'string' ? JSON.parse(req.body.nota_items) : req.body.nota_items;
+      } catch (e) {
+        parsedNotaItems = [];
+      }
+    }
+
+    if (Array.isArray(parsedNotaItems) && parsedNotaItems.length > 0) {
+      parsedNotaItems = parsedNotaItems.map((item, idx) => {
+        const fileKey = item.file_key || `nota_file_${idx}`;
+        const uploadedUrl = fileMap[fileKey];
+        return {
+          nama_toko: item.nama_toko || 'Toko / Rekanan',
+          uraian: item.uraian || '',
+          nominal: Number(item.nominal) || 0,
+          file_url: uploadedUrl || item.existing_file_url || null
+        };
+      });
+    }
+
+    // Cari URL nota berkas tunggal / gabungan
+    let singleFileUrl = fileMap['file_nota'] || null;
+    if (!singleFileUrl && req.files && req.files.length > 0) {
+      singleFileUrl = `/uploads/nota/${req.files[0].filename}`;
     }
 
     const updated = submitLpjByGuru({
       pengajuan_id: Number(req.params.id),
       user_id: req.user.id,
-      total_belanja_riil: Number(total_belanja_riil),
-      file_nota_url,
-      catatan_lpj
+      total_belanja_riil: (total_belanja_riil !== undefined && total_belanja_riil !== '') ? Number(total_belanja_riil) : 0,
+      file_nota_url: singleFileUrl,
+      catatan_lpj,
+      nota_items: parsedNotaItems
     });
 
     res.json({

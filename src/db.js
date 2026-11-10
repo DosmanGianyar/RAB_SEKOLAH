@@ -95,6 +95,17 @@ function initDatabase() {
       created_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
 
+    CREATE TABLE IF NOT EXISTS lpj_nota_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lpj_id INTEGER NOT NULL REFERENCES lpj_pertanggungjawaban(id) ON DELETE CASCADE,
+      pengajuan_id INTEGER NOT NULL REFERENCES pengajuan_kegiatan(id),
+      nama_toko TEXT NOT NULL,
+      uraian TEXT,
+      nominal REAL NOT NULL,
+      file_url TEXT,
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    );
+
     CREATE TABLE IF NOT EXISTS audit_log_koreksi (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       pengajuan_id INTEGER REFERENCES pengajuan_kegiatan(id),
@@ -853,7 +864,8 @@ function getPengajuanList(userId = null, role = null) {
            lpj.file_nota_url AS lpj_file_nota_url,
            lpj.status_lpj AS lpj_status,
            lpj.catatan_lpj AS lpj_catatan,
-           lpj.created_at AS lpj_created_at
+           lpj.created_at AS lpj_created_at,
+           (SELECT COUNT(*) FROM lpj_nota_items WHERE lpj_id = lpj.id) AS lpj_nota_count
     FROM pengajuan_kegiatan p
     JOIN users u ON p.user_id = u.id
     JOIN pos_anggaran pos ON p.pos_anggaran_id = pos.id
@@ -901,6 +913,28 @@ function getPengajuanById(id) {
     WHERE pengajuan_id = ?
     ORDER BY id DESC LIMIT 1
   `).get(id);
+
+  if (lpj) {
+    let notaItems = db.prepare(`
+      SELECT * FROM lpj_nota_items
+      WHERE lpj_id = ?
+      ORDER BY id ASC
+    `).all(lpj.id);
+
+    // Fallback kompatibilitas data lama jika belum ada baris di lpj_nota_items
+    if (notaItems.length === 0 && (lpj.file_nota_url || lpj.total_belanja_riil > 0)) {
+      notaItems = [{
+        id: 0,
+        lpj_id: lpj.id,
+        pengajuan_id: id,
+        nama_toko: 'Nota / Bukti Gabungan',
+        uraian: lpj.catatan_lpj || 'Realisasi belanja kegiatan',
+        nominal: lpj.total_belanja_riil,
+        file_url: lpj.file_nota_url
+      }];
+    }
+    lpj.nota_items = notaItems;
+  }
 
   return {
     ...proposal,
@@ -1212,7 +1246,8 @@ function submitLpjByGuru({
   user_id,
   total_belanja_riil,
   file_nota_url,
-  catatan_lpj
+  catatan_lpj,
+  nota_items = []
 }) {
   const proposal = getPengajuanById(pengajuan_id);
   if (!proposal) {
@@ -1228,8 +1263,15 @@ function submitLpjByGuru({
     throw new Error('Akses Ditolak: Anda hanya berhak membuat LPJ dari usulan kegiatan Anda sendiri.');
   }
 
+  // Hitung total belanja riil: dari rincian nota atau langsung dari form input
+  let belanjaRiil = 0;
+  if (Array.isArray(nota_items) && nota_items.length > 0) {
+    belanjaRiil = nota_items.reduce((acc, it) => acc + (Math.max(0, Number(it.nominal) || 0)), 0);
+  } else {
+    belanjaRiil = Math.max(0, Number(total_belanja_riil) || 0);
+  }
+
   const danaCair = proposal.total_dana_disetujui;
-  const belanjaRiil = Math.max(0, Number(total_belanja_riil) || 0);
   const sisaPengembalian = Math.max(0, danaCair - belanjaRiil);
 
   // Periksa apakah LPJ sebelumnya sudah pernah dibuat
@@ -1237,9 +1279,17 @@ function submitLpjByGuru({
     SELECT id, file_nota_url FROM lpj_pertanggungjawaban WHERE pengajuan_id = ?
   `).get(pengajuan_id);
 
-  const finalFileUrl = file_nota_url || (existingLpj ? existingLpj.file_nota_url : null);
+  // Cari file URL utama (dari file_nota_url, atau nota item pertama yang memiliki file, atau data lama)
+  let primaryFileUrl = file_nota_url;
+  if (!primaryFileUrl && Array.isArray(nota_items)) {
+    const itemWithFile = nota_items.find(it => it.file_url);
+    if (itemWithFile) primaryFileUrl = itemWithFile.file_url;
+  }
+  const finalFileUrl = primaryFileUrl || (existingLpj ? existingLpj.file_nota_url : null);
 
+  let lpjId = null;
   if (existingLpj) {
+    lpjId = existingLpj.id;
     db.prepare(`
       UPDATE lpj_pertanggungjawaban
       SET total_dana_cair = ?,
@@ -1250,14 +1300,44 @@ function submitLpjByGuru({
           status_lpj = 'MENUNGGU_VERIFIKASI',
           created_at = datetime('now', 'localtime')
       WHERE id = ?
-    `).run(danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '', existingLpj.id);
+    `).run(danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '', lpjId);
   } else {
-    db.prepare(`
+    const insertLpjRes = db.prepare(`
       INSERT INTO lpj_pertanggungjawaban (
         pengajuan_id, total_dana_cair, total_belanja_riil, sisa_pengembalian_dana,
         file_nota_url, catatan_lpj, status_lpj
       ) VALUES (?, ?, ?, ?, ?, ?, 'MENUNGGU_VERIFIKASI')
     `).run(pengajuan_id, danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '');
+    lpjId = insertLpjRes.lastInsertRowid;
+  }
+
+  // Sinkronisasi tabel rincian multi-nota (lpj_nota_items)
+  db.prepare('DELETE FROM lpj_nota_items WHERE lpj_id = ?').run(lpjId);
+  const insertNotaItem = db.prepare(`
+    INSERT INTO lpj_nota_items (lpj_id, pengajuan_id, nama_toko, uraian, nominal, file_url)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  if (Array.isArray(nota_items) && nota_items.length > 0) {
+    for (const item of nota_items) {
+      insertNotaItem.run(
+        lpjId,
+        pengajuan_id,
+        item.nama_toko || 'Toko / Rekanan',
+        item.uraian || '',
+        Math.max(0, Number(item.nominal) || 0),
+        item.file_url || null
+      );
+    }
+  } else {
+    insertNotaItem.run(
+      lpjId,
+      pengajuan_id,
+      'Nota Bukti Belanja',
+      catatan_lpj || 'Realisasi belanja kegiatan',
+      belanjaRiil,
+      finalFileUrl
+    );
   }
 
   // Update status proposal menjadi MENUNGGU_VERIFIKASI_LPJ
@@ -1269,7 +1349,8 @@ function submitLpjByGuru({
 
   // Catat di Audit Trail
   const guruName = user ? user.nama_lengkap : 'Guru Pemohon';
-  let detailInfo = `Belanja Riil: Rp ${belanjaRiil.toLocaleString('id-ID')}`;
+  const jumlahNotaText = Array.isArray(nota_items) && nota_items.length > 0 ? ` (${nota_items.length} berkas nota fisik)` : '';
+  let detailInfo = `Belanja Riil: Rp ${belanjaRiil.toLocaleString('id-ID')}${jumlahNotaText}`;
   if (sisaPengembalian > 0) {
     detailInfo += ` (Sisa kas disetor kembali: Rp ${sisaPengembalian.toLocaleString('id-ID')})`;
   } else if (belanjaRiil > danaCair) {
@@ -1282,7 +1363,7 @@ function submitLpjByGuru({
   `).run(
     pengajuan_id,
     user_id,
-    `LPJ DIAJUKAN: ${guruName} menyerahkan berkas LPJ fisik/nota. ${detailInfo}.`
+    `LPJ DIAJUKAN: ${guruName} menyerahkan berkas LPJ. ${detailInfo}.`
   );
 
   return getPengajuanById(pengajuan_id);
@@ -1405,7 +1486,8 @@ function deletePengajuan(id, user) {
     throw new Error('Usulan pengajuan tidak ditemukan.');
   }
 
-  // Hapus semua dependensi: LPJ, audit log, rincian item, dan data pengajuan utama
+  // Hapus semua dependensi: LPJ, nota items, audit log, rincian item, dan data pengajuan utama
+  db.prepare('DELETE FROM lpj_nota_items WHERE pengajuan_id = ?').run(id);
   db.prepare('DELETE FROM lpj_pertanggungjawaban WHERE pengajuan_id = ?').run(id);
   db.prepare('DELETE FROM audit_log_koreksi WHERE pengajuan_id = ?').run(id);
   db.prepare('DELETE FROM rincian_rab_item WHERE pengajuan_id = ?').run(id);

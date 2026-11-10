@@ -2008,6 +2008,124 @@ body {
   line-height: 1.4;
 }
 
+/* Multi-Receipt Repeater Engine */
+.lpj-receipt-card {
+  background: #ffffff;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: var(--transition);
+  position: relative;
+}
+
+.lpj-receipt-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.lpj-receipt-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border-subtle);
+}
+
+.lpj-receipt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.lpj-receipt-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.5fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.lpj-receipt-grid-bottom {
+  display: grid;
+  grid-template-columns: 1.2fr 1.5fr;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+@media (max-width: 640px) {
+  .lpj-receipt-grid,
+  .lpj-receipt-grid-bottom {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lpj-receipt-file-picker {
+  border: 1.5px dashed var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  background: #f8fafc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 42px;
+  transition: var(--transition);
+}
+
+.lpj-receipt-file-picker:hover {
+  border-color: var(--primary);
+  background: #ecfdf5;
+}
+
+.lpj-receipt-preview-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.76rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.lpj-receipt-preview-chip .file-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.lpj-ref-badge-item {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  color: var(--text-body);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lpj-ref-badge-item strong {
+  color: var(--primary);
+}
+
 /* ========================================================================== */
 /* AUTENTIKASI: TAMPILAN LOGIN RESMI & TOMBOL LOGOUT INSTITUSIONAL            */
 /* ========================================================================== */
