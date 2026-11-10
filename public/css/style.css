@@ -2755,6 +2755,25 @@ table td {
   color: var(--text-body);
 }
 
+/* Pastikan kolom nilai nominal uang selalu 1 baris utuh (Rp dan angka tidak pernah terpotong ke bawah) */
+.rkas-table th:nth-child(5),
+.rkas-table th:nth-child(6),
+.rkas-table th:nth-child(7),
+.rkas-table td:nth-child(5),
+.rkas-table td:nth-child(6),
+.rkas-table td:nth-child(7),
+.rkas-table tfoot td:nth-child(2),
+.rkas-table tfoot td:nth-child(3),
+.rkas-table tfoot td:nth-child(4) {
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.rupiah-input {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
 .rkas-table tfoot {
   position: sticky;
   bottom: 0;

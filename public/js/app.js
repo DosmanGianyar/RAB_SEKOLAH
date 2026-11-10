@@ -22,10 +22,41 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-// Format Rupiah Helper
+// Format Rupiah Helper (Menggunakan Non-Breaking Space \u00A0 agar 'Rp' dan nominal tidak pernah terpisah baris)
 function formatRupiah(val) {
   const num = Number(val) || 0;
-  return 'Rp ' + num.toLocaleString('id-ID');
+  return 'Rp\u00A0' + num.toLocaleString('id-ID');
+}
+
+// Auto-Format Input Nominal dengan Pemisah Titik Tiap 3 Angka
+function formatCurrencyInput(input) {
+  if (!input) return;
+  const cursorPos = input.selectionStart || 0;
+  const originalLength = input.value.length;
+  const rawValue = input.value.replace(/\D/g, '');
+
+  if (!rawValue) {
+    input.value = '';
+    return;
+  }
+
+  // Format angka ribuan dengan titik (Standar Indonesia)
+  const formatted = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  input.value = formatted;
+
+  // Pertahankan posisi kursor pengguna agar nyaman saat mengetik/menghapus
+  const newLength = formatted.length;
+  const newPos = Math.max(0, cursorPos + (newLength - originalLength));
+  if (typeof input.setSelectionRange === 'function') {
+    input.setSelectionRange(newPos, newPos);
+  }
+}
+
+// Helper untuk membaca nilai numerik murni dari input yang berformat titik
+function parseRupiahInput(val) {
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  return Number(String(val).replace(/\D/g, '')) || 0;
 }
 
 // Initial Load
@@ -611,18 +642,18 @@ function renderPosAnggaranTable() {
           </div>
           ${item.keterangan ? `<div class="pos-keterangan-sub">${escapeHtml(item.keterangan)}</div>` : ''}
         </td>
-        <td style="text-align: right; font-weight: 700; color: var(--text-main); font-size: 0.88rem;">
+        <td style="text-align: right; font-weight: 700; color: var(--text-main); font-size: 0.88rem; white-space: nowrap;">
           ${formatRupiah(item.pagu_awal)}
         </td>
-        <td style="text-align: right;">
-          <div style="font-weight: 600; color: var(--amber); font-size: 0.85rem;">${formatRupiah(item.total_terserap)}</div>
-          ${item.pagu_tercadangkan > 0 ? `<div class="pending-cell-sub" title="Pending Review">⏳ ${formatRupiah(item.pagu_tercadangkan)}</div>` : ''}
+        <td style="text-align: right; white-space: nowrap;">
+          <div style="font-weight: 600; color: var(--amber); font-size: 0.85rem; white-space: nowrap;">${formatRupiah(item.total_terserap)}</div>
+          ${item.pagu_tercadangkan > 0 ? `<div class="pending-cell-sub" title="Pending Review" style="white-space: nowrap;">⏳ ${formatRupiah(item.pagu_tercadangkan)}</div>` : ''}
         </td>
-        <td style="text-align: right;">
-          <div style="font-weight: 800; font-size: 0.88rem; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
+        <td style="text-align: right; white-space: nowrap;">
+          <div style="font-weight: 800; font-size: 0.88rem; white-space: nowrap; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
             ${formatRupiah(item.sisa_pagu)}
           </div>
-          <div class="status-cell-sub">
+          <div class="status-cell-sub" style="white-space: nowrap;">
             <span class="traffic-mini-pill ${item.trafficLight}">
               <span class="traffic-dot"></span> ${itemTrafficLabel} (${item.persentaseTerserap}%)
             </span>
@@ -671,18 +702,18 @@ function renderPosAnggaranTable() {
             <span class="badge-child-count">${g.items.length} Rincian</span>
           </div>
         </td>
-        <td style="text-align: right; font-weight: 800; color: var(--text-main); font-size: 0.9rem;">
+        <td style="text-align: right; font-weight: 800; color: var(--text-main); font-size: 0.9rem; white-space: nowrap;">
           ${formatRupiah(gTotalPagu)}
         </td>
-        <td style="text-align: right;">
-          <div style="font-weight: 700; color: var(--amber); font-size: 0.86rem;">${formatRupiah(gTotalTerserap)}</div>
-          ${gTotalPending > 0 ? `<div class="pending-cell-sub" title="Total Pending Review">⏳ ${formatRupiah(gTotalPending)}</div>` : ''}
+        <td style="text-align: right; white-space: nowrap;">
+          <div style="font-weight: 700; color: var(--amber); font-size: 0.86rem; white-space: nowrap;">${formatRupiah(gTotalTerserap)}</div>
+          ${gTotalPending > 0 ? `<div class="pending-cell-sub" title="Total Pending Review" style="white-space: nowrap;">⏳ ${formatRupiah(gTotalPending)}</div>` : ''}
         </td>
-        <td style="text-align: right;">
-          <div style="font-weight: 800; font-size: 0.9rem; color: ${gTotalSisa <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
+        <td style="text-align: right; white-space: nowrap;">
+          <div style="font-weight: 800; font-size: 0.9rem; white-space: nowrap; color: ${gTotalSisa <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
             ${formatRupiah(gTotalSisa)}
           </div>
-          <div class="status-cell-sub">
+          <div class="status-cell-sub" style="white-space: nowrap;">
             <span class="traffic-mini-pill ${gTraffic}">
               <span class="traffic-dot"></span> ${gTrafficLabel} (${Math.round(gPersen)}%)
             </span>
@@ -725,18 +756,18 @@ function renderPosAnggaranTable() {
                 </div>
               </div>
             </td>
-            <td style="text-align: right; font-weight: 600; color: var(--text-main); font-size: 0.86rem;">
+            <td style="text-align: right; font-weight: 600; color: var(--text-main); font-size: 0.86rem; white-space: nowrap;">
               ${formatRupiah(item.pagu_awal)}
             </td>
-            <td style="text-align: right;">
-              <div style="font-weight: 600; color: var(--amber); font-size: 0.84rem;">${formatRupiah(item.total_terserap)}</div>
-              ${item.pagu_tercadangkan > 0 ? `<div class="pending-cell-sub" title="Pending Review">⏳ ${formatRupiah(item.pagu_tercadangkan)}</div>` : ''}
+            <td style="text-align: right; white-space: nowrap;">
+              <div style="font-weight: 600; color: var(--amber); font-size: 0.84rem; white-space: nowrap;">${formatRupiah(item.total_terserap)}</div>
+              ${item.pagu_tercadangkan > 0 ? `<div class="pending-cell-sub" title="Pending Review" style="white-space: nowrap;">⏳ ${formatRupiah(item.pagu_tercadangkan)}</div>` : ''}
             </td>
-            <td style="text-align: right;">
-              <div style="font-weight: 700; font-size: 0.86rem; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
+            <td style="text-align: right; white-space: nowrap;">
+              <div style="font-weight: 700; font-size: 0.86rem; white-space: nowrap; color: ${item.sisa_pagu <= 0 ? 'var(--rose)' : 'var(--emerald)'};">
                 ${formatRupiah(item.sisa_pagu)}
               </div>
-              <div class="status-cell-sub">
+              <div class="status-cell-sub" style="white-space: nowrap;">
                 <span class="traffic-mini-pill ${item.trafficLight}">
                   <span class="traffic-dot"></span> ${itemTrafficLabel} (${item.persentaseTerserap}%)
                 </span>
@@ -773,16 +804,16 @@ function renderPosAnggaranTable() {
         <td colspan="4" style="text-align: right; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">
           Sub-Total (${groupMap.size} Kelompok / ${filtered.length} Rincian) :
         </td>
-        <td style="text-align: right; font-weight: 800; color: var(--primary); font-size: 0.9rem;">
+        <td style="text-align: right; font-weight: 800; color: var(--primary); font-size: 0.9rem; white-space: nowrap;">
           ${formatRupiah(totalPagu)}
         </td>
-        <td style="text-align: right;">
-          <div style="font-weight: 700; color: var(--amber); font-size: 0.88rem;">${formatRupiah(totalTerserap)}</div>
-          ${totalPending > 0 ? `<div class="pending-cell-sub" title="Total Pending Review">⏳ ${formatRupiah(totalPending)}</div>` : ''}
+        <td style="text-align: right; white-space: nowrap;">
+          <div style="font-weight: 700; color: var(--amber); font-size: 0.88rem; white-space: nowrap;">${formatRupiah(totalTerserap)}</div>
+          ${totalPending > 0 ? `<div class="pending-cell-sub" title="Total Pending Review" style="white-space: nowrap;">⏳ ${formatRupiah(totalPending)}</div>` : ''}
         </td>
-        <td style="text-align: right;">
-          <div style="font-weight: 800; color: var(--emerald); font-size: 0.9rem;">${formatRupiah(totalSisa)}</div>
-          <div class="status-cell-sub" style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted);">
+        <td style="text-align: right; white-space: nowrap;">
+          <div style="font-weight: 800; color: var(--emerald); font-size: 0.9rem; white-space: nowrap;">${formatRupiah(totalSisa)}</div>
+          <div class="status-cell-sub" style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">
             Serapan: ${totalPersen}%
           </div>
         </td>
@@ -976,7 +1007,7 @@ function addItemRow(defaults = {}) {
 
       <div class="form-group" style="margin-bottom: 0;">
         <label class="form-label">Harga Satuan (Rp)</label>
-        <input type="number" class="form-input item-harga" min="0" step="500" placeholder="15000" value="${defaults.harga_satuan || 0}" required oninput="handleRowInput(this)">
+        <input type="text" inputmode="numeric" class="form-input item-harga rupiah-input" placeholder="15.000" value="${defaults.harga_satuan ? Number(defaults.harga_satuan).toLocaleString('id-ID') : '0'}" required oninput="formatCurrencyInput(this); handleRowInput(this)">
       </div>
     </div>
 
@@ -1024,7 +1055,7 @@ function handleRowInput(input) {
 
 function calculateRowSubtotal(card) {
   const vol = Number(card.querySelector('.item-volume').value) || 0;
-  const harga = Number(card.querySelector('.item-harga').value) || 0;
+  const harga = parseRupiahInput(card.querySelector('.item-harga').value);
   const subtotal = vol * harga;
   card.querySelector('.item-subtotal-display').textContent = formatRupiah(subtotal);
   card.dataset.subtotal = subtotal;
@@ -1041,7 +1072,7 @@ function calculateGrandTotal() {
 
   cards.forEach(card => {
     const vol = Number(card.querySelector('.item-volume').value) || 0;
-    const harga = Number(card.querySelector('.item-harga').value) || 0;
+    const harga = parseRupiahInput(card.querySelector('.item-harga').value);
     grandTotal += (vol * harga);
   });
 
@@ -1112,7 +1143,7 @@ async function handleSubmitProposal(e) {
     const deskripsi = card.querySelector('.item-deskripsi').value.trim();
     const volume = Number(card.querySelector('.item-volume').value) || 0;
     const satuan = card.querySelector('.item-satuan').value.trim();
-    const harga_satuan = Number(card.querySelector('.item-harga').value) || 0;
+    const harga_satuan = parseRupiahInput(card.querySelector('.item-harga').value);
 
     if (!deskripsi) {
       alert('Deskripsi item belanja tidak boleh kosong.');
@@ -1660,7 +1691,7 @@ function renderReviewItems(items) {
 
         <div class="form-group" style="margin-bottom:0;">
           <label class="form-label" style="font-size:0.7rem;">Harga Satuan Disetujui (Rp)</label>
-          <input type="number" class="form-input review-harga" value="${hargaDefault}" min="0" step="500" oninput="recalculateReviewTotal()">
+          <input type="text" inputmode="numeric" class="form-input review-harga rupiah-input" value="${hargaDefault ? Number(hargaDefault).toLocaleString('id-ID') : '0'}" oninput="formatCurrencyInput(this); recalculateReviewTotal()">
         </div>
 
         <div class="form-group full-mobile" style="margin-bottom:0;">
@@ -1689,7 +1720,7 @@ function recalculateReviewTotal() {
 
   cards.forEach(card => {
     const vol = Number(card.querySelector('.review-vol').value) || 0;
-    const harga = Number(card.querySelector('.review-harga').value) || 0;
+    const harga = parseRupiahInput(card.querySelector('.review-harga').value);
     const subtotal = vol * harga;
     totalDisetujui += subtotal;
     card.querySelector('.review-subtotal-val').textContent = formatRupiah(subtotal);
@@ -1739,7 +1770,7 @@ async function handleBendaharaAction(tindakan) {
   cards.forEach(card => {
     const id = Number(card.dataset.itemId);
     const volume_disetujui = Number(card.querySelector('.review-vol').value) || 0;
-    const harga_satuan_disetujui = Number(card.querySelector('.review-harga').value) || 0;
+    const harga_satuan_disetujui = parseRupiahInput(card.querySelector('.review-harga').value);
     const catatan_koreksi = card.querySelector('.review-note').value.trim();
     items_koreksi.push({
       id,
@@ -2028,7 +2059,7 @@ function openEditPosModal(id) {
   document.getElementById('inputVolume').value = item.volume || 1;
   document.getElementById('inputSatuan').value = item.satuan || 'kegiatan';
   document.getElementById('inputTahunAjaran').value = item.tahun_ajaran;
-  document.getElementById('inputPaguAwal').value = item.pagu_awal;
+  document.getElementById('inputPaguAwal').value = item.pagu_awal ? Number(item.pagu_awal).toLocaleString('id-ID') : '0';
   document.getElementById('inputKeterangan').value = item.keterangan || '';
 
   document.getElementById('modalPos').classList.add('active');
@@ -2053,7 +2084,7 @@ async function handleSavePosAnggaran(e) {
     nama_pos: document.getElementById('inputNamaPos').value.trim(),
     volume: Number(document.getElementById('inputVolume').value) || 1,
     satuan: document.getElementById('inputSatuan').value.trim() || 'kegiatan',
-    pagu_awal: Number(document.getElementById('inputPaguAwal').value),
+    pagu_awal: parseRupiahInput(document.getElementById('inputPaguAwal').value),
     tahun_ajaran: document.getElementById('inputTahunAjaran').value.trim(),
     keterangan: document.getElementById('inputKeterangan').value.trim()
   };
@@ -2274,14 +2305,14 @@ async function openSubmitLpjModal(proposalId) {
 
       // Pre-fill jika sudah pernah dibuat sebelumnya
       if (p.lpj) {
-        document.getElementById('lpjTotalBelanjaRiil').value = p.lpj.total_belanja_riil;
+        document.getElementById('lpjTotalBelanjaRiil').value = p.lpj.total_belanja_riil ? Number(p.lpj.total_belanja_riil).toLocaleString('id-ID') : '0';
         document.getElementById('lpjCatatan').value = p.lpj.catatan_lpj || '';
         if (p.lpj.file_nota_url) {
           document.getElementById('lpjFilePreviewWrap').style.display = 'flex';
           document.getElementById('lpjFileName').textContent = p.lpj.file_nota_url.split('/').pop();
         }
       } else {
-        document.getElementById('lpjTotalBelanjaRiil').value = p.total_dana_disetujui;
+        document.getElementById('lpjTotalBelanjaRiil').value = p.total_dana_disetujui ? Number(p.total_dana_disetujui).toLocaleString('id-ID') : '0';
         document.getElementById('lpjCatatan').value = '';
         clearLpjFile();
       }
@@ -2304,7 +2335,7 @@ function recalculateLpjCashback() {
   if (!activeLpjProposal) return;
 
   const danaCair = activeLpjProposal.total_dana_disetujui || 0;
-  const belanjaRiil = Number(document.getElementById('lpjTotalBelanjaRiil').value) || 0;
+  const belanjaRiil = parseRupiahInput(document.getElementById('lpjTotalBelanjaRiil').value);
   const selisih = danaCair - belanjaRiil;
 
   const box = document.getElementById('lpjCashbackCalcBox');
@@ -2355,7 +2386,7 @@ async function handleSubmitLpj(e) {
   if (!activeLpjProposal) return;
 
   const id = activeLpjProposal.id;
-  const belanjaRiil = document.getElementById('lpjTotalBelanjaRiil').value;
+  const belanjaRiil = parseRupiahInput(document.getElementById('lpjTotalBelanjaRiil').value);
   const catatan = document.getElementById('lpjCatatan').value.trim();
 
   const formData = new FormData();
