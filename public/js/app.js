@@ -64,18 +64,143 @@ function canUserDelete() {
   return currentUser && ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role);
 }
 
+// SweetAlert2 Toast Notifikasi Pojok
+function getSwalToast() {
+  if (typeof Swal === 'undefined') return null;
+  return Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3500,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer);
+      toast.addEventListener('mouseleave', Swal.resumeTimer);
+    }
+  });
+}
+
+// Dialog Konfirmasi Keamanan Tingkat Tinggi dengan Centang Wajib (Mandatory Checkbox)
+async function confirmDeleteWithSecurityCheckbox({ title, itemName, itemType, warningNotes, checkboxLabel }) {
+  if (typeof Swal === 'undefined') {
+    return { isConfirmed: confirm(`PERINGATAN:\n\nApakah Anda yakin ingin menghapus ${itemType}: "${itemName}"?\n${warningNotes}`) };
+  }
+
+  const checkboxId = 'swalSecurityCheckbox_' + Math.floor(Math.random() * 10000);
+  const htmlContent = `
+    <div style="text-align: left; font-size: 0.88rem; color: #334155; line-height: 1.5;">
+      <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+        <div style="font-weight: 800; color: #991b1b; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; font-size: 0.85rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          PERINGATAN OTORISASI KHUSUS
+        </div>
+        <div style="font-size: 0.8rem; color: #7f1d1d; line-height: 1.45;">
+          ${warningNotes}
+        </div>
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;">
+        <span style="color: #64748b; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${itemType}:</span>
+        <div style="font-weight: 800; color: #0f172a; font-size: 0.95rem; margin-top: 3px;">
+          ${escapeHtml(itemName)}
+        </div>
+      </div>
+
+      <!-- Kotak Centang Pengaman Wajib -->
+      <div style="background: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; padding: 12px 14px; user-select: none; transition: border-color 0.2s;" id="wrap_${checkboxId}">
+        <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 0;">
+          <input type="checkbox" id="${checkboxId}" style="width: 19px; height: 19px; margin-top: 2px; accent-color: #dc2626; cursor: pointer;">
+          <span style="font-size: 0.82rem; font-weight: 700; color: #0f172a; line-height: 1.4;">
+            ${checkboxLabel || 'Saya memahami konsekuensi penghapusan ini dan menyatakan data ini benar-benar akan dihapus permanen dari sistem.'}
+          </span>
+        </label>
+      </div>
+    </div>
+  `;
+
+  return await Swal.fire({
+    title: `<span style="font-weight: 800; font-size: 1.18rem; color: #0f172a;">${title}</span>`,
+    html: htmlContent,
+    icon: 'warning',
+    iconColor: '#dc2626',
+    showCancelButton: true,
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: '<i class="ti ti-trash"></i> Ya, Hapus Sekarang',
+    cancelButtonText: 'Batal',
+    focusCancel: true,
+    buttonsStyling: true,
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      const checkbox = document.getElementById(checkboxId);
+      const wrap = document.getElementById('wrap_' + checkboxId);
+      
+      // Awalnya tombol konfirmasi DISABLED (terkunci)
+      confirmBtn.disabled = true;
+      confirmBtn.style.opacity = '0.4';
+      confirmBtn.style.cursor = 'not-allowed';
+      confirmBtn.style.filter = 'grayscale(80%)';
+
+      // Ketika pengguna mencentang, tombol konfirmasi AKTIF
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) {
+          confirmBtn.disabled = false;
+          confirmBtn.style.opacity = '1';
+          confirmBtn.style.cursor = 'pointer';
+          confirmBtn.style.filter = 'none';
+          if (wrap) wrap.style.borderColor = '#dc2626';
+        } else {
+          confirmBtn.disabled = true;
+          confirmBtn.style.opacity = '0.4';
+          confirmBtn.style.cursor = 'not-allowed';
+          confirmBtn.style.filter = 'grayscale(80%)';
+          if (wrap) wrap.style.borderColor = '#cbd5e1';
+        }
+      });
+    }
+  });
+}
+
 // Handler Hapus Usulan Pengajuan Kegiatan (Hanya Otoritas Khusus)
 async function handleDeleteProposal(id, nama) {
   if (!canUserDelete()) {
-    alert('Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang memiliki hak otorisasi untuk menghapus usulan kegiatan.');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Akses Ditolak',
+        text: 'Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang memiliki hak otorisasi untuk menghapus usulan kegiatan.',
+        confirmButtonColor: '#1d4ed8'
+      });
+    } else {
+      alert('Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang memiliki hak otorisasi untuk menghapus usulan kegiatan.');
+    }
     return;
   }
 
   const namaDisplay = nama || 'usulan ini';
-  const confirmed = confirm(
-    `PERINGATAN OTORISASI KHUSUS:\n\nApakah Anda yakin ingin menghapus permanen usulan kegiatan:\n"${namaDisplay}"?\n\nSeluruh data rincian belanja, riwayat audit, dan alokasi pagu akan dibatalkan & dikembalikan otomatis ke kas.\n\nTindakan ini bersifat PERMANEN dan tidak dapat dibatalkan.`
-  );
-  if (!confirmed) return;
+  const confirmation = await confirmDeleteWithSecurityCheckbox({
+    title: 'Konfirmasi Hapus Usulan Kegiatan',
+    itemType: 'Nama Usulan Kegiatan',
+    itemName: namaDisplay,
+    warningNotes: 'Seluruh rincian belanja, riwayat telaah pengesahan, dan berkas nota LPJ akan dihapus permanen. Alokasi pagu anggaran yang sebelumnya tercadangkan atau terserap akan dipulihkan otomatis ke kas sekolah.',
+    checkboxLabel: 'Saya memahami risiko ini dan menyatakan usulan kegiatan ini benar-benar akan dihapus secara permanen.'
+  });
+
+  if (!confirmation || !confirmation.isConfirmed) return;
+
+  // Tampilkan loading saat proses penghapusan
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: 'Menghapus Usulan...',
+      text: 'Memulihkan pagu anggaran & membersihkan berkas terkait',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+  }
 
   try {
     const res = await fetch(`/api/pengajuan/${id}`, {
@@ -83,32 +208,85 @@ async function handleDeleteProposal(id, nama) {
     });
     const result = await res.json();
     if (result.success) {
-      alert(`✅ ${result.message}`);
       closeDetailModal();
       await loadProposals();
       await loadPosAnggaran();
       await loadSummary();
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil Dihapus',
+          text: result.message,
+          confirmButtonColor: '#1d4ed8',
+          timer: 3000
+        });
+      } else {
+        alert(`✅ ${result.message}`);
+      }
     } else {
-      alert(`❌ Gagal menghapus usulan: ${result.message}`);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Menghapus',
+          text: result.message,
+          confirmButtonColor: '#1d4ed8'
+        });
+      } else {
+        alert(`❌ Gagal menghapus usulan: ${result.message}`);
+      }
     }
   } catch (err) {
     console.error('Error saat menghapus proposal:', err);
-    alert('Terjadi kesalahan jaringan atau server saat menghapus usulan.');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kesalahan Sistem',
+        text: 'Terjadi kesalahan jaringan atau server saat menghapus usulan.',
+        confirmButtonColor: '#1d4ed8'
+      });
+    } else {
+      alert('Terjadi kesalahan jaringan atau server saat menghapus usulan.');
+    }
   }
 }
 
 // Handler Hapus Pos Anggaran RKAS (Hanya Otoritas Khusus)
 async function handleDeletePosAnggaran(id, nama) {
   if (!canUserDelete()) {
-    alert('Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang berhak menghapus pos anggaran.');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Akses Ditolak',
+        text: 'Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang berhak menghapus pos anggaran.',
+        confirmButtonColor: '#1d4ed8'
+      });
+    } else {
+      alert('Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang berhak menghapus pos anggaran.');
+    }
     return;
   }
 
   const namaDisplay = nama || 'pos anggaran ini';
-  const confirmed = confirm(
-    `PERINGATAN OTORISASI KHUSUS:\n\nApakah Anda yakin ingin menghapus pos anggaran:\n"${namaDisplay}"?\n\nCatatan: Pos hanya dapat dihapus jika tidak ada usulan kegiatan aktif di dalamnya.\n\nTindakan ini tidak dapat dibatalkan.`
-  );
-  if (!confirmed) return;
+  const confirmation = await confirmDeleteWithSecurityCheckbox({
+    title: 'Konfirmasi Hapus Pos Anggaran',
+    itemType: 'Nama Pos RKAS',
+    itemName: namaDisplay,
+    warningNotes: 'Menghapus pos anggaran akan menghilangkannya dari buku besar RKAS sekolah. Pos ini hanya dapat dihapus jika tidak ada usulan kegiatan aktif yang sedang berjalan di dalamnya.',
+    checkboxLabel: 'Saya telah memeriksa dan menyetujui penghapusan pos anggaran ini secara permanen dari buku besar RKAS.'
+  });
+
+  if (!confirmation || !confirmation.isConfirmed) return;
+
+  // Tampilkan loading saat proses penghapusan
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: 'Menghapus Pos Anggaran...',
+      text: 'Memverifikasi relasi kegiatan & memperbarui buku besar',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+  }
 
   try {
     const res = await fetch(`/api/pos-anggaran/${id}`, {
@@ -116,22 +294,52 @@ async function handleDeletePosAnggaran(id, nama) {
     });
     const result = await res.json();
     if (result.success) {
-      alert(`✅ ${result.message}`);
       closePosModal();
       await loadPosAnggaran();
       await loadSummary();
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil Dihapus',
+          text: result.message,
+          confirmButtonColor: '#1d4ed8',
+          timer: 3000
+        });
+      } else {
+        alert(`✅ ${result.message}`);
+      }
     } else {
-      alert(`❌ Gagal menghapus pos anggaran: ${result.message}`);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Tidak Dapat Dihapus',
+          text: result.message,
+          confirmButtonColor: '#1d4ed8'
+        });
+      } else {
+        alert(`❌ Gagal menghapus pos anggaran: ${result.message}`);
+      }
     }
   } catch (err) {
     console.error('Error saat menghapus pos anggaran:', err);
-    alert('Terjadi kesalahan jaringan atau server saat menghapus pos anggaran.');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kesalahan Sistem',
+        text: 'Terjadi kesalahan jaringan atau server saat menghapus pos anggaran.',
+        confirmButtonColor: '#1d4ed8'
+      });
+    } else {
+      alert('Terjadi kesalahan jaringan atau server saat menghapus pos anggaran.');
+    }
   }
 }
 
 window.canUserDelete = canUserDelete;
 window.handleDeleteProposal = handleDeleteProposal;
 window.handleDeletePosAnggaran = handleDeletePosAnggaran;
+window.confirmDeleteWithSecurityCheckbox = confirmDeleteWithSecurityCheckbox;
 
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
@@ -413,8 +621,22 @@ window.togglePasswordVisibility = togglePasswordVisibility;
 
 // Logout Handler Resmi
 async function handleLogout() {
-  if (!confirm('Apakah Anda yakin ingin keluar dari sistem SI-ARTHA DOSMAN?')) {
-    return;
+  if (typeof Swal !== 'undefined') {
+    const result = await Swal.fire({
+      title: 'Keluar dari Sistem?',
+      text: 'Apakah Anda yakin ingin mengakhiri sesi SI-ARTHA DOSMAN?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#1d4ed8',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: '<i class="ti ti-logout"></i> Ya, Keluar',
+      cancelButtonText: 'Batal'
+    });
+    if (!result.isConfirmed) return;
+  } else {
+    if (!confirm('Apakah Anda yakin ingin keluar dari sistem SI-ARTHA DOSMAN?')) {
+      return;
+    }
   }
 
   try {
@@ -2261,10 +2483,20 @@ async function handleSavePosAnggaran(e) {
   }
 }
 
-// Toast Notification
-function showNotification(msg) {
-  const toast = document.createElement('div');
-  toast.style.cssText = `
+// Toast Notification (SweetAlert2 dengan Fallback Native)
+function showNotification(msg, icon = 'success') {
+  const toast = getSwalToast();
+  if (toast) {
+    const cleanMsg = String(msg).replace(/^[✓✨🏛️🎉✅]\s*/, '');
+    toast.fire({
+      icon: icon,
+      title: cleanMsg
+    });
+    return;
+  }
+
+  const toastEl = document.createElement('div');
+  toastEl.style.cssText = `
     position: fixed;
     top: 20px;
     left: 50%;
@@ -2284,17 +2516,17 @@ function showNotification(msg) {
     gap: 8px;
     animation: fadeInDown 0.3s ease;
   `;
-  toast.innerHTML = `
+  toastEl.innerHTML = `
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5">
       <path d="M20 6L9 17l-5-5"></path>
     </svg>
     <span>${msg}</span>
   `;
-  document.body.appendChild(toast);
+  document.body.appendChild(toastEl);
   setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transition = 'opacity 0.4s ease';
-    setTimeout(() => toast.remove(), 400);
+    toastEl.style.opacity = '0';
+    toastEl.style.transition = 'opacity 0.4s ease';
+    setTimeout(() => toastEl.remove(), 400);
   }, 3000);
 }
 
