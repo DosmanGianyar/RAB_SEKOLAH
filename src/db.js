@@ -340,11 +340,15 @@ function importRkasFromExcel(customFilePath = null) {
     db.exec('PRAGMA foreign_keys = OFF;');
 
     const existingRows = db.prepare('SELECT id, kode_rekening, nama_pos FROM pos_anggaran').all();
-    const mapByKode = new Map();
+    const mapByComposite = new Map();
     const mapByNama = new Map();
+    const mapByKode = new Map();
     existingRows.forEach(row => {
-      if (row.kode_rekening) mapByKode.set(row.kode_rekening, row.id);
+      if (row.kode_rekening && row.nama_pos) {
+        mapByComposite.set(`${row.kode_rekening}:::${row.nama_pos.toLowerCase().trim()}`, row.id);
+      }
       if (row.nama_pos) mapByNama.set(row.nama_pos.toLowerCase().trim(), row.id);
+      if (row.kode_rekening) mapByKode.set(row.kode_rekening, row.id);
     });
 
     const updateStmt = db.prepare(`
@@ -364,8 +368,10 @@ function importRkasFromExcel(customFilePath = null) {
     `);
 
     for (const r of dbRecords) {
-      const existingId = (r.kode_rekening && mapByKode.get(r.kode_rekening)) ||
-                         mapByNama.get(r.nama_pos.toLowerCase().trim());
+      const compKey = `${r.kode_rekening}:::${r.nama_pos.toLowerCase().trim()}`;
+      const existingId = mapByComposite.get(compKey) ||
+                         mapByNama.get(r.nama_pos.toLowerCase().trim()) ||
+                         (r.kode_rekening && mapByKode.get(r.kode_rekening));
 
       if (existingId) {
         updateStmt.run(
