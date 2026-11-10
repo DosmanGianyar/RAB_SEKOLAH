@@ -455,6 +455,9 @@ function switchView(viewName) {
     const navLaporan = document.getElementById('navLaporan');
     if (navLaporan) navLaporan.classList.add('active');
     loadProposalsList().then(() => renderLpjView());
+  } else if (viewName === 'formLpj') {
+    const viewLpj = document.getElementById('viewFormLpj');
+    if (viewLpj) viewLpj.classList.add('active');
   }
 
   // Scroll to top saat berpindah tampilan
@@ -1691,8 +1694,8 @@ function renderProposalsList(proposals) {
       `;
     } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
       roleActionBtn = `
-        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})" title="Unggah bukti nota kuitansi belanja & selesaikan LPJ">
-          <i class="ti ti-upload"></i> Upload Nota &amp; Buat LPJ
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); navigateToLpjEditor(${p.id})" title="Buka formulir lengkap penyusunan LPJ &amp; unggah bukti">
+          <i class="ti ti-file-certificate"></i> Buat LPJ
         </button>
       `;
     } else if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
@@ -1703,8 +1706,8 @@ function renderProposalsList(proposals) {
       `;
     } else if (isOwnerGuru && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
       roleActionBtn = `
-        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openSubmitLpjModal(${p.id})" title="Ubah atau ganti lampiran berkas nota LPJ">
-          <i class="ti ti-edit"></i> Edit Nota &amp; LPJ
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); navigateToLpjEditor(${p.id})" title="Ubah atau lengkapi laporan LPJ &amp; berkas nota">
+          <i class="ti ti-edit"></i> Edit LPJ
         </button>
       `;
     }
@@ -1712,10 +1715,17 @@ function renderProposalsList(proposals) {
     let printActionBtn = '';
     if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
       printActionBtn = `
-        <a href="/cetak/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()">
+        <a href="/cetak/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" title="Cetak Lembar Disposisi &amp; RAB">
           <i class="ti ti-printer"></i> Disposisi
         </a>
       `;
+      if (p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
+        printActionBtn += `
+          <a href="/cetak-lpj/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; margin-left:4px;" title="Cetak Laporan Pertanggungjawaban (LPJ) Lengkap">
+            <i class="ti ti-file-certificate"></i> LPJ
+          </a>
+        `;
+      }
     }
 
     let deleteProposalBtn = '';
@@ -1973,10 +1983,10 @@ async function openProposalDetail(id) {
       } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
         const btnLpj = document.createElement('button');
         btnLpj.className = 'btn btn-primary btn-sm';
-        btnLpj.innerHTML = '<i class="ti ti-upload"></i> Upload Nota &amp; Buat LPJ';
+        btnLpj.innerHTML = '<i class="ti ti-file-certificate"></i> Buat Laporan LPJ';
         btnLpj.onclick = () => {
           closeDetailModal();
-          openSubmitLpjModal(p.id);
+          navigateToLpjEditor(p.id);
         };
         footer.appendChild(btnLpj);
       } else if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
@@ -1994,10 +2004,10 @@ async function openProposalDetail(id) {
       } else if (isOwnerGuru && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
         const btnEditLpj = document.createElement('button');
         btnEditLpj.className = 'btn btn-secondary btn-sm';
-        btnEditLpj.innerHTML = '<i class="ti ti-edit"></i> Edit Berkas LPJ';
+        btnEditLpj.innerHTML = '<i class="ti ti-edit"></i> Edit Laporan LPJ';
         btnEditLpj.onclick = () => {
           closeDetailModal();
-          openSubmitLpjModal(p.id);
+          navigateToLpjEditor(p.id);
         };
         footer.appendChild(btnEditLpj);
       } else if (p.status === 'SELESAI' && p.lpj) {
@@ -2009,6 +2019,13 @@ async function openProposalDetail(id) {
           openVerifikasiLpjModal(p.id);
         };
         footer.appendChild(btnViewLpj);
+
+        const btnCetakLpj = document.createElement('a');
+        btnCetakLpj.className = 'btn btn-primary btn-sm';
+        btnCetakLpj.href = `/cetak-lpj/${p.id}`;
+        btnCetakLpj.target = '_blank';
+        btnCetakLpj.innerHTML = '<i class="ti ti-printer"></i> Cetak LPJ Resmi (PDF)';
+        footer.appendChild(btnCetakLpj);
       }
     }
   } catch (err) {
@@ -2811,13 +2828,188 @@ async function handlePencairanSubmit(e) {
 // FASE 5: MODUL LPJ (LAPORAN PERTANGGUNGJAWABAN) & REKONSILIASI KAS
 // ==========================================================================
 
+// State Editor Halaman Penuh LPJ
 let activeLpjProposal = null;
-let selectedLpjFile = null;
-let lpjReceiptRows = [];
-let nextReceiptRowId = 1;
+let selectedEditorMasterFile = null;
+let editorReceiptRows = [];
+let nextEditorReceiptId = 1;
+let editorFotoRows = [];
+let nextEditorFotoId = 1;
 
-function addLpjReceiptRow(data = null) {
-  const rowId = nextReceiptRowId++;
+// Kompatibilitas mundur modal
+function openSubmitLpjModal(proposalId) {
+  navigateToLpjEditor(proposalId);
+}
+function closeSubmitLpjModal() {
+  goBackFromLpjEditor();
+}
+
+/**
+ * Navigasi ke Halaman Editor LPJ Terpisah
+ */
+async function navigateToLpjEditor(proposalId) {
+  if (typeof switchView === 'function') {
+    switchView('formLpj');
+  } else {
+    document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+    const v = document.getElementById('viewFormLpj');
+    if (v) v.classList.add('active');
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  try {
+    const res = await fetch(`/api/pengajuan/${proposalId}`);
+    const data = await res.json();
+    if (!data.success || !data.data) {
+      showNotification('Gagal memuat rincian usulan untuk LPJ');
+      return;
+    }
+
+    const p = data.data;
+    activeLpjProposal = p;
+
+    // Reset Form
+    document.getElementById('editorLpjProposalId').value = p.id;
+    document.getElementById('editorLpjNomorSurat').textContent = p.nomor_surat_ajuan;
+    document.getElementById('editorLpjNamaKegiatan').textContent = p.nama_kegiatan;
+    document.getElementById('editorLpjSubHeader').textContent = `Pemohon: ${p.pemohon_nama} (${p.pemohon_unit}) • Pos Anggaran: ${p.nama_pos}`;
+    document.getElementById('editorLpjTotalDanaCair').textContent = formatRupiah(p.total_dana_disetujui);
+
+    // Setup tombol cetak langsung
+    const btnCetak = document.getElementById('btnEditorCetakLaporan');
+    if (btnCetak) {
+      btnCetak.onclick = () => window.open(`/cetak-lpj/${p.id}`, '_blank');
+      btnCetak.style.display = p.lpj ? 'inline-flex' : 'none';
+    }
+
+    // Tampilkan Referensi Rincian Item RAB Disetujui
+    const refBox = document.getElementById('editorLpjApprovedRefBox');
+    const refList = document.getElementById('editorLpjApprovedRefList');
+    if (refBox && refList) {
+      if (p.items && p.items.length > 0) {
+        refBox.style.display = 'block';
+        refList.innerHTML = p.items.map(it => {
+          const vol = it.volume_disetujui || it.volume_diajukan;
+          const sat = it.satuan_disetujui || it.satuan_diajukan;
+          const sub = it.subtotal_disetujui || it.subtotal_diajukan;
+          return `
+            <div class="lpj-ref-badge-item" title="${escapeHtml(it.spesifikasi || '')}">
+              <span>${escapeHtml(it.nama_item)}</span>
+              <span style="color:var(--text-muted);">(${vol} ${sat})</span>
+              <strong>${formatRupiah(sub)}</strong>
+            </div>
+          `;
+        }).join('');
+      } else {
+        refBox.style.display = 'none';
+      }
+    }
+
+    // Reset Data Repeater
+    editorReceiptRows = [];
+    nextEditorReceiptId = 1;
+    editorFotoRows = [];
+    nextEditorFotoId = 1;
+    selectedEditorMasterFile = null;
+
+    const receiptStack = document.getElementById('editorLpjNotaStack');
+    if (receiptStack) receiptStack.innerHTML = '';
+    const fotoStack = document.getElementById('editorLpjFotoStack');
+    if (fotoStack) fotoStack.innerHTML = '';
+
+    // Isi Nilai Deskripsi & Resume jika sudah ada LPJ
+    if (p.lpj) {
+      document.getElementById('editorLpjLatarBelakang').value = p.lpj.catatan_lpj || p.latar_belakang || '';
+      document.getElementById('editorLpjTujuan').value = p.lpj.tujuan_kegiatan || p.tujuan_kegiatan || '';
+      document.getElementById('editorLpjTempat').value = p.lpj.tempat_pelaksanaan || '';
+      document.getElementById('editorLpjPeserta').value = p.lpj.jumlah_peserta || '';
+
+      document.getElementById('editorLpjResumeHasil').value = p.lpj.resume_hasil || '';
+      document.getElementById('editorLpjKendala').value = p.lpj.kendala || '';
+      document.getElementById('editorLpjSolusi').value = p.lpj.solusi_tindak_lanjut || '';
+      document.getElementById('editorLpjCatatanTambahan').value = p.lpj.catatan_lpj || '';
+
+      // Master PDF file
+      if (p.lpj.file_nota_url) {
+        const masterChip = document.getElementById('editorLpjMasterFileChip');
+        const masterName = document.getElementById('editorLpjMasterFileName');
+        const masterPicker = document.getElementById('editorLpjMasterFilePicker');
+        if (masterChip && masterName && masterPicker) {
+          masterChip.style.display = 'inline-flex';
+          masterPicker.style.display = 'none';
+          masterName.textContent = p.lpj.file_nota_url.split('/').pop();
+        }
+      } else {
+        clearEditorMasterFile();
+      }
+
+      // Nota Items
+      if (p.lpj.nota_items && p.lpj.nota_items.length > 0) {
+        p.lpj.nota_items.forEach(it => addEditorReceiptRow(it));
+      } else {
+        addEditorReceiptRow({
+          nama_toko: 'Nota Pembelian',
+          uraian: 'Realisasi belanja kegiatan',
+          nominal: p.lpj.total_belanja_riil || p.total_dana_disetujui,
+          file_url: p.lpj.file_nota_url
+        });
+      }
+
+      // Foto Dokumentasi
+      if (p.lpj.foto_dokumentasi && p.lpj.foto_dokumentasi.length > 0) {
+        p.lpj.foto_dokumentasi.forEach(ft => addEditorFotoRow(ft));
+      } else {
+        addEditorFotoRow();
+      }
+    } else {
+      // Usulan Baru Belum Ada LPJ
+      document.getElementById('editorLpjLatarBelakang').value = p.latar_belakang || '';
+      document.getElementById('editorLpjTujuan').value = p.tujuan_kegiatan || '';
+      document.getElementById('editorLpjTempat').value = '';
+      document.getElementById('editorLpjPeserta').value = '';
+
+      document.getElementById('editorLpjResumeHasil').value = '';
+      document.getElementById('editorLpjKendala').value = '';
+      document.getElementById('editorLpjSolusi').value = '';
+      document.getElementById('editorLpjCatatanTambahan').value = '';
+
+      clearEditorMasterFile();
+
+      // Tambahkan default 1 baris nota awal
+      addEditorReceiptRow({
+        nama_toko: '',
+        uraian: '',
+        nominal: p.total_dana_disetujui || 0,
+        file_url: null
+      });
+
+      // Tambahkan default 1 baris foto dokumentasi
+      addEditorFotoRow();
+    }
+
+    recalculateEditorMultiTotals();
+  } catch (err) {
+    console.error('Error navigateToLpjEditor:', err);
+    showNotification('Terjadi kesalahan memuat data usulan.');
+  }
+}
+
+function goBackFromLpjEditor() {
+  if (typeof switchView === 'function') {
+    switchView('proposals');
+  } else {
+    document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+    const v = document.getElementById('viewProposals');
+    if (v) v.classList.add('active');
+  }
+}
+
+// --------------------------------------------------------------------------
+// Multi-Nota Repeater di Halaman Editor LPJ
+// --------------------------------------------------------------------------
+
+function addEditorReceiptRow(data = null) {
+  const rowId = nextEditorReceiptId++;
   const rowItem = {
     id: rowId,
     nama_toko: data ? (data.nama_toko || '') : '',
@@ -2826,76 +3018,76 @@ function addLpjReceiptRow(data = null) {
     file: null,
     existing_file_url: data ? (data.file_url || null) : null
   };
-  lpjReceiptRows.push(rowItem);
+  editorReceiptRows.push(rowItem);
 
-  const container = document.getElementById('lpjNotaItemsStack');
+  const container = document.getElementById('editorLpjNotaStack');
   if (!container) return;
 
   const card = document.createElement('div');
   card.className = 'lpj-receipt-card';
-  card.id = `receiptRowCard_${rowId}`;
+  card.id = `editorReceiptCard_${rowId}`;
 
-  const rowNum = lpjReceiptRows.length;
+  const rowNum = editorReceiptRows.length;
   const initialNominal = rowItem.nominal ? Number(rowItem.nominal).toLocaleString('id-ID') : '';
 
   let fileStatusHtml = '';
   if (rowItem.existing_file_url) {
     const filename = rowItem.existing_file_url.split('/').pop();
     fileStatusHtml = `
-      <div class="lpj-receipt-preview-chip" id="receiptPreviewChip_${rowId}">
+      <div class="lpj-receipt-preview-chip" id="editorReceiptPreviewChip_${rowId}">
         <span style="font-size: 1rem;">📎</span>
         <span class="file-name" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
         <a href="${rowItem.existing_file_url}" target="_blank" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem;" onclick="event.stopPropagation()">Lihat</a>
-        <button type="button" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem; color: var(--rose);" onclick="clearReceiptRowFile(event, ${rowId})">Ganti</button>
+        <button type="button" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem; color: var(--rose);" onclick="clearEditorReceiptFile(event, ${rowId})">Ganti</button>
       </div>
     `;
   } else {
     fileStatusHtml = `
-      <div class="lpj-receipt-file-picker" id="receiptFilePicker_${rowId}" onclick="document.getElementById('receiptFileInput_${rowId}').click()">
+      <div class="lpj-receipt-file-picker" id="editorReceiptFilePicker_${rowId}" onclick="document.getElementById('editorReceiptFileInput_${rowId}').click()">
         <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
           <i class="ti ti-camera" style="font-size: 0.95rem; color: var(--primary);"></i> Foto / PDF Nota
         </span>
         <span class="btn btn-outline-success btn-xs" style="padding: 2px 8px; font-size: 0.7rem; pointer-events: none;">Pilih File</span>
       </div>
-      <div class="lpj-receipt-preview-chip" id="receiptPreviewChip_${rowId}" style="display: none;"></div>
+      <div class="lpj-receipt-preview-chip" id="editorReceiptPreviewChip_${rowId}" style="display: none;"></div>
     `;
   }
 
   card.innerHTML = `
     <div class="lpj-receipt-card-header">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="lpj-receipt-badge" id="receiptBadgeNum_${rowId}">
-          <i class="ti ti-receipt"></i> Nota #${rowNum}
+        <span class="lpj-receipt-badge" id="editorReceiptBadgeNum_${rowId}">
+          <i class="ti ti-receipt"></i> Bukti Nota #${rowNum}
         </span>
-        <span style="font-size: 0.74rem; color: var(--text-muted);" id="receiptHeaderSubtitle_${rowId}">
+        <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-main);" id="editorReceiptSubtitle_${rowId}">
           ${rowItem.nama_toko ? escapeHtml(rowItem.nama_toko) : 'Nota Pembelian / Jasa'}
         </span>
       </div>
-      <button type="button" class="btn btn-outline-danger btn-xs" onclick="removeLpjReceiptRow(${rowId})" title="Hapus nota ini" ${lpjReceiptRows.length <= 1 ? 'style="display:none;"' : ''} id="btnRemoveReceipt_${rowId}">
-        <i class="ti ti-trash"></i> Hapus
+      <button type="button" class="btn btn-outline-danger btn-xs" onclick="removeEditorReceiptRow(${rowId})" title="Hapus nota ini" ${editorReceiptRows.length <= 1 ? 'style="display:none;"' : ''} id="btnRemoveEditorReceipt_${rowId}">
+        <i class="ti ti-trash"></i> Hapus Nota
       </button>
     </div>
 
     <div class="lpj-receipt-grid">
       <div>
-        <label class="form-label" style="font-size: 0.74rem; font-weight: 700; margin-bottom: 3px;">Nama Toko / Rekanan / Penyedia *</label>
-        <input type="text" class="form-input form-input-sm" id="receiptToko_${rowId}" placeholder="Cth: Toko ATK Sahabat, RM Barokah" value="${escapeHtml(rowItem.nama_toko)}" oninput="updateReceiptRowMeta(${rowId})">
+        <label class="form-label" style="font-size: 0.75rem; font-weight: 700; margin-bottom: 4px;">Nama Toko / Rekanan / Penyedia *</label>
+        <input type="text" class="form-input form-input-sm" id="editorReceiptToko_${rowId}" placeholder="Cth: Toko ATK Sahabat, RM Sederhana" value="${escapeHtml(rowItem.nama_toko)}" oninput="updateEditorReceiptMeta(${rowId})">
       </div>
       <div>
-        <label class="form-label" style="font-size: 0.74rem; font-weight: 700; margin-bottom: 3px;">Uraian Barang / Jasa yang Tertera di Nota</label>
-        <input type="text" class="form-input form-input-sm" id="receiptUraian_${rowId}" placeholder="Cth: Kertas F4 + Spidol Snowman + Lakban" value="${escapeHtml(rowItem.uraian)}" oninput="updateReceiptRowMeta(${rowId})">
+        <label class="form-label" style="font-size: 0.75rem; font-weight: 700; margin-bottom: 4px;">Uraian Barang / Jasa pada Nota Ini</label>
+        <input type="text" class="form-input form-input-sm" id="editorReceiptUraian_${rowId}" placeholder="Cth: 5 Rim Kertas A4 + 2 Lusin Spidol Snowman" value="${escapeHtml(rowItem.uraian)}" oninput="updateEditorReceiptMeta(${rowId})">
       </div>
     </div>
 
     <div class="lpj-receipt-grid-bottom">
       <div>
-        <label class="form-label" style="font-size: 0.74rem; font-weight: 700; margin-bottom: 3px;">Nominal Fisik Nota (Rp) *</label>
-        <input type="text" inputmode="numeric" class="form-input form-input-sm rupiah-input" id="receiptNominal_${rowId}" placeholder="Cth: 150.000" value="${initialNominal}" oninput="formatCurrencyInput(this); updateReceiptRowNominal(${rowId})">
+        <label class="form-label" style="font-size: 0.75rem; font-weight: 700; margin-bottom: 4px;">Nominal Realisasi Fisik (Rp) *</label>
+        <input type="text" inputmode="numeric" class="form-input form-input-sm rupiah-input" id="editorReceiptNominal_${rowId}" placeholder="Cth: 250.000" value="${initialNominal}" oninput="formatCurrencyInput(this); updateEditorReceiptNominal(${rowId})">
       </div>
       <div>
-        <label class="form-label" style="font-size: 0.74rem; font-weight: 700; margin-bottom: 3px;">Foto / Scan / PDF Nota Fisik</label>
-        <input type="file" id="receiptFileInput_${rowId}" accept="image/*,application/pdf" style="display: none;" onchange="handleReceiptRowFileSelect(event, ${rowId})">
-        <div id="receiptFileArea_${rowId}">
+        <label class="form-label" style="font-size: 0.75rem; font-weight: 700; margin-bottom: 4px;">Unggah Foto / Scan Nota Fisik</label>
+        <input type="file" id="editorReceiptFileInput_${rowId}" accept="image/*,application/pdf" style="display: none;" onchange="handleEditorReceiptFileSelect(event, ${rowId})">
+        <div id="editorReceiptFileArea_${rowId}">
           ${fileStatusHtml}
         </div>
       </div>
@@ -2903,294 +3095,315 @@ function addLpjReceiptRow(data = null) {
   `;
 
   container.appendChild(card);
-  updateReceiptRemoveButtons();
-  recalculateMultiLpjTotals();
+  updateEditorReceiptRemoveButtons();
+  recalculateEditorMultiTotals();
 }
 
-function removeLpjReceiptRow(rowId) {
-  if (lpjReceiptRows.length <= 1) return;
-  lpjReceiptRows = lpjReceiptRows.filter(r => r.id !== rowId);
-  const card = document.getElementById(`receiptRowCard_${rowId}`);
+function removeEditorReceiptRow(rowId) {
+  if (editorReceiptRows.length <= 1) return;
+  editorReceiptRows = editorReceiptRows.filter(r => r.id !== rowId);
+  const card = document.getElementById(`editorReceiptCard_${rowId}`);
   if (card) card.remove();
 
-  // Re-index badges
-  lpjReceiptRows.forEach((r, idx) => {
-    const badge = document.getElementById(`receiptBadgeNum_${r.id}`);
-    if (badge) badge.innerHTML = `<i class="ti ti-receipt"></i> Nota #${idx + 1}`;
+  editorReceiptRows.forEach((r, idx) => {
+    const badge = document.getElementById(`editorReceiptBadgeNum_${r.id}`);
+    if (badge) badge.innerHTML = `<i class="ti ti-receipt"></i> Bukti Nota #${idx + 1}`;
   });
 
-  updateReceiptRemoveButtons();
-  recalculateMultiLpjTotals();
+  updateEditorReceiptRemoveButtons();
+  recalculateEditorMultiTotals();
 }
 
-function updateReceiptRemoveButtons() {
-  const show = lpjReceiptRows.length > 1;
-  lpjReceiptRows.forEach(r => {
-    const btn = document.getElementById(`btnRemoveReceipt_${r.id}`);
+function updateEditorReceiptRemoveButtons() {
+  const show = editorReceiptRows.length > 1;
+  editorReceiptRows.forEach(r => {
+    const btn = document.getElementById(`btnRemoveEditorReceipt_${r.id}`);
     if (btn) btn.style.display = show ? 'inline-flex' : 'none';
   });
 }
 
-function updateReceiptRowMeta(rowId) {
-  const row = lpjReceiptRows.find(r => r.id === rowId);
+function updateEditorReceiptMeta(rowId) {
+  const row = editorReceiptRows.find(r => r.id === rowId);
   if (!row) return;
-  const tokoInput = document.getElementById(`receiptToko_${rowId}`);
-  const uraianInput = document.getElementById(`receiptUraian_${rowId}`);
+  const tokoInput = document.getElementById(`editorReceiptToko_${rowId}`);
+  const uraianInput = document.getElementById(`editorReceiptUraian_${rowId}`);
   if (tokoInput) {
     row.nama_toko = tokoInput.value.trim();
-    const subtitle = document.getElementById(`receiptHeaderSubtitle_${rowId}`);
-    if (subtitle) subtitle.textContent = row.nama_toko || 'Nota Pembelian / Jasa';
+    const sub = document.getElementById(`editorReceiptSubtitle_${rowId}`);
+    if (sub) sub.textContent = row.nama_toko || 'Nota Pembelian / Jasa';
   }
   if (uraianInput) row.uraian = uraianInput.value.trim();
 }
 
-function updateReceiptRowNominal(rowId) {
-  const row = lpjReceiptRows.find(r => r.id === rowId);
+function updateEditorReceiptNominal(rowId) {
+  const row = editorReceiptRows.find(r => r.id === rowId);
   if (!row) return;
-  const nominalInput = document.getElementById(`receiptNominal_${rowId}`);
+  const nominalInput = document.getElementById(`editorReceiptNominal_${rowId}`);
   row.nominal = nominalInput ? parseRupiahInput(nominalInput.value) : 0;
-  recalculateMultiLpjTotals();
+  recalculateEditorMultiTotals();
 }
 
-function handleReceiptRowFileSelect(event, rowId) {
+function handleEditorReceiptFileSelect(event, rowId) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const row = lpjReceiptRows.find(r => r.id === rowId);
+  const row = editorReceiptRows.find(r => r.id === rowId);
   if (!row) return;
   row.file = file;
 
-  const area = document.getElementById(`receiptFileArea_${rowId}`);
+  const area = document.getElementById(`editorReceiptFileArea_${rowId}`);
   if (area) {
     area.innerHTML = `
-      <div class="lpj-receipt-preview-chip" id="receiptPreviewChip_${rowId}">
+      <div class="lpj-receipt-preview-chip" id="editorReceiptPreviewChip_${rowId}">
         <span style="font-size: 1rem;">📎</span>
         <span class="file-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
         <span style="font-size:0.68rem; color:var(--text-muted);">(${Math.round(file.size / 1024)} KB)</span>
-        <button type="button" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem; color: var(--rose); margin-left:auto;" onclick="clearReceiptRowFile(event, ${rowId})">✕ Hapus</button>
+        <button type="button" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem; color: var(--rose); margin-left:auto;" onclick="clearEditorReceiptFile(event, ${rowId})">✕ Hapus</button>
       </div>
     `;
   }
 }
 
-function clearReceiptRowFile(event, rowId) {
+function clearEditorReceiptFile(event, rowId) {
   if (event) event.stopPropagation();
-  const row = lpjReceiptRows.find(r => r.id === rowId);
+  const row = editorReceiptRows.find(r => r.id === rowId);
   if (!row) return;
   row.file = null;
   row.existing_file_url = null;
 
-  const input = document.getElementById(`receiptFileInput_${rowId}`);
+  const input = document.getElementById(`editorReceiptFileInput_${rowId}`);
   if (input) input.value = '';
 
-  const area = document.getElementById(`receiptFileArea_${rowId}`);
+  const area = document.getElementById(`editorReceiptFileArea_${rowId}`);
   if (area) {
     area.innerHTML = `
-      <div class="lpj-receipt-file-picker" id="receiptFilePicker_${rowId}" onclick="document.getElementById('receiptFileInput_${rowId}').click()">
+      <div class="lpj-receipt-file-picker" id="editorReceiptFilePicker_${rowId}" onclick="document.getElementById('editorReceiptFileInput_${rowId}').click()">
         <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
           <i class="ti ti-camera" style="font-size: 0.95rem; color: var(--primary);"></i> Foto / PDF Nota
         </span>
         <span class="btn btn-outline-success btn-xs" style="padding: 2px 8px; font-size: 0.7rem; pointer-events: none;">Pilih File</span>
       </div>
-      <div class="lpj-receipt-preview-chip" id="receiptPreviewChip_${rowId}" style="display: none;"></div>
+      <div class="lpj-receipt-preview-chip" id="editorReceiptPreviewChip_${rowId}" style="display: none;"></div>
     `;
   }
 }
 
-function recalculateMultiLpjTotals() {
-  const totalBelanja = lpjReceiptRows.reduce((sum, r) => sum + (Number(r.nominal) || 0), 0);
-  const display = document.getElementById('lpjTotalBelanjaRiilDisplay');
-  const hiddenInput = document.getElementById('lpjTotalBelanjaRiil');
+function recalculateEditorMultiTotals() {
+  const totalBelanja = editorReceiptRows.reduce((sum, r) => sum + (Number(r.nominal) || 0), 0);
+  const display = document.getElementById('editorLpjTotalBelanjaDisplay');
+  const hiddenInput = document.getElementById('editorLpjTotalBelanjaInput');
   if (display) display.textContent = formatRupiah(totalBelanja);
   if (hiddenInput) hiddenInput.value = totalBelanja;
-  recalculateLpjCashback();
+  recalculateEditorCashback();
 }
 
-async function openSubmitLpjModal(proposalId) {
-  const modal = document.getElementById('modalSubmitLpj');
-  modal.classList.add('active');
-
-  try {
-    const res = await fetch(`/api/pengajuan/${proposalId}`);
-    const data = await res.json();
-    if (data.success && data.data) {
-      activeLpjProposal = data.data;
-      const p = activeLpjProposal;
-
-      document.getElementById('lpjProposalId').value = p.id;
-      document.getElementById('lpjNomorSurat').textContent = p.nomor_surat_ajuan;
-      document.getElementById('lpjNamaKegiatan').textContent = p.nama_kegiatan;
-      document.getElementById('lpjSubHeader').textContent = `Pemohon: ${p.pemohon_nama} (${p.pemohon_unit}) • Pos: ${p.nama_pos}`;
-      document.getElementById('lpjTotalDanaCairDisplay').textContent = formatRupiah(p.total_dana_disetujui);
-
-      // Render referensi item rincian usulan yang telah disetujui
-      const refBox = document.getElementById('lpjApprovedItemsRefBox');
-      const refList = document.getElementById('lpjApprovedItemsList');
-      if (refBox && refList) {
-        if (p.items && p.items.length > 0) {
-          refBox.style.display = 'block';
-          refList.innerHTML = p.items.map(it => {
-            const vol = it.volume_disetujui || it.volume_diajukan;
-            const sat = it.satuan_disetujui || it.satuan_diajukan;
-            const sub = it.subtotal_disetujui || it.subtotal_diajukan;
-            return `
-              <div class="lpj-ref-badge-item" title="${escapeHtml(it.spesifikasi || '')}">
-                <span>${escapeHtml(it.nama_item)}</span>
-                <span style="color:var(--text-muted);">(${vol} ${sat})</span>
-                <strong>${formatRupiah(sub)}</strong>
-              </div>
-            `;
-          }).join('');
-        } else {
-          refBox.style.display = 'none';
-        }
-      }
-
-      // Reset daftar repeater nota
-      const stack = document.getElementById('lpjNotaItemsStack');
-      if (stack) stack.innerHTML = '';
-      lpjReceiptRows = [];
-      nextReceiptRowId = 1;
-
-      // Pre-fill jika sudah pernah dibuat sebelumnya
-      if (p.lpj) {
-        document.getElementById('lpjCatatan').value = p.lpj.catatan_lpj || '';
-        
-        // Master bundle preview
-        if (p.lpj.file_nota_url) {
-          document.getElementById('lpjFilePreviewWrap').style.display = 'flex';
-          document.getElementById('lpjFileName').textContent = p.lpj.file_nota_url.split('/').pop();
-        } else {
-          clearLpjFile();
-        }
-
-        // Muat rincian multi-nota
-        if (p.lpj.nota_items && p.lpj.nota_items.length > 0) {
-          p.lpj.nota_items.forEach(item => addLpjReceiptRow(item));
-        } else {
-          addLpjReceiptRow({
-            nama_toko: 'Nota Pembelian',
-            uraian: 'Realisasi anggaran kegiatan',
-            nominal: p.lpj.total_belanja_riil || p.total_dana_disetujui,
-            file_url: p.lpj.file_nota_url
-          });
-        }
-      } else {
-        document.getElementById('lpjCatatan').value = '';
-        clearLpjFile();
-        // Inisialisasi dengan 1 baris nota awal
-        addLpjReceiptRow({
-          nama_toko: '',
-          uraian: '',
-          nominal: p.total_dana_disetujui || 0,
-          file_url: null
-        });
-      }
-
-      recalculateMultiLpjTotals();
-    }
-  } catch (err) {
-    console.error('Error fetching proposal for LPJ:', err);
-    showNotification('Gagal memuat data proposal.');
-  }
-}
-
-function closeSubmitLpjModal() {
-  document.getElementById('modalSubmitLpj').classList.remove('active');
-  activeLpjProposal = null;
-  selectedLpjFile = null;
-  lpjReceiptRows = [];
-}
-
-function recalculateLpjCashback() {
+function recalculateEditorCashback() {
   if (!activeLpjProposal) return;
 
   const danaCair = activeLpjProposal.total_dana_disetujui || 0;
-  const belanjaRiil = Number(document.getElementById('lpjTotalBelanjaRiil').value) || 0;
+  const belanjaRiil = Number(document.getElementById('editorLpjTotalBelanjaInput').value) || 0;
   const selisih = danaCair - belanjaRiil;
 
-  const box = document.getElementById('lpjCashbackCalcBox');
-  const title = document.getElementById('lpjCashbackCalcTitle');
-  const val = document.getElementById('lpjCashbackCalcVal');
-  const desc = document.getElementById('lpjCashbackCalcDesc');
+  const box = document.getElementById('editorLpjCalcBox');
+  const title = document.getElementById('editorLpjCalcTitle');
+  const val = document.getElementById('editorLpjCalcVal');
+  const desc = document.getElementById('editorLpjCalcDesc');
+
+  if (!box || !title || !val || !desc) return;
 
   box.className = 'lpj-calc-box';
 
   if (selisih > 0) {
     box.classList.add('refund');
-    title.textContent = '💵 Sisa Kas yang Wajib Disetor Kembali ke Sekolah';
+    title.textContent = '💵 Sisa Kas yang Wajib Disetor Kembali ke Bendahara Sekolah';
     val.textContent = formatRupiah(selisih);
-    desc.textContent = `Terdapat kelebihan kas sebesar ${formatRupiah(selisih)}. Dana ini wajib disetor tunai/transfer ke Bendahara dan akan otomatis mengembalikan kuota pagu pos anggaran.`;
+    desc.textContent = `Terdapat kelebihan kas sebesar ${formatRupiah(selisih)}. Dana sisa ini wajib disetor tunai/transfer ke Bendahara dan akan otomatis mengembalikan saldo kuota pos anggaran sekolah.`;
   } else if (selisih === 0) {
     box.classList.add('exact');
-    title.textContent = '✓ Realisasi Kas Pas 100%';
+    title.textContent = '✓ Realisasi Belanja Tepat 100%';
     val.textContent = 'Rp 0';
-    desc.textContent = 'Total belanja riil sesuai persis dengan nominal pencairan dana. Tidak ada sisa kas pengembalian.';
+    desc.textContent = 'Total pengeluaran riil sesuai persis dengan nominal pencairan dana. Tidak ada sisa kas pengembalian.';
   } else {
     box.classList.add('over');
-    title.textContent = '⚠️ Realisasi Melebihi Dana Kas Cair (Talangan Mandiri)';
+    title.textContent = '⚠️ Realisasi Melebihi Kas Dicairkan (Talangan Mandiri)';
     val.textContent = formatRupiah(Math.abs(selisih));
-    desc.textContent = `Belanja riil melebihi dana kas yang dicairkan sebesar ${formatRupiah(Math.abs(selisih))}. Kelebihan ini merupakan talangan mandiri sesuai ketentuan sekolah.`;
+    desc.textContent = `Belanja riil melebihi dana kas yang dicairkan sebesar ${formatRupiah(Math.abs(selisih))}. Kelebihan belanja ini ditanggung secara mandiri sesuai kesepakatan sekolah.`;
   }
 }
 
-function handleLpjFileSelect(event) {
+// Master File (Bundel PDF)
+function handleEditorMasterFileSelect(event) {
   const file = event.target.files[0];
-  if (file) {
-    selectedLpjFile = file;
-    document.getElementById('lpjFilePreviewWrap').style.display = 'flex';
-    document.getElementById('lpjFileName').textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+  if (!file) return;
+  selectedEditorMasterFile = file;
+
+  const chip = document.getElementById('editorLpjMasterFileChip');
+  const picker = document.getElementById('editorLpjMasterFilePicker');
+  const nameSpan = document.getElementById('editorLpjMasterFileName');
+
+  if (chip && picker && nameSpan) {
+    chip.style.display = 'inline-flex';
+    picker.style.display = 'none';
+    nameSpan.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
   }
 }
 
-function clearLpjFile(event) {
+function clearEditorMasterFile(event) {
   if (event) event.stopPropagation();
-  selectedLpjFile = null;
-  const input = document.getElementById('lpjFileInput');
+  selectedEditorMasterFile = null;
+
+  const input = document.getElementById('editorLpjMasterFileInput');
   if (input) input.value = '';
-  const preview = document.getElementById('lpjFilePreviewWrap');
-  if (preview) preview.style.display = 'none';
+
+  const chip = document.getElementById('editorLpjMasterFileChip');
+  const picker = document.getElementById('editorLpjMasterFilePicker');
+  if (chip && picker) {
+    chip.style.display = 'none';
+    picker.style.display = 'inline-flex';
+  }
 }
 
-async function handleSubmitLpj(e) {
-  e.preventDefault();
+// --------------------------------------------------------------------------
+// Dokumentasi Foto Kegiatan di Halaman Editor LPJ
+// --------------------------------------------------------------------------
+
+function addEditorFotoRow(data = null) {
+  const fotoId = nextEditorFotoId++;
+  const fotoItem = {
+    id: fotoId,
+    keterangan: data ? (data.keterangan || '') : '',
+    file: null,
+    existing_file_url: data ? (data.file_url || null) : null
+  };
+  editorFotoRows.push(fotoItem);
+
+  const container = document.getElementById('editorLpjFotoStack');
+  if (!container) return;
+
+  const card = document.createElement('div');
+  card.className = 'lpj-foto-card';
+  card.id = `editorFotoCard_${fotoId}`;
+
+  const initialPreview = fotoItem.existing_file_url
+    ? `<img src="${fotoItem.existing_file_url}" alt="Dokumentasi" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">`
+    : `<div style="text-align:center; color:var(--text-muted); padding:10px;"><i class="ti ti-camera" style="font-size:1.8rem; display:block; margin-bottom:4px; color:var(--primary);"></i><span style="font-size:0.75rem;">Pilih / Ambil Foto</span></div>`;
+
+  card.innerHTML = `
+    <div style="position: relative;">
+      <div class="lpj-foto-preview-box" id="editorFotoPreviewBox_${fotoId}" onclick="document.getElementById('editorFotoInput_${fotoId}').click()">
+        ${initialPreview}
+      </div>
+      <input type="file" id="editorFotoInput_${fotoId}" accept="image/*" style="display:none;" onchange="handleEditorFotoSelect(event, ${fotoId})">
+      <button type="button" class="btn btn-danger btn-xs" style="position:absolute; top:6px; right:6px; border-radius:50%; width:24px; height:24px; padding:0; display:flex; align-items:center; justify-content:center;" onclick="removeEditorFotoRow(${fotoId})" title="Hapus foto">
+        ✕
+      </button>
+    </div>
+    <div style="padding: 10px;">
+      <label class="form-label" style="font-size: 0.72rem; font-weight: 700; margin-bottom: 4px;">Keterangan / Caption Foto</label>
+      <input type="text" class="form-input form-input-sm" id="editorFotoCaption_${fotoId}" placeholder="Cth: Pembukaan kegiatan oleh Kepala Sekolah" value="${escapeHtml(fotoItem.keterangan)}" oninput="updateEditorFotoCaption(${fotoId})">
+    </div>
+  `;
+
+  container.appendChild(card);
+}
+
+function removeEditorFotoRow(fotoId) {
+  editorFotoRows = editorFotoRows.filter(f => f.id !== fotoId);
+  const card = document.getElementById(`editorFotoCard_${fotoId}`);
+  if (card) card.remove();
+}
+
+function updateEditorFotoCaption(fotoId) {
+  const item = editorFotoRows.find(f => f.id === fotoId);
+  if (!item) return;
+  const input = document.getElementById(`editorFotoCaption_${fotoId}`);
+  if (input) item.keterangan = input.value.trim();
+}
+
+function handleEditorFotoSelect(event, fotoId) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const item = editorFotoRows.find(f => f.id === fotoId);
+  if (!item) return;
+  item.file = file;
+
+  const box = document.getElementById(`editorFotoPreviewBox_${fotoId}`);
+  if (box) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      box.innerHTML = `<img src="${e.target.result}" alt="Preview" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">`;
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+// --------------------------------------------------------------------------
+// Submit LPJ dari Halaman Editor
+// --------------------------------------------------------------------------
+
+async function submitLpjFromEditor(event) {
+  if (event) event.preventDefault();
   if (!activeLpjProposal) return;
 
   const id = activeLpjProposal.id;
 
-  // Pastikan seluruh data input baris terkini tersinkronisasi
-  lpjReceiptRows.forEach(r => {
-    const tokoInput = document.getElementById(`receiptToko_${r.id}`);
-    const uraianInput = document.getElementById(`receiptUraian_${r.id}`);
-    const nominalInput = document.getElementById(`receiptNominal_${r.id}`);
+  // Sinkronisasi data nota terkini
+  editorReceiptRows.forEach(r => {
+    const tokoInput = document.getElementById(`editorReceiptToko_${r.id}`);
+    const uraianInput = document.getElementById(`editorReceiptUraian_${r.id}`);
+    const nominalInput = document.getElementById(`editorReceiptNominal_${r.id}`);
     if (tokoInput) r.nama_toko = tokoInput.value.trim();
     if (uraianInput) r.uraian = uraianInput.value.trim();
     if (nominalInput) r.nominal = parseRupiahInput(nominalInput.value);
   });
 
-  const totalBelanja = lpjReceiptRows.reduce((sum, r) => sum + (Number(r.nominal) || 0), 0);
+  const totalBelanja = editorReceiptRows.reduce((sum, r) => sum + (Number(r.nominal) || 0), 0);
   if (totalBelanja <= 0) {
     if (typeof Swal !== 'undefined') {
       Swal.fire({
         icon: 'warning',
-        title: 'Nominal Nota Kosong',
-        text: 'Harap masukkan nominal belanja riil pada minimal satu nota kuitansi.',
+        title: 'Nominal Belanja Kosong',
+        text: 'Harap masukkan nominal belanja riil pada minimal satu bukti nota.',
         confirmButtonColor: '#059669'
       });
     } else {
-      alert('Harap masukkan nominal belanja riil pada minimal satu nota kuitansi.');
+      alert('Harap masukkan nominal belanja riil pada minimal satu bukti nota.');
     }
     return;
   }
 
-  const catatan = document.getElementById('lpjCatatan').value.trim();
+  // Sinkronisasi foto caption
+  editorFotoRows.forEach(f => {
+    const capInput = document.getElementById(`editorFotoCaption_${f.id}`);
+    if (capInput) f.keterangan = capInput.value.trim();
+  });
 
   const formData = new FormData();
   formData.append('total_belanja_riil', totalBelanja);
-  formData.append('catatan_lpj', catatan);
 
-  // Lampirkan array item nota dan berkas spesifik per baris
-  const itemsPayload = lpjReceiptRows.map((r, idx) => {
+  // Field Laporan Deskripsi & Pelaksanaan
+  const latarBelakang = document.getElementById('editorLpjLatarBelakang').value.trim();
+  const tujuan = document.getElementById('editorLpjTujuan').value.trim();
+  const tempat = document.getElementById('editorLpjTempat').value.trim();
+  const peserta = document.getElementById('editorLpjPeserta').value.trim();
+
+  const resumeHasil = document.getElementById('editorLpjResumeHasil').value.trim();
+  const kendala = document.getElementById('editorLpjKendala').value.trim();
+  const solusi = document.getElementById('editorLpjSolusi').value.trim();
+  const catatanTambahan = document.getElementById('editorLpjCatatanTambahan').value.trim();
+
+  formData.append('catatan_lpj', latarBelakang || catatanTambahan);
+  formData.append('tujuan_kegiatan', tujuan);
+  formData.append('tempat_pelaksanaan', tempat);
+  formData.append('jumlah_peserta', peserta);
+
+  formData.append('resume_hasil', resumeHasil);
+  formData.append('kendala', kendala);
+  formData.append('solusi_tindak_lanjut', solusi);
+
+  // Multi-nota items
+  const itemsPayload = editorReceiptRows.map((r, idx) => {
     const fileKey = `nota_file_${idx}`;
     if (r.file) {
       formData.append(fileKey, r.file);
@@ -3205,14 +3418,31 @@ async function handleSubmitLpj(e) {
   });
   formData.append('nota_items', JSON.stringify(itemsPayload));
 
-  // Berkas bundel dokumen PDF lengkap (opsional)
-  if (selectedLpjFile) {
-    formData.append('file_nota', selectedLpjFile);
+  // Master bundel file (opsional)
+  if (selectedEditorMasterFile) {
+    formData.append('file_nota', selectedEditorMasterFile);
   }
 
-  const btn = document.getElementById('btnSubmitLpj');
+  // Foto dokumentasi
+  const fotoPayload = [];
+  editorFotoRows.forEach((f, idx) => {
+    if (f.file || f.existing_file_url) {
+      const fotoKey = `foto_kegiatan_${idx}`;
+      if (f.file) {
+        formData.append(fotoKey, f.file);
+      }
+      fotoPayload.push({
+        keterangan: f.keterangan || 'Dokumentasi Kegiatan',
+        file_key: fotoKey,
+        existing_file_url: f.existing_file_url || null
+      });
+    }
+  });
+  formData.append('foto_dokumentasi', JSON.stringify(fotoPayload));
+
+  const btn = document.getElementById('btnEditorSubmitLpj');
   btn.disabled = true;
-  btn.textContent = 'Mengunggah & Menyerahkan...';
+  btn.innerHTML = '<i class="ti ti-loader rotate"></i> Menyimpan Laporan...';
 
   try {
     const res = await fetch(`/api/pengajuan/${id}/lpj`, {
@@ -3221,18 +3451,28 @@ async function handleSubmitLpj(e) {
     });
     const data = await res.json();
     if (data.success) {
-      closeSubmitLpjModal();
       if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'success',
-          title: 'Berkas LPJ Diserahkan!',
-          text: data.message,
+          title: 'Laporan LPJ Berhasil Disimpan!',
+          html: `
+            <p>${data.message}</p>
+            <div style="margin-top: 15px;">
+              <a href="/cetak-lpj/${id}" target="_blank" class="btn btn-outline-success" style="font-size: 0.85rem; padding: 8px 14px; text-decoration: none;">
+                🖨️ Buka & Cetak Laporan PDF Resmi
+              </a>
+            </div>
+          `,
           confirmButtonColor: '#059669',
-          timer: 3000
+          confirmButtonText: 'Kembali ke Riwayat Proposal'
+        }).then(() => {
+          goBackFromLpjEditor();
         });
       } else {
-        showNotification(`✓ ${data.message}`);
+        alert(data.message);
+        goBackFromLpjEditor();
       }
+
       loadSummaryStats();
       loadPosAnggaran();
       loadProposalsList();
@@ -3246,12 +3486,12 @@ async function handleSubmitLpj(e) {
       if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'error',
-          title: 'Gagal Menyerahkan LPJ',
+          title: 'Gagal Menyimpan LPJ',
           text: data.message,
           confirmButtonColor: '#059669'
         });
       } else {
-        alert(`Gagal mengirimkan LPJ: ${data.message}`);
+        alert(`Gagal: ${data.message}`);
       }
     }
   } catch (err) {
@@ -3259,7 +3499,7 @@ async function handleSubmitLpj(e) {
       Swal.fire({
         icon: 'error',
         title: 'Kesalahan Jaringan',
-        text: `Terjadi kesalahan jaringan: ${err.message}`,
+        text: `Terjadi kesalahan saat menyimpan LPJ: ${err.message}`,
         confirmButtonColor: '#059669'
       });
     } else {
@@ -3267,9 +3507,10 @@ async function handleSubmitLpj(e) {
     }
   } finally {
     btn.disabled = false;
-    btn.textContent = '📋 Serahkan Berkas LPJ ke Bendahara';
+    btn.innerHTML = '<i class="ti ti-check"></i> Simpan & Serahkan Laporan Pertanggungjawaban (LPJ)';
   }
 }
+
 
 // Bendahara LPJ Verification Modal
 let activeVerifLpjProposal = null;

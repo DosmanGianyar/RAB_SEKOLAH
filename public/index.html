@@ -640,6 +640,241 @@
       </div>
     </div>
 
+    <!-- ===================================================================== -->
+    <!-- VIEW 6: PENYUSUNAN LPJ KEGIATAN (HALAMAN TERPISAH LENGKAP)             -->
+    <!-- ===================================================================== -->
+    <div class="app-view" id="viewFormLpj">
+      <!-- 1. Header Halaman LPJ -->
+      <div class="dashboard-header-compact" style="margin-bottom: 20px;">
+        <div class="header-left">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="goBackFromLpjEditor()" style="margin-right: 8px;">
+            <i class="ti ti-arrow-left"></i> Kembali
+          </button>
+          <div>
+            <div style="font-size: 0.74rem; color: var(--text-muted); font-weight: 600;">
+              Laporan Pertanggungjawaban Kegiatan
+            </div>
+            <h1 class="page-title-compact" style="margin: 0; font-size: 1.25rem;">
+              <i class="ti ti-file-certificate" style="color: var(--primary);"></i>
+              Penyusunan Laporan Pertanggungjawaban (LPJ)
+            </h1>
+          </div>
+          <span class="invoice-badge-tag" id="editorLpjNomorSurat">Nomor Surat</span>
+        </div>
+        <div class="header-right-actions">
+          <a href="#" target="_blank" class="btn btn-secondary btn-sm" id="btnEditorCetakLpj" title="Pratinjau &amp; Cetak Lembar LPJ Resmi Standar A4">
+            <i class="ti ti-printer" style="color: #059669;"></i> Cetak Laporan (PDF)
+          </a>
+          <button type="button" class="btn btn-primary btn-sm" onclick="submitLpjFromEditor(event)" id="btnEditorSubmitLpjTop">
+            <i class="ti ti-check"></i> Simpan &amp; Serahkan LPJ
+          </button>
+        </div>
+      </div>
+
+      <div class="lpj-editor-container">
+        <form id="formEditorLpj" onsubmit="submitLpjFromEditor(event)">
+          <input type="hidden" id="editorLpjProposalId">
+
+          <!-- KARTU 1: Identitas Usulan & Plafon Kas Pencairan -->
+          <div class="lpj-editor-card">
+            <div class="lpj-editor-card-header">
+              <span class="lpj-section-tag"><i class="ti ti-info-circle"></i> Identitas &amp; Anggaran Kegiatan</span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);" id="editorLpjTahunAjaran">T.A. 2026/2027</span>
+            </div>
+            
+            <div style="font-weight: 800; font-size: 1.2rem; color: var(--text-main); margin-bottom: 4px;" id="editorLpjNamaKegiatan">
+              Nama Kegiatan
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;" id="editorLpjSubHeader">
+              Pemohon • Pos Anggaran
+            </div>
+
+            <!-- Highlight Kas Dicairkan -->
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: var(--radius-md); padding: 12px 18px; margin-bottom: 12px;">
+              <div>
+                <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 800; color: #065f46; display: block;">Total Dana Kas Diterima (Pencairan):</span>
+                <span style="font-size: 0.72rem; color: #047857;">Dana yang telah dicairkan oleh Bendahara Sekolah untuk kegiatan ini</span>
+              </div>
+              <span style="font-family: 'Outfit', sans-serif; font-size: 1.55rem; font-weight: 800; color: #047857;" id="editorLpjTotalDanaCairDisplay">Rp 0</span>
+            </div>
+
+            <!-- Referensi Item Rincian RAB yang Telah Disetujui -->
+            <div id="editorLpjApprovedItemsRefBox" style="padding-top: 10px; border-top: 1px dashed #cbd5e1;">
+              <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+                Referensi Rincian Barang &amp; Jasa yang Disetujui (RAB Awal):
+              </div>
+              <div id="editorLpjApprovedItemsList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+            </div>
+          </div>
+
+          <!-- KARTU 2: Deskripsi & Pelaksanaan Kegiatan (DI ATAS NOTA) -->
+          <div class="lpj-editor-card">
+            <div class="lpj-editor-card-header">
+              <span class="lpj-section-tag"><i class="ti ti-notes"></i> Bagian I: Deskripsi &amp; Pelaksanaan Kegiatan</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">Dasar &amp; Latar Belakang Pelaksanaan Kegiatan</label>
+              <textarea class="form-textarea" id="editorLpjLatarBelakang" rows="3" placeholder="Jelaskan dasar pelaksanaan kegiatan, program kerja sekolah, atau landasan kegiatan ini..."></textarea>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+                Dapat disalin otomatis dari latar belakang proposal usulan awal atau diperbarui sesuai kondisi riil.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">Tujuan &amp; Sasaran Ketercapaian Kegiatan *</label>
+              <textarea class="form-textarea" id="editorLpjTujuan" rows="2" placeholder="Cth: Meningkatkan kreativitas siswa dalam bidang seni, mempererat rasa kebersamaan..." required></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 700;">Tempat &amp; Lokasi Pelaksanaan Riil *</label>
+                <input type="text" class="form-input" id="editorLpjTempat" placeholder="Cth: Aula Utama SMAN 1 Gianyar" required>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 700;">Jumlah &amp; Partisipan Peserta Riil *</label>
+                <input type="text" class="form-input" id="editorLpjPeserta" placeholder="Cth: 240 Siswa Kelas XI dan 12 Guru Pembina" required>
+              </div>
+            </div>
+          </div>
+
+          <!-- KARTU 3: Realisasi Belanja & Bukti Multi-Nota Fisik -->
+          <div class="lpj-editor-card">
+            <div class="lpj-editor-card-header">
+              <div>
+                <span class="lpj-section-tag"><i class="ti ti-receipt"></i> Bagian II: Realisasi Belanja &amp; Bukti Nota Fisik</span>
+                <p style="font-size: 0.76rem; color: var(--text-muted); margin: 4px 0 0;">
+                  Tambahkan nota fisik per rekanan/toko, atau 1 nota gabungan yang merangkum beberapa item rincian.
+                </p>
+              </div>
+              <button type="button" class="btn btn-outline-success btn-xs" onclick="addEditorReceiptRow()" style="font-weight: 700; gap: 4px;">
+                <i class="ti ti-plus"></i> Tambah Nota
+              </button>
+            </div>
+
+            <!-- Dynamic Multi-Receipt Stack -->
+            <div id="editorLpjNotaStack">
+              <!-- Populated via JS -->
+            </div>
+
+            <!-- Total Belanja Riil Summary Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 14px 18px; margin: 14px 0;">
+              <div>
+                <span style="font-size: 0.88rem; font-weight: 700; color: var(--text-main); display: block;">Total Belanja Riil Fisik:</span>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Akumulasi seluruh nota/kuitansi fisik di atas</span>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 800; color: #047857;" id="editorLpjTotalBelanjaDisplay">Rp 0</span>
+                <input type="hidden" id="editorLpjTotalBelanja" value="0">
+              </div>
+            </div>
+
+            <!-- Kalkulator Kas Otomatis Box -->
+            <div id="editorLpjCashbackBox" class="lpj-calc-box exact">
+              <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase;" id="editorLpjCashbackTitle">
+                Kalkulasi Selisih Kas
+              </div>
+              <div style="font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 800; margin: 4px 0;" id="editorLpjCashbackVal">
+                Rp 0
+              </div>
+              <div style="font-size: 0.8rem;" id="editorLpjCashbackDesc">
+                Ketikkan nominal nota belanja di atas untuk melihat kalkulasi sisa pengembalian kas.
+              </div>
+            </div>
+
+            <!-- Opsi Berkas PDF Bundel Scan Kolektif (Opsional) -->
+            <div class="form-group" style="margin-top: 14px; margin-bottom: 0;">
+              <label class="form-label" style="font-weight: 700; font-size: 0.82rem;">
+                Lampiran PDF Bundel Lengkap Seluruh Kuitansi (Opsional)
+              </label>
+              <div class="file-upload-area" onclick="document.getElementById('editorLpjMasterFileInput').click()" style="padding: 14px;">
+                <input type="file" id="editorLpjMasterFileInput" accept="image/*,application/pdf" style="display: none;" onchange="handleEditorMasterFileSelect(event)">
+                <div style="font-weight: 700; font-size: 0.84rem; color: var(--text-main);">
+                  📎 Klik untuk Mengunggah 1 File PDF Gabungan Seluruh Bukti (Jika Ada)
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+                  Jika semua nota telah discan menjadi 1 dokumen PDF utuh (Maksimal 10MB)
+                </div>
+              </div>
+              <div id="editorLpjMasterPreviewWrap" style="display: none;" class="file-preview-wrap">
+                <span style="font-size: 1.2rem;">📎</span>
+                <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; font-weight: 600;" id="editorLpjMasterFileName">
+                  bundel-nota.pdf
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="clearEditorMasterFile(event)" style="padding: 4px 8px; font-size: 0.72rem;">Hapus</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- KARTU 4: Resume Pelaksanaan & Evaluasi (DI BAWAH NOTA) -->
+          <div class="lpj-editor-card">
+            <div class="lpj-editor-card-header">
+              <span class="lpj-section-tag"><i class="ti ti-chart-arrows"></i> Bagian III: Resume Hasil Pelaksanaan &amp; Evaluasi</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">Ringkasan Capaian / Resume Hasil Kegiatan *</label>
+              <textarea class="form-textarea" id="editorLpjResumeHasil" rows="3" placeholder="Tuliskan ringkasan singkat hasil kegiatan, respon peserta, dan tingkat ketercapaian tujuan..." required></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Kendala / Hambatan yang Dihadapi (Opsional)</label>
+                <textarea class="form-textarea" id="editorLpjKendala" rows="2" placeholder="Cth: Terjadi kendala cuaca hujan saat sesi pembukaan..."></textarea>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Solusi &amp; Tindak Lanjut / Saran (Opsional)</label>
+                <textarea class="form-textarea" id="editorLpjSolusi" rows="2" placeholder="Cth: Ke depan dianjurkan menyiapkan tenda cadangan..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- KARTU 5: Dokumentasi Foto-Foto Kegiatan & Bukti Fisik -->
+          <div class="lpj-editor-card">
+            <div class="lpj-editor-card-header">
+              <div>
+                <span class="lpj-section-tag"><i class="ti ti-camera"></i> Bagian IV: Dokumentasi Foto Kegiatan</span>
+                <p style="font-size: 0.76rem; color: var(--text-muted); margin: 4px 0 0;">
+                  Unggah foto-foto pelaksanaan kegiatan (pembukaan, kegiatan inti, penyerahan hadiah, peserta) beserta keterangan untuk dicetak pada lampiran resmi LPJ.
+                </p>
+              </div>
+              <button type="button" class="btn btn-outline-success btn-xs" onclick="addEditorFotoRow()" style="font-weight: 700; gap: 4px;">
+                <i class="ti ti-plus"></i> Tambah Foto
+              </button>
+            </div>
+
+            <!-- Dynamic Photo Documentation Stack -->
+            <div id="editorLpjFotoStack" class="lpj-foto-grid">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
+          <!-- KARTU 6: Catatan Tambahan -->
+          <div class="lpj-editor-card" style="margin-bottom: 0;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-weight: 700;">Catatan Tambahan untuk Bendahara (Opsional)</label>
+              <textarea class="form-textarea" id="editorLpjCatatanTambahan" rows="2" placeholder="Cth: Bukti fisik kuitansi asli dan sisa dana tunai telah diserahkan langsung ke ruang Tata Usaha..."></textarea>
+            </div>
+          </div>
+
+          <!-- Action Footer Bar -->
+          <div class="lpj-editor-actions-bar">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="goBackFromLpjEditor()">
+              ← Batal &amp; Kembali
+            </button>
+            <div style="display: flex; gap: 10px;">
+              <a href="#" target="_blank" class="btn btn-secondary btn-sm" id="btnEditorCetakLpjBottom" title="Pratinjau Lembar Cetak Dokumen LPJ Resmi">
+                <i class="ti ti-printer" style="color: #059669;"></i> Cetak Laporan (PDF)
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm" id="btnEditorSubmitLpjBottom">
+                📋 Simpan &amp; Serahkan LPJ ke Bendahara
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </main>
 
   <!-- ===================================================================== -->

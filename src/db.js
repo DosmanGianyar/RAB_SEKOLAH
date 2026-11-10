@@ -106,6 +106,16 @@ function initDatabase() {
       created_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
 
+    CREATE TABLE IF NOT EXISTS lpj_dokumentasi_foto (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lpj_id INTEGER NOT NULL REFERENCES lpj_pertanggungjawaban(id) ON DELETE CASCADE,
+      pengajuan_id INTEGER NOT NULL REFERENCES pengajuan_kegiatan(id),
+      caption TEXT,
+      file_url TEXT NOT NULL,
+      urutan INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    );
+
     CREATE TABLE IF NOT EXISTS audit_log_koreksi (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       pengajuan_id INTEGER REFERENCES pengajuan_kegiatan(id),
@@ -130,6 +140,28 @@ function initDatabase() {
   }
   if (!colNames.includes('catatan_pencairan')) {
     db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN catatan_pencairan TEXT`).run();
+  }
+
+  // Migrasi aman untuk kolom Template LPJ Lengkap pada lpj_pertanggungjawaban
+  const lpjTableInfo = db.prepare(`PRAGMA table_info(lpj_pertanggungjawaban)`).all();
+  const lpjColNames = lpjTableInfo.map(c => c.name);
+  if (!lpjColNames.includes('tujuan_kegiatan')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN tujuan_kegiatan TEXT`).run();
+  }
+  if (!lpjColNames.includes('tempat_pelaksanaan')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN tempat_pelaksanaan TEXT`).run();
+  }
+  if (!lpjColNames.includes('jumlah_peserta')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN jumlah_peserta TEXT`).run();
+  }
+  if (!lpjColNames.includes('resume_hasil')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN resume_hasil TEXT`).run();
+  }
+  if (!lpjColNames.includes('kendala')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN kendala TEXT`).run();
+  }
+  if (!lpjColNames.includes('solusi_tindak_lanjut')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN solusi_tindak_lanjut TEXT`).run();
   }
 
   // Migrasi kolom password pada users jika belum ada
@@ -934,6 +966,13 @@ function getPengajuanById(id) {
       }];
     }
     lpj.nota_items = notaItems;
+
+    let fotoDokumentasi = db.prepare(`
+      SELECT * FROM lpj_dokumentasi_foto
+      WHERE lpj_id = ?
+      ORDER BY urutan ASC, id ASC
+    `).all(lpj.id);
+    lpj.foto_dokumentasi = fotoDokumentasi;
   }
 
   return {
@@ -1240,14 +1279,21 @@ function getPengajuanByQrToken(token) {
 // FASE 5: MODUL LPJ (LAPORAN PERTANGGUNGJAWABAN) & REKONSILIASI KAS
 // ==========================================================================
 
-// 1. Guru Mengajukan LPJ & Mengunggah Nota
+// 1. Guru Mengajukan LPJ & Mengunggah Nota (Template Komprehensif)
 function submitLpjByGuru({
   pengajuan_id,
   user_id,
   total_belanja_riil,
   file_nota_url,
   catatan_lpj,
-  nota_items = []
+  nota_items = [],
+  tujuan_kegiatan = '',
+  tempat_pelaksanaan = '',
+  jumlah_peserta = '',
+  resume_hasil = '',
+  kendala = '',
+  solusi_tindak_lanjut = '',
+  foto_dokumentasi = []
 }) {
   const proposal = getPengajuanById(pengajuan_id);
   if (!proposal) {
@@ -1297,17 +1343,33 @@ function submitLpjByGuru({
           sisa_pengembalian_dana = ?,
           file_nota_url = ?,
           catatan_lpj = ?,
+          tujuan_kegiatan = ?,
+          tempat_pelaksanaan = ?,
+          jumlah_peserta = ?,
+          resume_hasil = ?,
+          kendala = ?,
+          solusi_tindak_lanjut = ?,
           status_lpj = 'MENUNGGU_VERIFIKASI',
           created_at = datetime('now', 'localtime')
       WHERE id = ?
-    `).run(danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '', lpjId);
+    `).run(
+      danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '',
+      tujuan_kegiatan || '', tempat_pelaksanaan || '', jumlah_peserta || '',
+      resume_hasil || '', kendala || '', solusi_tindak_lanjut || '',
+      lpjId
+    );
   } else {
     const insertLpjRes = db.prepare(`
       INSERT INTO lpj_pertanggungjawaban (
         pengajuan_id, total_dana_cair, total_belanja_riil, sisa_pengembalian_dana,
-        file_nota_url, catatan_lpj, status_lpj
-      ) VALUES (?, ?, ?, ?, ?, ?, 'MENUNGGU_VERIFIKASI')
-    `).run(pengajuan_id, danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '');
+        file_nota_url, catatan_lpj, tujuan_kegiatan, tempat_pelaksanaan, jumlah_peserta,
+        resume_hasil, kendala, solusi_tindak_lanjut, status_lpj
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'MENUNGGU_VERIFIKASI')
+    `).run(
+      pengajuan_id, danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '',
+      tujuan_kegiatan || '', tempat_pelaksanaan || '', jumlah_peserta || '',
+      resume_hasil || '', kendala || '', solusi_tindak_lanjut || ''
+    );
     lpjId = insertLpjRes.lastInsertRowid;
   }
 
@@ -1338,6 +1400,26 @@ function submitLpjByGuru({
       belanjaRiil,
       finalFileUrl
     );
+  }
+
+  // Sinkronisasi tabel dokumentasi foto kegiatan (lpj_dokumentasi_foto)
+  db.prepare('DELETE FROM lpj_dokumentasi_foto WHERE lpj_id = ?').run(lpjId);
+  if (Array.isArray(foto_dokumentasi) && foto_dokumentasi.length > 0) {
+    const insertFotoItem = db.prepare(`
+      INSERT INTO lpj_dokumentasi_foto (lpj_id, pengajuan_id, caption, file_url, urutan)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    foto_dokumentasi.forEach((foto, idx) => {
+      if (foto.file_url) {
+        insertFotoItem.run(
+          lpjId,
+          pengajuan_id,
+          foto.caption || `Dokumentasi Foto #${idx + 1}`,
+          foto.file_url,
+          idx + 1
+        );
+      }
+    });
   }
 
   // Update status proposal menjadi MENUNGGU_VERIFIKASI_LPJ
@@ -1486,7 +1568,8 @@ function deletePengajuan(id, user) {
     throw new Error('Usulan pengajuan tidak ditemukan.');
   }
 
-  // Hapus semua dependensi: LPJ, nota items, audit log, rincian item, dan data pengajuan utama
+  // Hapus semua dependensi: LPJ, nota items, foto dokumentasi, audit log, rincian item, dan data pengajuan utama
+  db.prepare('DELETE FROM lpj_dokumentasi_foto WHERE pengajuan_id = ?').run(id);
   db.prepare('DELETE FROM lpj_nota_items WHERE pengajuan_id = ?').run(id);
   db.prepare('DELETE FROM lpj_pertanggungjawaban WHERE pengajuan_id = ?').run(id);
   db.prepare('DELETE FROM audit_log_koreksi WHERE pengajuan_id = ?').run(id);

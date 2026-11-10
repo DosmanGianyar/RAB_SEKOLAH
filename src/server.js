@@ -33,6 +33,7 @@ const {
 } = require('./db');
 
 const { renderCetakDisposisi } = require('./views/cetak-disposisi');
+const { renderCetakLpj } = require('./views/cetak-lpj');
 const { renderCetakRkas } = require('./views/cetak-rkas');
 const { renderVerifikasiPublik } = require('./views/verifikasi-publik');
 
@@ -794,6 +795,47 @@ app.get('/cetak/:id', async (req, res) => {
   }
 });
 
+// 3b. Render Lembar Cetak LPJ Lengkap Resmi (A4 Print-Ready)
+app.get('/cetak-lpj/:id', async (req, res) => {
+  try {
+    const cookies = parseCookies(req);
+    const user = cookies.session_token ? getUserBySessionToken(cookies.session_token) : null;
+    if (!user) {
+      return res.status(401).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Sesi Berakhir: Silakan login terlebih dahulu untuk mencetak LPJ.</h2>');
+    }
+
+    const proposal = getPengajuanById(Number(req.params.id));
+    if (!proposal) {
+      return res.status(404).send('Proposal kegiatan tidak ditemukan.');
+    }
+
+    // Proteksi: Guru hanya mencetak LPJ miliknya sendiri
+    if (user.role === 'GURU' && proposal.user_id !== user.id) {
+      return res.status(403).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Akses Ditolak: Anda hanya berhak mencetak LPJ kegiatan Anda sendiri.</h2>');
+    }
+
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const verifyUrl = `${protocol}://${host}/verifikasi/${proposal.kode_verifikasi_qr}`;
+
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+      width: 240,
+      margin: 1,
+      color: { dark: '#064e3b', light: '#ffffff' }
+    });
+
+    const html = renderCetakLpj({
+      proposal,
+      qrDataUrl,
+      hostUrl: `${protocol}://${host}`
+    });
+
+    res.send(html);
+  } catch (err) {
+    res.status(500).send('Terjadi kesalahan saat membuat dokumen cetak LPJ: ' + err.message);
+  }
+});
+
 // 4. Portal Publik Verifikasi Keabsahan Dokumen Digital (Scan QR Code)
 app.get('/verifikasi/:token', (req, res) => {
   try {
@@ -816,12 +858,21 @@ app.get('/verifikasi/:token', (req, res) => {
 // FASE 5: MODUL LPJ (LAPORAN PERTANGGUNGJAWABAN) & REKONSILIASI KAS
 // ==========================================================================
 
-// 1. Guru Mengajukan LPJ & Mengunggah Nota Fisik (Mendukung Multi-Nota / Gabungan)
+// 1. Guru Mengajukan LPJ & Mengunggah Nota Fisik (Template Lengkap & Halaman Terpisah)
 app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => {
   try {
-    const { total_belanja_riil, catatan_lpj } = req.body;
+    const {
+      total_belanja_riil,
+      catatan_lpj,
+      tujuan_kegiatan,
+      tempat_pelaksanaan,
+      jumlah_peserta,
+      resume_hasil,
+      kendala,
+      solusi_tindak_lanjut
+    } = req.body;
 
-    // Petakan semua berkas yang terunggah berdasarkan nama field (misal: nota_file_0, nota_file_1, file_nota)
+    // Petakan semua berkas yang terunggah berdasarkan nama field (misal: nota_file_0, foto_kegiatan_0, file_nota)
     const fileMap = {};
     if (req.files && Array.isArray(req.files)) {
       req.files.forEach(f => {
@@ -829,7 +880,7 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
       });
     }
 
-    // Parsing data item nota jika dikirim dalam bentuk JSON repeater
+    // 1. Parsing data item nota jika dikirim dalam bentuk JSON repeater
     let parsedNotaItems = [];
     if (req.body.nota_items) {
       try {
@@ -852,7 +903,28 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
       });
     }
 
-    // Cari URL nota berkas tunggal / gabungan
+    // 2. Parsing data foto dokumentasi kegiatan
+    let parsedFotoItems = [];
+    if (req.body.foto_dokumentasi) {
+      try {
+        parsedFotoItems = typeof req.body.foto_dokumentasi === 'string' ? JSON.parse(req.body.foto_dokumentasi) : req.body.foto_dokumentasi;
+      } catch (e) {
+        parsedFotoItems = [];
+      }
+    }
+
+    if (Array.isArray(parsedFotoItems) && parsedFotoItems.length > 0) {
+      parsedFotoItems = parsedFotoItems.map((item, idx) => {
+        const fileKey = item.file_key || `foto_kegiatan_${idx}`;
+        const uploadedUrl = fileMap[fileKey];
+        return {
+          caption: item.caption || '',
+          file_url: uploadedUrl || item.existing_file_url || null
+        };
+      }).filter(it => it.file_url);
+    }
+
+    // 3. Cari URL nota berkas tunggal / gabungan
     let singleFileUrl = fileMap['file_nota'] || null;
     if (!singleFileUrl && req.files && req.files.length > 0) {
       singleFileUrl = `/uploads/nota/${req.files[0].filename}`;
@@ -864,13 +936,20 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
       total_belanja_riil: (total_belanja_riil !== undefined && total_belanja_riil !== '') ? Number(total_belanja_riil) : 0,
       file_nota_url: singleFileUrl,
       catatan_lpj,
-      nota_items: parsedNotaItems
+      nota_items: parsedNotaItems,
+      tujuan_kegiatan,
+      tempat_pelaksanaan,
+      jumlah_peserta,
+      resume_hasil,
+      kendala,
+      solusi_tindak_lanjut,
+      foto_dokumentasi: parsedFotoItems
     });
 
     res.json({
       success: true,
       data: updated,
-      message: 'Berkas LPJ & bukti nota berhasil diserahkan ke Bendahara.'
+      message: 'Laporan Pertanggungjawaban (LPJ) & berkas bukti berhasil disimpan.'
     });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
