@@ -580,10 +580,6 @@ function switchView(viewName) {
     }
     const vAudit = document.getElementById('viewAuditLog');
     if (vAudit) vAudit.classList.add('active');
-    const tabDesk = document.getElementById('tabDeskAuditLog');
-    if (tabDesk) tabDesk.classList.add('active');
-    const navAudit = document.getElementById('navAuditLog');
-    if (navAudit) navAudit.classList.add('active');
     loadAuditLogsList();
   }
 
@@ -672,13 +668,9 @@ function updateRolePermissionsUI(user) {
 
   // Hak Akses Log Aktivitas & Audit Pengawasan (Khusus Analisis SDM & Kepsek & Admin)
   const canViewAudit = user && ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(user.role);
-  const tabDeskAudit = document.getElementById('tabDeskAuditLog');
-  if (tabDeskAudit) {
-    tabDeskAudit.style.display = canViewAudit ? 'inline-flex' : 'none';
-  }
-  const navAudit = document.getElementById('navAuditLog');
-  if (navAudit) {
-    navAudit.style.display = canViewAudit ? 'flex' : 'none';
+  const btnDashboardAudit = document.getElementById('btnDashboardAuditLog');
+  if (btnDashboardAudit) {
+    btnDashboardAudit.style.display = canViewAudit ? 'inline-flex' : 'none';
   }
   const btnHeroAudit = document.getElementById('btnHeroAuditLog');
   if (btnHeroAudit) {
@@ -5002,31 +4994,31 @@ function renderAuditLogsTable(logs) {
 
     return `
       <tr>
-        <td style="white-space: nowrap; vertical-align: top;">
+        <td style="white-space: nowrap;">
           <div class="audit-time-main">${escapeHtml(dateStr)}</div>
-          <div class="audit-time-sub">${escapeHtml(timeStr)}</div>
+          <div class="audit-time-sub"><i class="ti ti-clock" style="font-size: 0.85rem;"></i> ${escapeHtml(timeStr)}</div>
         </td>
-        <td style="vertical-align: top;">
+        <td>
           <div class="audit-actor-name">${escapeHtml(actorName)}</div>
           <div class="audit-actor-sub">
-            <span class="role-badge role-${(log.user_role || 'sistem').toLowerCase()}" style="font-size: 0.68rem; padding: 1px 6px;">
+            <span class="role-badge role-${(log.user_role || 'sistem').toLowerCase()}" style="font-size: 0.7rem; padding: 2px 7px;">
               ${escapeHtml(actorRole)}
             </span>
             ${actorEmail}
           </div>
         </td>
-        <td style="text-align: center; vertical-align: top;">
+        <td style="text-align: center;">
           <span class="badge-audit-cat ${catClass}">
             <i class="ti ${catIcon}"></i> ${catLabel}
           </span>
         </td>
-        <td style="vertical-align: top;">
+        <td>
           <div class="audit-text-desc">${escapeHtml(log.aktivitas)}</div>
-          ${log.nama_kegiatan ? `<div style="font-size: 0.73rem; color: #2563eb; margin-top: 4px; font-weight: 600;">📌 Usulan: ${escapeHtml(log.nama_kegiatan)} ${log.nomor_surat_ajuan ? `(${escapeHtml(log.nomor_surat_ajuan)})` : ''}</div>` : ''}
+          ${log.nama_kegiatan ? `<div style="font-size: 0.75rem; color: #2563eb; margin-top: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; background: #eff6ff; padding: 3px 8px; border-radius: 6px; border: 1px solid #dbeafe;">📌 Usulan: ${escapeHtml(log.nama_kegiatan)} ${log.nomor_surat_ajuan ? `(${escapeHtml(log.nomor_surat_ajuan)})` : ''}</div>` : ''}
         </td>
-        <td style="vertical-align: top; white-space: nowrap;">
+        <td style="white-space: nowrap;">
           <span class="audit-device-ip">🌐 ${escapeHtml(ip)}</span>
-          <div class="audit-device-ua" title="${escapeHtml(rawUa)}">💻 ${escapeHtml(shortUa)}</div>
+          <div class="audit-device-ua" title="${escapeHtml(rawUa)}"><i class="ti ti-device-laptop" style="font-size: 0.85rem;"></i> ${escapeHtml(shortUa)}</div>
         </td>
       </tr>
     `;

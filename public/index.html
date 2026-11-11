@@ -181,10 +181,6 @@
             <i class="ti ti-file-analytics" style="font-size: 1.15rem; margin-right: 6px;"></i>
             Laporan & LPJ
           </button>
-          <button class="desktop-tab-btn" id="tabDeskAuditLog" onclick="switchView('auditlog')" style="display: none;">
-            <i class="ti ti-shield-lock" style="font-size: 1.15rem; margin-right: 6px;"></i>
-            Log Aktivitas
-          </button>
         </nav>
 
         <!-- User Profile Pill & Tombol Logout Resmi -->
@@ -553,6 +549,10 @@
           <span class="badge-counter" id="posCountBadge">102 Pos</span>
         </div>
         <div class="header-right-actions">
+          <button class="btn btn-outline-primary btn-sm" id="btnDashboardAuditLog" onclick="switchView('auditlog')" style="display: none;">
+            <i class="ti ti-shield-lock" style="font-size: 1rem;"></i>
+            Log Aktivitas
+          </button>
           <button class="btn btn-primary btn-sm" onclick="switchView('ajukan')">
             <i class="ti ti-plus" style="font-size: 1rem;"></i>
             Ajukan RAB Baru
@@ -1279,7 +1279,10 @@
           </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadAuditLogsList()" title="Muat Ulang Log Aktivitas">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="switchView('dashboard')">
+            <i class="ti ti-arrow-left"></i> Kembali ke Dashboard
+          </button>
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadAuditLogsList()" title="Muat Ulang Log Aktivitas">
             <i class="ti ti-refresh"></i> Segarkan Data
           </button>
         </div>
@@ -1373,11 +1376,11 @@
         <table class="data-table" id="tableAuditLogs">
           <thead>
             <tr>
-              <th style="width: 140px;">Waktu &amp; Tanggal</th>
-              <th style="width: 220px;">Pelaku Aktivitas</th>
-              <th style="width: 130px; text-align: center;">Kategori Modul</th>
-              <th>Deskripsi Detail Aktivitas</th>
-              <th style="width: 170px;">Perangkat &amp; IP</th>
+              <th style="width: 160px; min-width: 150px;">Waktu &amp; Tanggal</th>
+              <th style="width: 250px; min-width: 220px;">Pelaku Aktivitas</th>
+              <th style="width: 150px; min-width: 140px; text-align: center;">Kategori Modul</th>
+              <th style="min-width: 320px;">Deskripsi Detail Aktivitas</th>
+              <th style="width: 180px; min-width: 170px;">Perangkat &amp; IP</th>
             </tr>
           </thead>
           <tbody id="tbodyAuditLogs">
@@ -1506,10 +1509,6 @@
     <a href="javascript:void(0)" class="nav-item" id="navLaporan" onclick="switchView('laporan')">
       <i class="ti ti-file-analytics" style="font-size: 1.35rem;"></i>
       <span>Laporan</span>
-    </a>
-    <a href="javascript:void(0)" class="nav-item" id="navAuditLog" onclick="switchView('auditlog')" style="display: none;">
-      <i class="ti ti-shield-lock" style="font-size: 1.35rem;"></i>
-      <span>Audit Log</span>
     </a>
   </nav>
 
