@@ -572,6 +572,19 @@ function switchView(viewName) {
   } else if (viewName === 'formLpj') {
     const viewLpj = document.getElementById('viewFormLpj');
     if (viewLpj) viewLpj.classList.add('active');
+  } else if (viewName === 'auditlog') {
+    if (!currentUser || !['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role)) {
+      showToast('Akses Ditolak: Halaman log audit hanya dapat diakses oleh Analisis SDM, Kepala Sekolah, dan Administrator.', 'warning');
+      switchView('dashboard');
+      return;
+    }
+    const vAudit = document.getElementById('viewAuditLog');
+    if (vAudit) vAudit.classList.add('active');
+    const tabDesk = document.getElementById('tabDeskAuditLog');
+    if (tabDesk) tabDesk.classList.add('active');
+    const navAudit = document.getElementById('navAuditLog');
+    if (navAudit) navAudit.classList.add('active');
+    loadAuditLogsList();
   }
 
   // Scroll to top saat berpindah tampilan
@@ -655,6 +668,21 @@ function updateRolePermissionsUI(user) {
   const btnKelolaAkunGuru = document.getElementById('btnKelolaAkunGuru');
   if (btnKelolaAkunGuru) {
     btnKelolaAkunGuru.style.display = canManageGuru ? 'inline-flex' : 'none';
+  }
+
+  // Hak Akses Log Aktivitas & Audit Pengawasan (Khusus Analisis SDM & Kepsek & Admin)
+  const canViewAudit = user && ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(user.role);
+  const tabDeskAudit = document.getElementById('tabDeskAuditLog');
+  if (tabDeskAudit) {
+    tabDeskAudit.style.display = canViewAudit ? 'inline-flex' : 'none';
+  }
+  const navAudit = document.getElementById('navAuditLog');
+  if (navAudit) {
+    navAudit.style.display = canViewAudit ? 'flex' : 'none';
+  }
+  const btnHeroAudit = document.getElementById('btnHeroAuditLog');
+  if (btnHeroAudit) {
+    btnHeroAudit.style.display = canViewAudit ? 'inline-flex' : 'none';
   }
 
   if (canManageGuru) {
@@ -4762,3 +4790,252 @@ function renderLpjView() {
 
 window.renderLpjView = renderLpjView;
 window.handleLpjFilterChange = handleLpjFilterChange;
+
+// =============================================================================
+// MODUL LOG AKTIVITAS & AUDIT PENGAWASAN SISTEM (SDM, KEPSEK, ADMIN)
+// =============================================================================
+
+let currentAuditCategory = 'ALL';
+let auditSearchQuery = '';
+let auditSearchTimer = null;
+
+async function loadAuditLogsList() {
+  const tbody = document.getElementById('tbodyAuditLogs');
+  if (!tbody) return;
+
+  try {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
+          <div class="spinner-border spinner-border-sm" role="status" style="margin-right: 8px;"></div>
+          Memuat riwayat log aktivitas...
+        </td>
+      </tr>
+    `;
+
+    const url = `/api/audit-logs?kategori=${encodeURIComponent(currentAuditCategory)}&search=${encodeURIComponent(auditSearchQuery)}&limit=250`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 40px; color: #ef4444;">
+            <i class="ti ti-alert-triangle" style="font-size: 1.5rem; display: block; margin-bottom: 6px;"></i>
+            ${escapeHtml(err.message || 'Gagal memuat log aktivitas sistem.')}
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const data = await res.json();
+    if (!data.success) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 40px; color: #ef4444;">
+            ${escapeHtml(data.message || 'Gagal memuat data.')}
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    // Update KPI Card Numbers
+    const c = data.counts || { total: 0, login: 0, pagu: 0, usulan: 0, lpj: 0, akun: 0 };
+    const elTotal = document.getElementById('statAuditTotal');
+    if (elTotal) elTotal.textContent = Number(c.total || 0).toLocaleString('id-ID');
+    const elLogin = document.getElementById('statAuditLogin');
+    if (elLogin) elLogin.textContent = Number(c.login || 0).toLocaleString('id-ID');
+    const elPagu = document.getElementById('statAuditPagu');
+    if (elPagu) elPagu.textContent = Number(c.pagu || 0).toLocaleString('id-ID');
+    const elLainnya = document.getElementById('statAuditLainnya');
+    if (elLainnya) {
+      const others = Number(c.usulan || 0) + Number(c.lpj || 0) + Number(c.akun || 0);
+      elLainnya.textContent = others.toLocaleString('id-ID');
+    }
+
+    // Update Filter Badges
+    const badgeAll = document.getElementById('badgeCatAll');
+    if (badgeAll) badgeAll.textContent = c.total || 0;
+    const badgeLogin = document.getElementById('badgeCatLogin');
+    if (badgeLogin) badgeLogin.textContent = c.login || 0;
+    const badgePagu = document.getElementById('badgeCatPagu');
+    if (badgePagu) badgePagu.textContent = c.pagu || 0;
+    const badgeUsulan = document.getElementById('badgeCatUsulan');
+    if (badgeUsulan) badgeUsulan.textContent = c.usulan || 0;
+    const badgeLpj = document.getElementById('badgeCatLpj');
+    if (badgeLpj) badgeLpj.textContent = c.lpj || 0;
+    const badgeAkun = document.getElementById('badgeCatAkun');
+    if (badgeAkun) badgeAkun.textContent = c.akun || 0;
+
+    // Render Table Rows
+    renderAuditLogsTable(data.logs || []);
+  } catch (err) {
+    console.error('Error loadAuditLogsList:', err);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 40px; color: #ef4444;">
+          Terjadi kesalahan saat menghubungi server: ${escapeHtml(err.message)}
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function filterAuditCategory(cat) {
+  currentAuditCategory = cat;
+  document.querySelectorAll('.audit-cat-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-cat') === cat);
+  });
+  loadAuditLogsList();
+}
+
+function handleSearchAuditInput() {
+  const input = document.getElementById('inputSearchAudit');
+  const btnClear = document.getElementById('btnAuditClearSearch');
+  if (!input) return;
+
+  auditSearchQuery = input.value.trim();
+  if (btnClear) {
+    btnClear.style.display = auditSearchQuery.length > 0 ? 'flex' : 'none';
+  }
+
+  clearTimeout(auditSearchTimer);
+  auditSearchTimer = setTimeout(() => {
+    loadAuditLogsList();
+  }, 350);
+}
+
+function clearAuditSearch() {
+  const input = document.getElementById('inputSearchAudit');
+  const btnClear = document.getElementById('btnAuditClearSearch');
+  if (input) input.value = '';
+  if (btnClear) btnClear.style.display = 'none';
+  auditSearchQuery = '';
+  loadAuditLogsList();
+}
+
+function renderAuditLogsTable(logs) {
+  const tbody = document.getElementById('tbodyAuditLogs');
+  const showingInfo = document.getElementById('auditShowingInfo');
+  if (!tbody) return;
+
+  if (showingInfo) {
+    showingInfo.textContent = `Menampilkan ${logs.length} catatan aktivitas terkini.`;
+  }
+
+  if (logs.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 50px 20px; color: var(--text-muted);">
+          <div style="font-size: 2.2rem; margin-bottom: 8px;">📋</div>
+          <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">Tidak Ada Log Aktivitas Ditemukan</div>
+          <div style="font-size: 0.8rem; margin-top: 4px;">
+            ${auditSearchQuery ? `Tidak ada catatan yang cocok dengan kata kunci "${escapeHtml(auditSearchQuery)}".` : 'Belum ada rekaman aktivitas untuk kategori ini.'}
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const rowsHtml = logs.map(log => {
+    // 1. Format Waktu
+    let dateStr = '-';
+    let timeStr = '';
+    if (log.waktu_dibuat) {
+      try {
+        const d = new Date(log.waktu_dibuat.replace(' ', 'T'));
+        if (!isNaN(d.getTime())) {
+          dateStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+          timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WITA';
+        } else {
+          dateStr = log.waktu_dibuat;
+        }
+      } catch (e) {
+        dateStr = log.waktu_dibuat;
+      }
+    }
+
+    // 2. Format Pelaku
+    const actorName = log.user_nama || (log.user_id ? `Pengguna #${log.user_id}` : 'Sistem Otomatis');
+    const actorRole = log.user_role ? log.user_role.replace(/_/g, ' ') : 'SISTEM';
+    const actorEmail = log.user_email ? `<span style="font-size: 0.72rem; color: #64748b;">(${escapeHtml(log.user_email)})</span>` : '';
+
+    // 3. Category Badge & Icon
+    const cat = (log.tipe_aksi || 'SISTEM').toUpperCase();
+    let catClass = 'sistem';
+    let catLabel = 'SISTEM';
+    let catIcon = 'ti-settings';
+
+    if (cat === 'LOGIN' || cat === 'AUTH') {
+      catClass = 'login';
+      catLabel = 'SESI / LOGIN';
+      catIcon = 'ti-login';
+    } else if (cat === 'PAGU') {
+      catClass = 'pagu';
+      catLabel = 'PAGU RKAS';
+      catIcon = 'ti-coin';
+    } else if (cat === 'USULAN') {
+      catClass = 'usulan';
+      catLabel = 'USULAN KAS';
+      catIcon = 'ti-file-text';
+    } else if (cat === 'LPJ') {
+      catClass = 'lpj';
+      catLabel = 'LAPORAN LPJ';
+      catIcon = 'ti-receipt';
+    } else if (cat === 'AKUN') {
+      catClass = 'akun';
+      catLabel = 'AKUN PENGGUNA';
+      catIcon = 'ti-user-cog';
+    }
+
+    // 4. Perangkat & IP
+    const ip = log.ip_address || '127.0.0.1';
+    let shortUa = 'Browser Web';
+    const rawUa = log.user_agent || '';
+    if (rawUa.includes('Chrome')) shortUa = 'Google Chrome';
+    else if (rawUa.includes('Firefox')) shortUa = 'Mozilla Firefox';
+    else if (rawUa.includes('Safari')) shortUa = 'Apple Safari';
+    else if (rawUa.includes('Edge')) shortUa = 'Microsoft Edge';
+    else if (rawUa.includes('node') || rawUa.includes('Postman')) shortUa = 'API Client';
+
+    return `
+      <tr>
+        <td style="white-space: nowrap; vertical-align: top;">
+          <div class="audit-time-main">${escapeHtml(dateStr)}</div>
+          <div class="audit-time-sub">${escapeHtml(timeStr)}</div>
+        </td>
+        <td style="vertical-align: top;">
+          <div class="audit-actor-name">${escapeHtml(actorName)}</div>
+          <div class="audit-actor-sub">
+            <span class="role-badge role-${(log.user_role || 'sistem').toLowerCase()}" style="font-size: 0.68rem; padding: 1px 6px;">
+              ${escapeHtml(actorRole)}
+            </span>
+            ${actorEmail}
+          </div>
+        </td>
+        <td style="text-align: center; vertical-align: top;">
+          <span class="badge-audit-cat ${catClass}">
+            <i class="ti ${catIcon}"></i> ${catLabel}
+          </span>
+        </td>
+        <td style="vertical-align: top;">
+          <div class="audit-text-desc">${escapeHtml(log.aktivitas)}</div>
+          ${log.nama_kegiatan ? `<div style="font-size: 0.73rem; color: #2563eb; margin-top: 4px; font-weight: 600;">📌 Usulan: ${escapeHtml(log.nama_kegiatan)} ${log.nomor_surat_ajuan ? `(${escapeHtml(log.nomor_surat_ajuan)})` : ''}</div>` : ''}
+        </td>
+        <td style="vertical-align: top; white-space: nowrap;">
+          <span class="audit-device-ip">🌐 ${escapeHtml(ip)}</span>
+          <div class="audit-device-ua" title="${escapeHtml(rawUa)}">💻 ${escapeHtml(shortUa)}</div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.innerHTML = rowsHtml;
+}
+
+window.loadAuditLogsList = loadAuditLogsList;
+window.filterAuditCategory = filterAuditCategory;
+window.handleSearchAuditInput = handleSearchAuditInput;
+window.clearAuditSearch = clearAuditSearch;

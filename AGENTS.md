@@ -14,12 +14,19 @@ Pemilik project bekerja dari **banyak PC**. Sebelum melakukan apa pun
 3. Setelah selesai bekerja, commit & `git push` agar PC lain mendapat
    versi terbaru.
 
-## 2. Skill yang tersedia di project ini
+## 2. ATURAN SERVER: JANGAN PERNAH UPDATE KE SERVER OTOMATIS
+
+Semua perubahan dan pengujian DILARANG KERAS di-deploy/di-pull ke server
+production (`36.93.15.146` / `apps-dosman`) secara otomatis!
+Hanya lakukan perubahan di lingkungan lokal dan GitHub saja, sampai
+ada perintah eksplisit dari pengguna untuk melakukan update ke server.
+
+## 3. Skill yang tersedia di project ini
 
 - `.agents/skills/prompt-master/` — membuat/memperbaiki prompt untuk
   tool AI lain (LLM, Cursor, Midjourney, coding agent, dll.).
   Sumber: https://github.com/nidhinjs/prompt-master
 
-## 3. Gaya komunikasi
+## 4. Gaya komunikasi
 
 - Jawab dalam Bahasa Indonesia, ringkas.

@@ -181,6 +181,10 @@
             <i class="ti ti-file-analytics" style="font-size: 1.15rem; margin-right: 6px;"></i>
             Laporan & LPJ
           </button>
+          <button class="desktop-tab-btn" id="tabDeskAuditLog" onclick="switchView('auditlog')" style="display: none;">
+            <i class="ti ti-shield-lock" style="font-size: 1.15rem; margin-right: 6px;"></i>
+            Log Aktivitas
+          </button>
         </nav>
 
         <!-- User Profile Pill & Tombol Logout Resmi -->
@@ -259,7 +263,10 @@
               <i class="ti ti-user-plus"></i> + Tambah Akun Guru
             </button>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="btnKelolaAkunGuru" onclick="openModalDaftarGuru()">
-              <i class="ti ti-id-badge-2"></i> Daftar &amp; Reset Sandi Guru
+              <i class="ti ti-id-badge-2"></i> Kelola &amp; Reset Sandi Guru
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btnHeroAuditLog" onclick="switchView('auditlog')">
+              <i class="ti ti-shield-lock"></i> Pantau Log Sistem
             </button>
           </div>
         </div>
@@ -1257,6 +1264,140 @@
       </div>
     </div>
 
+    <!-- ============================================================== -->
+    <!-- VIEW 6: LOG AKTIVITAS & AUDIT SISTEM (SDM, KEPSEK & ADMIN)     -->
+    <!-- ============================================================== -->
+    <div class="app-view" id="viewAuditLog">
+      <!-- 1. Header Compact -->
+      <div class="dashboard-header-compact" style="margin-bottom: 20px;">
+        <div>
+          <h2 class="view-title">
+            <i class="ti ti-shield-lock" style="color: #2563eb;"></i> Log Aktivitas &amp; Audit Pengawasan Sistem
+          </h2>
+          <p class="view-subtitle">
+            Pemantauan transparan aktivitas login, perubahan pagu RKAS, pengajuan belanja, otorisasi disposisi, dan kontrol akun.
+          </p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadAuditLogsList()" title="Muat Ulang Log Aktivitas">
+            <i class="ti ti-refresh"></i> Segarkan Data
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Ringkasan Statistik Audit Grid (4 Cards) -->
+      <div class="audit-stats-grid">
+        <div class="audit-stat-card border-blue">
+          <div class="audit-stat-icon-wrap blue">
+            <i class="ti ti-list-details"></i>
+          </div>
+          <div class="audit-stat-info">
+            <span class="audit-stat-label">Total Aktivitas Tercatat</span>
+            <div class="audit-stat-val" id="statAuditTotal">0</div>
+            <span class="audit-stat-sub">Rekam jejak sistem tersimpan</span>
+          </div>
+        </div>
+
+        <div class="audit-stat-card border-green">
+          <div class="audit-stat-icon-wrap green">
+            <i class="ti ti-login"></i>
+          </div>
+          <div class="audit-stat-info">
+            <span class="audit-stat-label">Aktivitas Sesi / Login</span>
+            <div class="audit-stat-val text-green" id="statAuditLogin">0</div>
+            <span class="audit-stat-sub">Riwayat masuk &amp; autentikasi</span>
+          </div>
+        </div>
+
+        <div class="audit-stat-card border-purple">
+          <div class="audit-stat-icon-wrap purple">
+            <i class="ti ti-coin"></i>
+          </div>
+          <div class="audit-stat-info">
+            <span class="audit-stat-label">Perubahan Pagu RKAS</span>
+            <div class="audit-stat-val text-purple" id="statAuditPagu">0</div>
+            <span class="audit-stat-sub">Tambah, ubah, &amp; sinkron pos</span>
+          </div>
+        </div>
+
+        <div class="audit-stat-card border-amber">
+          <div class="audit-stat-icon-wrap amber">
+            <i class="ti ti-file-certificate"></i>
+          </div>
+          <div class="audit-stat-info">
+            <span class="audit-stat-label">Usulan, LPJ &amp; Akun</span>
+            <div class="audit-stat-val text-amber" id="statAuditLainnya">0</div>
+            <span class="audit-stat-sub">Pengajuan belanja &amp; LPJ guru</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Toolbar Filter Kategori & Pencarian Cepat -->
+      <div class="audit-filter-card">
+        <div class="audit-filter-top">
+          <!-- Kategori Tabs -->
+          <div class="audit-cat-tabs" id="auditCatTabs">
+            <button type="button" class="audit-cat-tab active" data-cat="ALL" onclick="filterAuditCategory('ALL')">
+              <i class="ti ti-apps"></i> Semua <span class="audit-cat-badge" id="badgeCatAll">0</span>
+            </button>
+            <button type="button" class="audit-cat-tab" data-cat="LOGIN" onclick="filterAuditCategory('LOGIN')">
+              <i class="ti ti-login"></i> Login &amp; Sesi <span class="audit-cat-badge" id="badgeCatLogin">0</span>
+            </button>
+            <button type="button" class="audit-cat-tab" data-cat="PAGU" onclick="filterAuditCategory('PAGU')">
+              <i class="ti ti-coin"></i> Pagu RKAS <span class="audit-cat-badge" id="badgeCatPagu">0</span>
+            </button>
+            <button type="button" class="audit-cat-tab" data-cat="USULAN" onclick="filterAuditCategory('USULAN')">
+              <i class="ti ti-file-text"></i> Usulan &amp; Kas <span class="audit-cat-badge" id="badgeCatUsulan">0</span>
+            </button>
+            <button type="button" class="audit-cat-tab" data-cat="LPJ" onclick="filterAuditCategory('LPJ')">
+              <i class="ti ti-receipt"></i> Laporan LPJ <span class="audit-cat-badge" id="badgeCatLpj">0</span>
+            </button>
+            <button type="button" class="audit-cat-tab" data-cat="AKUN" onclick="filterAuditCategory('AKUN')">
+              <i class="ti ti-user-cog"></i> Akun &amp; Sandi <span class="audit-cat-badge" id="badgeCatAkun">0</span>
+            </button>
+          </div>
+
+          <!-- Input Search Live -->
+          <div class="audit-search-wrap">
+            <i class="ti ti-search audit-search-icon"></i>
+            <input type="text" id="inputSearchAudit" class="audit-search-input" placeholder="Cari nama, aktivitas, nomor surat, atau IP..." oninput="handleSearchAuditInput()">
+            <button type="button" class="audit-search-clear" id="btnAuditClearSearch" onclick="clearAuditSearch()" style="display: none;">
+              <i class="ti ti-x"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Tabel Log Aktivitas Modern -->
+      <div class="table-container audit-table-container">
+        <table class="data-table" id="tableAuditLogs">
+          <thead>
+            <tr>
+              <th style="width: 140px;">Waktu &amp; Tanggal</th>
+              <th style="width: 220px;">Pelaku Aktivitas</th>
+              <th style="width: 130px; text-align: center;">Kategori Modul</th>
+              <th>Deskripsi Detail Aktivitas</th>
+              <th style="width: 170px;">Perangkat &amp; IP</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyAuditLogs">
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                <div class="spinner-border spinner-border-sm" role="status" style="margin-right: 8px;"></div>
+                Memuat riwayat log aktivitas sistem...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Footer Info Table -->
+      <div class="audit-table-footer">
+        <span id="auditShowingInfo">Menampilkan 0 catatan aktivitas terbaru.</span>
+        <span class="audit-safe-badge"><i class="ti ti-lock-check"></i> Audit Trail Sistem Otentik &amp; Terlindungi</span>
+      </div>
+    </div>
+
   </main>
 
   <!-- ===================================================================== -->
@@ -1365,6 +1506,10 @@
     <a href="javascript:void(0)" class="nav-item" id="navLaporan" onclick="switchView('laporan')">
       <i class="ti ti-file-analytics" style="font-size: 1.35rem;"></i>
       <span>Laporan</span>
+    </a>
+    <a href="javascript:void(0)" class="nav-item" id="navAuditLog" onclick="switchView('auditlog')" style="display: none;">
+      <i class="ti ti-shield-lock" style="font-size: 1.35rem;"></i>
+      <span>Audit Log</span>
     </a>
   </nav>
 

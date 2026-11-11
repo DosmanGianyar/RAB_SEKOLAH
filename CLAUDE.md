@@ -6,18 +6,21 @@
 
 ---
 
-## ⚡ ATURAN UTAMA: TRIGGER "claude.md" (COMMIT + PUSH + DEPLOY OTOMATIS)
+## ⚡ ATURAN UTAMA: LOCAL & GITHUB ONLY (DILARANG UPDATE SERVER OTOMATIS)
+
+> [!WARNING]
+> **DILARANG DEPLOY OTOMATIS KE SERVER:**
+> Perubahan hanya dilakukan di lingkungan **Lokal & GitHub** saja.
+> AI Agent **DILARANG KERAS** menjalankan deploy/pull ke server production (`apps-dosman` / `36.93.15.146`)
+> kecuali pengguna secara eksplisit memberikan perintah untuk melakukan update server!
 
 > [!IMPORTANT]
 > **KETIKA USER MENGETIK `claude.md`:**
-> AI Agent **WAJIB LANGSUNG MENGEKSEKUSI** urutan perintah berikut secara otomatis tanpa menunggu konfirmasi tambahan:
+> AI Agent menjalankan commit & push ke GitHub:
 > 1. Stage semua perubahan: `git add .`
 > 2. Buat commit: `git commit -m "<deskripsi_perubahan_terbaru>"`
 > 3. Push ke GitHub: `git push origin main`
-> 4. Deploy/Pull ke server production via `plink`:
->    ```powershell
->    plink -batch -hostkey "SHA256:jFKUNtW1LhnnH0PJM4Jr5lbXhEYxYOzg4iFdlbsb2hI" -pw Dosman123 dosman@100.76.239.63 "cd /home/dosman/apps/rab && git pull origin main && npm install --omit=dev && pm2 restart rab"
->    ```
+> *(Langkah deploy ke server HANYA dijalankan jika diminta secara spesifik oleh pengguna)*
 
 ---
 

@@ -172,6 +172,48 @@ function initDatabase() {
     db.prepare(`UPDATE users SET password = 'password123' WHERE password IS NULL OR password = ''`).run();
   }
 
+  // Migrasi kolom audit_log_koreksi (tipe_aksi, ip_address, user_agent) jika belum ada
+  const auditTableInfo = db.prepare(`PRAGMA table_info(audit_log_koreksi)`).all();
+  const auditColNames = auditTableInfo.map(c => c.name);
+  if (!auditColNames.includes('tipe_aksi')) {
+    db.prepare(`ALTER TABLE audit_log_koreksi ADD COLUMN tipe_aksi TEXT DEFAULT 'SISTEM'`).run();
+  }
+  if (!auditColNames.includes('ip_address')) {
+    db.prepare(`ALTER TABLE audit_log_koreksi ADD COLUMN ip_address TEXT`).run();
+  }
+  if (!auditColNames.includes('user_agent')) {
+    db.prepare(`ALTER TABLE audit_log_koreksi ADD COLUMN user_agent TEXT`).run();
+  }
+
+  // Normalisasi kategori log sistem yang sudah ada sebelumnya
+  try {
+    db.prepare(`
+      UPDATE audit_log_koreksi SET tipe_aksi = 'AKUN'
+      WHERE (tipe_aksi IS NULL OR tipe_aksi = 'SISTEM')
+        AND (aktivitas LIKE 'TAMBAH AKUN GURU%' OR aktivitas LIKE 'RESET KATA SANDI%' OR aktivitas LIKE 'GANTI KATA SANDI%')
+    `).run();
+
+    db.prepare(`
+      UPDATE audit_log_koreksi SET tipe_aksi = 'PAGU'
+      WHERE (tipe_aksi IS NULL OR tipe_aksi = 'SISTEM')
+        AND (aktivitas LIKE 'HAPUS POS ANGGARAN%' OR aktivitas LIKE 'TAMBAH POS%' OR aktivitas LIKE 'UBAH PAGU%' OR aktivitas LIKE '%RKAS%')
+    `).run();
+
+    db.prepare(`
+      UPDATE audit_log_koreksi SET tipe_aksi = 'LPJ'
+      WHERE (tipe_aksi IS NULL OR tipe_aksi = 'SISTEM')
+        AND (aktivitas LIKE 'LPJ%')
+    `).run();
+
+    db.prepare(`
+      UPDATE audit_log_koreksi SET tipe_aksi = 'USULAN'
+      WHERE (tipe_aksi IS NULL OR tipe_aksi = 'SISTEM')
+        AND (aktivitas LIKE 'Proposal%' OR aktivitas LIKE '%mengembalikan proposal%' OR aktivitas LIKE '%OTORISASI FINAL%' OR aktivitas LIKE 'KAS DICAIRKAN%' OR aktivitas LIKE 'HAPUS USULAN%')
+    `).run();
+  } catch (e) {
+    // Abaikan jika tabel kosong
+  }
+
   // Update data detail akun resmi sekolah
   db.prepare(`
     UPDATE users 
@@ -218,6 +260,27 @@ function initDatabase() {
 
 // Inisialisasi otomatis skema database saat modul dimuat
 initDatabase();
+
+// Centralized System Activity Logger
+function logSystemActivity({
+  user_id = null,
+  pengajuan_id = null,
+  tipe_aksi = 'SISTEM',
+  aktivitas,
+  ip_address = null,
+  user_agent = null
+}) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, tipe_aksi, aktivitas, ip_address, user_agent)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    return stmt.run(pengajuan_id, user_id, tipe_aksi, aktivitas, ip_address, user_agent);
+  } catch (err) {
+    console.error('Failed to log system activity:', err.message);
+    return null;
+  }
+}
 
 function seedInitialData() {
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
@@ -769,10 +832,11 @@ function createGuruUser({ nama_lengkap, nip, email, password, unit_bagian }, cal
   const newUserId = Number(info.lastInsertRowid);
 
   if (callerUser) {
-    db.prepare(`
-      INSERT INTO audit_log_koreksi (user_id, aktivitas)
-      VALUES (?, ?)
-    `).run(callerUser.id, `TAMBAH AKUN GURU: Akun guru baru "${nama_lengkap.trim()}" (${cleanEmail}) dibuat oleh ${callerUser.nama_lengkap} (${callerUser.role}).`);
+    logSystemActivity({
+      user_id: callerUser.id,
+      tipe_aksi: 'AKUN',
+      aktivitas: `TAMBAH AKUN GURU: Akun guru baru "${nama_lengkap.trim()}" (${cleanEmail}) dibuat oleh ${callerUser.nama_lengkap} (${callerUser.role}).`
+    });
   }
 
   return getUserById(newUserId);
@@ -795,10 +859,11 @@ function resetUserPassword(targetUserId, callerUser, newPassword = 'Dosman2026')
   const finalPass = (newPassword && newPassword.trim()) ? newPassword.trim() : 'Dosman2026';
   db.prepare('UPDATE users SET password = ? WHERE id = ?').run(finalPass, targetUserId);
 
-  db.prepare(`
-    INSERT INTO audit_log_koreksi (user_id, aktivitas)
-    VALUES (?, ?)
-  `).run(callerUser.id, `RESET KATA SANDI: Kata sandi untuk akun "${targetUser.nama_lengkap}" (${targetUser.email}) berhasil direset oleh ${callerUser.nama_lengkap} (${callerUser.role}).`);
+  logSystemActivity({
+    user_id: callerUser.id,
+    tipe_aksi: 'AKUN',
+    aktivitas: `RESET KATA SANDI: Kata sandi untuk akun "${targetUser.nama_lengkap}" (${targetUser.email}) berhasil direset oleh ${callerUser.nama_lengkap} (${callerUser.role}).`
+  });
 
   return {
     success: true,
@@ -828,10 +893,11 @@ function changeOwnPassword(userId, oldPassword, newPassword) {
 
   db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newPassword, userId);
 
-  db.prepare(`
-    INSERT INTO audit_log_koreksi (user_id, aktivitas)
-    VALUES (?, ?)
-  `).run(userId, `GANTI KATA SANDI PRIBADI: Pengguna "${user.nama_lengkap}" berhasil memperbarui kata sandi mandiri.`);
+  logSystemActivity({
+    user_id: userId,
+    tipe_aksi: 'AKUN',
+    aktivitas: `GANTI KATA SANDI PRIBADI: Pengguna "${user.nama_lengkap}" berhasil memperbarui kata sandi mandiri.`
+  });
 
   return { success: true, message: 'Kata sandi Anda berhasil diperbarui.' };
 }
@@ -982,14 +1048,12 @@ function createPengajuan({ user_id, pos_anggaran_id, nama_kegiatan, latar_belaka
 
   // 5. Audit Log
   const user = getUserById(user_id);
-  db.prepare(`
-    INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
-    VALUES (?, ?, ?)
-  `).run(
-    pengajuanId,
+  logSystemActivity({
+    pengajuan_id: pengajuanId,
     user_id,
-    `Proposal "${nama_kegiatan}" diajukan oleh ${user ? user.nama_lengkap : 'Guru'} sebesar Rp ${totalAjuan.toLocaleString('id-ID')}`
-  );
+    tipe_aksi: 'USULAN',
+    aktivitas: `Proposal "${nama_kegiatan}" diajukan oleh ${user ? user.nama_lengkap : 'Guru'} sebesar Rp ${totalAjuan.toLocaleString('id-ID')}`
+  });
 
   return getPengajuanById(pengajuanId);
 }
@@ -1125,14 +1189,12 @@ function reviewProposalByBendahara({ proposal_id, user_id, items_koreksi, catata
     `).run(proposal.total_dana_diajukan, proposal.pos_anggaran_id);
 
     // Audit log
-    db.prepare(`
-      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
-      VALUES (?, ?, ?)
-    `).run(
-      proposal_id,
+    logSystemActivity({
+      pengajuan_id: proposal_id,
       user_id,
-      `${reviewerName} mengembalikan proposal untuk revisi. Catatan: "${catatan_bendahara || '-'}"`
-    );
+      tipe_aksi: 'USULAN',
+      aktivitas: `${reviewerName} mengembalikan proposal untuk revisi. Catatan: "${catatan_bendahara || '-'}"`
+    });
 
     return getPengajuanById(proposal_id);
   }
@@ -1199,10 +1261,12 @@ function reviewProposalByBendahara({ proposal_id, user_id, items_koreksi, catata
     WHERE id = ?
   `).run(totalDisetujui, statusBaru, catatan_bendahara || '', proposal_id);
 
-  db.prepare(`
-    INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
-    VALUES (?, ?, ?)
-  `).run(proposal_id, user_id, auditAktivitas);
+  logSystemActivity({
+    pengajuan_id: proposal_id,
+    user_id,
+    tipe_aksi: 'USULAN',
+    aktivitas: auditAktivitas
+  });
 
   return getPengajuanById(proposal_id);
 }
@@ -1235,14 +1299,12 @@ function decisionProposalByKepsek({ proposal_id, user_id, tindakan, catatan_keps
       WHERE id = ?
     `).run(proposal.total_dana_disetujui, proposal.pos_anggaran_id);
 
-    db.prepare(`
-      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
-      VALUES (?, ?, ?)
-    `).run(
-      proposal_id,
+    logSystemActivity({
+      pengajuan_id: proposal_id,
       user_id,
-      `${kepsekName} mengembalikan proposal untuk revisi: "${catatan_kepsek || '-'}"`
-    );
+      tipe_aksi: 'USULAN',
+      aktivitas: `${kepsekName} mengembalikan proposal untuk revisi: "${catatan_kepsek || '-'}"`
+    });
   } else {
     // APPROVE
     db.prepare(`
@@ -1251,14 +1313,12 @@ function decisionProposalByKepsek({ proposal_id, user_id, tindakan, catatan_keps
       WHERE id = ?
     `).run(proposal_id);
 
-    db.prepare(`
-      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
-      VALUES (?, ?, ?)
-    `).run(
-      proposal_id,
+    logSystemActivity({
+      pengajuan_id: proposal_id,
       user_id,
-      `${kepsekName} memberikan OTORISASI FINAL & MENGESAHKAN anggaran sebesar Rp ${proposal.total_dana_disetujui.toLocaleString('id-ID')}`
-    );
+      tipe_aksi: 'USULAN',
+      aktivitas: `${kepsekName} memberikan OTORISASI FINAL & MENGESAHKAN anggaran sebesar Rp ${proposal.total_dana_disetujui.toLocaleString('id-ID')}`
+    });
   }
 
   return getPengajuanById(proposal_id);
@@ -1272,6 +1332,67 @@ function getAuditLogs(proposal_id) {
     WHERE a.pengajuan_id = ?
     ORDER BY a.id ASC
   `).all(proposal_id);
+}
+
+// Mengambil seluruh log aktivitas sistem untuk Analisis SDM, Kepala Sekolah, dan Administrator
+function getAllSystemAuditLogs({ kategori = 'ALL', search = '', limit = 150, offset = 0 } = {}) {
+  let whereClauses = [];
+  let params = [];
+
+  if (kategori && kategori !== 'ALL') {
+    whereClauses.push('a.tipe_aksi = ?');
+    params.push(kategori);
+  }
+
+  if (search && search.trim()) {
+    const s = `%${search.trim().toLowerCase()}%`;
+    whereClauses.push(`(
+      LOWER(a.aktivitas) LIKE ? 
+      OR LOWER(COALESCE(u.nama_lengkap, '')) LIKE ? 
+      OR LOWER(COALESCE(u.role, '')) LIKE ?
+      OR LOWER(COALESCE(a.ip_address, '')) LIKE ?
+    )`);
+    params.push(s, s, s, s);
+  }
+
+  const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+  const sql = `
+    SELECT 
+      a.id,
+      a.pengajuan_id,
+      a.user_id,
+      COALESCE(a.tipe_aksi, 'SISTEM') AS tipe_aksi,
+      a.aktivitas,
+      a.ip_address,
+      a.user_agent,
+      a.waktu_dibuat,
+      u.nama_lengkap AS user_nama,
+      u.role AS user_role,
+      u.email AS user_email,
+      p.nama_kegiatan,
+      p.nomor_surat_ajuan
+    FROM audit_log_koreksi a
+    LEFT JOIN users u ON a.user_id = u.id
+    LEFT JOIN pengajuan_kegiatan p ON a.pengajuan_id = p.id
+    ${whereStr}
+    ORDER BY a.id DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  const logs = db.prepare(sql).all(...params, Number(limit) || 150, Number(offset) || 0);
+
+  // Perhitungan statistik kategori untuk badge tab & kartu informasi
+  const counts = {
+    total: db.prepare(`SELECT COUNT(*) as count FROM audit_log_koreksi`).get().count,
+    login: db.prepare(`SELECT COUNT(*) as count FROM audit_log_koreksi WHERE tipe_aksi = 'LOGIN'`).get().count,
+    pagu: db.prepare(`SELECT COUNT(*) as count FROM audit_log_koreksi WHERE tipe_aksi = 'PAGU'`).get().count,
+    usulan: db.prepare(`SELECT COUNT(*) as count FROM audit_log_koreksi WHERE tipe_aksi = 'USULAN'`).get().count,
+    lpj: db.prepare(`SELECT COUNT(*) as count FROM audit_log_koreksi WHERE tipe_aksi = 'LPJ'`).get().count,
+    akun: db.prepare(`SELECT COUNT(*) as count FROM audit_log_koreksi WHERE tipe_aksi = 'AKUN'`).get().count
+  };
+
+  return { logs, counts };
 }
 
 // FASE 4: Pencairan Kas (Cash Disbursement by Bendahara/Admin)
@@ -1336,14 +1457,12 @@ function disburseProposal({
     ? `Transfer Bank ${bank_tujuan || ''} (No. Rek: ${nomor_rekening || '-'}, Ref: ${nomor_referensi_transfer || '-'})`
     : `Kas Tunai Langsung (Serah Terima Fisik)`;
 
-  db.prepare(`
-    INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
-    VALUES (?, ?, ?)
-  `).run(
-    proposal_id,
+  logSystemActivity({
+    pengajuan_id: proposal_id,
     user_id,
-    `KAS DICAIRKAN: ${bendaharaName} mencairkan dana sebesar Rp ${danaCair.toLocaleString('id-ID')} kepada ${penerima_dana || proposal.pemohon_nama} via ${detailMetode}. Sisa anggaran pos resmi terserap.`
-  );
+    tipe_aksi: 'USULAN',
+    aktivitas: `KAS DICAIRKAN: ${bendaharaName} mencairkan dana sebesar Rp ${danaCair.toLocaleString('id-ID')} kepada ${penerima_dana || proposal.pemohon_nama} via ${detailMetode}. Sisa anggaran pos resmi terserap.`
+  });
 
   return getPengajuanById(proposal_id);
 }
@@ -1552,14 +1671,12 @@ function submitLpjByGuru({
     detailInfo += ` (Kelebihan biaya: Rp ${(belanjaRiil - danaCair).toLocaleString('id-ID')})`;
   }
 
-  db.prepare(`
-    INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
-    VALUES (?, ?, ?)
-  `).run(
+  logSystemActivity({
     pengajuan_id,
     user_id,
-    `LPJ DIAJUKAN: ${guruName} menyerahkan berkas LPJ. ${detailInfo}.`
-  );
+    tipe_aksi: 'LPJ',
+    aktivitas: `LPJ DIAJUKAN: ${guruName} menyerahkan berkas LPJ. ${detailInfo}.`
+  });
 
   return getPengajuanById(pengajuan_id);
 }
@@ -1606,14 +1723,12 @@ function verifyLpjByBendahara({
       WHERE id = ?
     `).run(`Catatan LPJ: ${catatan_verifikasi || 'Bukti nota/nominal belum sesuai'}`, pengajuan_id);
 
-    db.prepare(`
-      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
-      VALUES (?, ?, ?)
-    `).run(
+    logSystemActivity({
       pengajuan_id,
       user_id,
-      `LPJ PERLU PERBAIKAN: ${bendaharaName} meminta revisi LPJ: "${catatan_verifikasi || 'Perbaiki bukti nota'}"`
-    );
+      tipe_aksi: 'LPJ',
+      aktivitas: `LPJ PERLU PERBAIKAN: ${bendaharaName} meminta revisi LPJ: "${catatan_verifikasi || 'Perbaiki bukti nota'}"`
+    });
   } else {
     // TERIMA & SELESAI
     db.prepare(`
@@ -1641,14 +1756,12 @@ function verifyLpjByBendahara({
       ? `Sisa dana kas sebesar Rp ${lpj.sisa_pengembalian_dana.toLocaleString('id-ID')} telah diterima kembali dan dikembalikan ke sisa pagu aktif pos anggaran.`
       : `Seluruh dana kas terealisasi penuh sesuai nota fisik.`;
 
-    db.prepare(`
-      INSERT INTO audit_log_koreksi (pengajuan_id, user_id, aktivitas)
-      VALUES (?, ?, ?)
-    `).run(
+    logSystemActivity({
       pengajuan_id,
       user_id,
-      `LPJ DITERIMA & SELESAI: ${bendaharaName} mengesahkan LPJ & nota belanja. ${rekonsiliasiMsg}`
-    );
+      tipe_aksi: 'LPJ',
+      aktivitas: `LPJ DITERIMA & SELESAI: ${bendaharaName} mengesahkan LPJ & nota belanja. ${rekonsiliasiMsg}`
+    });
   }
 
   return getPengajuanById(pengajuan_id);
@@ -1669,7 +1782,7 @@ function syncAllPosPagu() {
     if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
       db.prepare('UPDATE pos_anggaran SET total_terserap = total_terserap + ? WHERE id = ?').run(nominal, p.pos_anggaran_id);
     } else {
-      db.prepare('UPDATE pos_anggaran SET pagu_tercadangkan = pagu_tercadangkan + ? WHERE id = ?').run(nominal, p.pos_anggaran_id);
+      db.prepare('UPDATE pos_anggaran SET total_terserap = total_terserap + ? WHERE id = ?').run(nominal, p.pos_anggaran_id);
     }
   }
 }
@@ -1690,10 +1803,11 @@ function deletePengajuan(id, user) {
   db.prepare('DELETE FROM pengajuan_kegiatan WHERE id = ?').run(id);
 
   if (user) {
-    db.prepare(`
-      INSERT INTO audit_log_koreksi (user_id, aktivitas)
-      VALUES (?, ?)
-    `).run(user.id, `HAPUS USULAN: Pengajuan "${proposal.nama_kegiatan}" (Nomor: ${proposal.nomor_surat_ajuan}) berhasil dihapus permanen oleh ${user.nama_lengkap} (${user.role}).`);
+    logSystemActivity({
+      user_id: user.id,
+      tipe_aksi: 'USULAN',
+      aktivitas: `HAPUS USULAN: Pengajuan "${proposal.nama_kegiatan}" (Nomor: ${proposal.nomor_surat_ajuan}) berhasil dihapus permanen oleh ${user.nama_lengkap} (${user.role}).`
+    });
   }
 
   // Rekonsiliasi ulang seluruh plafon & serapan pos anggaran
@@ -1717,10 +1831,11 @@ function deletePosAnggaran(id, user) {
   db.prepare('DELETE FROM pos_anggaran WHERE id = ?').run(id);
 
   if (user) {
-    db.prepare(`
-      INSERT INTO audit_log_koreksi (user_id, aktivitas)
-      VALUES (?, ?)
-    `).run(user.id, `HAPUS POS ANGGARAN: Pos "${pos.nama_pos}" (Kode: ${pos.kode_rekening || '-'}) berhasil dihapus oleh ${user.nama_lengkap} (${user.role}).`);
+    logSystemActivity({
+      user_id: user.id,
+      tipe_aksi: 'PAGU',
+      aktivitas: `HAPUS POS ANGGARAN: Pos "${pos.nama_pos}" (Kode: ${pos.kode_rekening || '-'}) berhasil dihapus oleh ${user.nama_lengkap} (${user.role}).`
+    });
   }
 
   return { success: true, message: `Pos anggaran "${pos.nama_pos}" berhasil dihapus.` };
@@ -1729,6 +1844,8 @@ function deletePosAnggaran(id, user) {
 module.exports = {
   db,
   initDatabase,
+  logSystemActivity,
+  getAllSystemAuditLogs,
   getPosAnggaranList,
   getPosAnggaranById,
   createPosAnggaran,

@@ -6,6 +6,8 @@ const multer = require('multer');
 const XLSX = require('xlsx');
 const {
   initDatabase,
+  logSystemActivity,
+  getAllSystemAuditLogs,
   getPosAnggaranList,
   getPosAnggaranById,
   createPosAnggaran,
@@ -117,6 +119,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// Helper untuk mengambil IP dan User-Agent client
+function getClientMeta(req) {
+  let ip = req.headers['x-forwarded-for'];
+  if (ip) {
+    ip = ip.split(',')[0].trim();
+  } else {
+    ip = req.socket?.remoteAddress || req.ip || '127.0.0.1';
+  }
+  if (ip === '::1' || ip === '::ffff:127.0.0.1') ip = '127.0.0.1';
+  const ua = req.headers['user-agent'] || 'Browser/Unknown';
+  return { ip, ua };
+}
+
 // Guard Middleware: Wajib Login
 function requireAuth(req, res, next) {
   if (!req.user) {
@@ -136,6 +151,15 @@ app.post('/api/auth/login', (req, res) => {
     const { identifier, password } = req.body;
     const user = authenticateUser(identifier, password);
     const token = createSession(user.id);
+    const { ip, ua } = getClientMeta(req);
+
+    logSystemActivity({
+      user_id: user.id,
+      tipe_aksi: 'LOGIN',
+      aktivitas: `LOGIN BERHASIL: Pengguna "${user.nama_lengkap}" (${user.role}) berhasil masuk ke sistem.`,
+      ip_address: ip,
+      user_agent: ua
+    });
 
     res.setHeader('Set-Cookie', `session_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
     res.json({
@@ -153,6 +177,16 @@ app.post('/api/auth/logout', (req, res) => {
   const cookies = parseCookies(req);
   if (cookies.session_token) {
     deleteSession(cookies.session_token);
+  }
+  if (req.user) {
+    const { ip, ua } = getClientMeta(req);
+    logSystemActivity({
+      user_id: req.user.id,
+      tipe_aksi: 'LOGIN',
+      aktivitas: `LOGOUT: Pengguna "${req.user.nama_lengkap}" (${req.user.role}) keluar dari sesi.`,
+      ip_address: ip,
+      user_agent: ua
+    });
   }
   res.setHeader('Set-Cookie', 'session_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
   res.json({ success: true, message: 'Berhasil keluar dari sistem.' });
@@ -174,6 +208,14 @@ app.post('/api/auth/switch-user', (req, res) => {
     return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
   }
   const token = createSession(user.id);
+  const { ip, ua } = getClientMeta(req);
+  logSystemActivity({
+    user_id: user.id,
+    tipe_aksi: 'LOGIN',
+    aktivitas: `GANTI SESI INSTAN: Beralih ke akun "${user.nama_lengkap}" (${user.role}).`,
+    ip_address: ip,
+    user_agent: ua
+  });
   res.setHeader('Set-Cookie', `session_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}`);
   res.json({ success: true, user, message: `Beralih ke akun ${user.nama_lengkap} (${user.role})` });
 });
@@ -251,6 +293,25 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
   }
 });
 
+// Log Aktivitas Sistem (Khusus Analisis SDM, Kepsek, Admin)
+app.get('/api/audit-logs', requireAuth, (req, res) => {
+  try {
+    const ALLOWED_AUDIT_ROLES = ['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'];
+    if (!ALLOWED_AUDIT_ROLES.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses Ditolak: Halaman log pengawasan aktivitas hanya dapat diakses oleh Analisis SDM Aparatur, Kepala Sekolah, dan Administrator.'
+      });
+    }
+
+    const { kategori, search, limit, offset } = req.query;
+    const result = getAllSystemAuditLogs({ kategori, search, limit, offset });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Summary overview stats
 app.get('/api/summary', (req, res) => {
   const summary = getSystemSummary();
@@ -282,6 +343,14 @@ app.post('/api/pos-anggaran/sync-rkas', requireAuth, (req, res) => {
     const success = importRkasFromExcel();
     if (success) {
       const list = getPosAnggaranList();
+      const { ip, ua } = getClientMeta(req);
+      logSystemActivity({
+        user_id: req.user.id,
+        tipe_aksi: 'PAGU',
+        aktivitas: `SINKRONISASI RKAS EXCEL: Database pos anggaran (${list.length} item) disinkronkan dari file Excel RKAS oleh ${req.user.nama_lengkap} (${req.user.role}).`,
+        ip_address: ip,
+        user_agent: ua
+      });
       res.json({ success: true, count: list.length, message: `Berhasil menyinkronkan ${list.length} item RKAS 2026 dari Excel resmi!`, data: list });
     } else {
       res.status(500).json({ success: false, message: 'Gagal menyinkronkan data RKAS dari file Excel.' });
@@ -334,6 +403,16 @@ app.post('/api/pos-anggaran', requireAuth, (req, res) => {
       pagu_awal,
       keterangan
     });
+
+    const { ip, ua } = getClientMeta(req);
+    logSystemActivity({
+      user_id: req.user.id,
+      tipe_aksi: 'PAGU',
+      aktivitas: `TAMBAH POS RKAS: Pos baru "${created.nama_pos}" (${created.kode_rekening || '-'}) dengan plafon Rp ${Number(created.pagu_awal || 0).toLocaleString('id-ID')} dibuat oleh ${req.user.nama_lengkap} (${req.user.role}).`,
+      ip_address: ip,
+      user_agent: ua
+    });
+
     res.json({ success: true, data: created, message: 'Pos anggaran berhasil ditambahkan' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -350,6 +429,12 @@ app.put('/api/pos-anggaran/:id', requireAuth, (req, res) => {
         message: 'Akses Ditolak: Perubahan pagu anggaran hanya dapat dilakukan oleh Analisis SDM Aparatur dan Kepala Sekolah. Akun Bendahara dan Guru bertugas dalam pengajuan dan pengelolaan LPJ.'
       });
     }
+
+    const oldPos = getPosAnggaranById(req.params.id);
+    if (!oldPos) {
+      return res.status(404).json({ success: false, message: 'Pos anggaran tidak ditemukan' });
+    }
+
     const {
       nama_pos,
       pagu_awal,
@@ -378,6 +463,19 @@ app.put('/api/pos-anggaran/:id', requireAuth, (req, res) => {
       kode_kelompok,
       nama_kelompok
     });
+
+    const { ip, ua } = getClientMeta(req);
+    const selisihPagu = (oldPos && Number(oldPos.pagu_awal) !== Number(updated.pagu_awal))
+      ? ` Perubahan Plafon: Rp ${Number(oldPos.pagu_awal).toLocaleString('id-ID')} ➔ Rp ${Number(updated.pagu_awal).toLocaleString('id-ID')}.`
+      : '';
+    logSystemActivity({
+      user_id: req.user.id,
+      tipe_aksi: 'PAGU',
+      aktivitas: `UBAH POS RKAS: Pos "${updated.nama_pos}" (${updated.kode_rekening || '-'}) diperbarui oleh ${req.user.nama_lengkap} (${req.user.role}).${selisihPagu}`,
+      ip_address: ip,
+      user_agent: ua
+    });
+
     res.json({ success: true, data: updated, message: 'Pos anggaran berhasil diperbarui' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
