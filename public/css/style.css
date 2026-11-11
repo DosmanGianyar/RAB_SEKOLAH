@@ -137,6 +137,11 @@ i.ti {
   line-height: 1;
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg-main);
@@ -161,6 +166,13 @@ body {
   padding: 0 16px;
   position: relative;
   z-index: 1;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 10px;
+  }
 }
 
 /* Top App Header (Mobile-First) */
@@ -2754,23 +2766,35 @@ body {
   grid-template-columns: 1.45fr 1fr;
   gap: 20px;
   margin-bottom: 24px;
+  width: 100%;
+  min-width: 0;
 }
 
 @media (max-width: 960px) {
   .home-charts-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 .chart-card {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .chart-container {
   position: relative;
   height: 290px;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.chart-container canvas {
+  max-width: 100% !important;
 }
 
 .chart-legend-hint {
@@ -2783,17 +2807,30 @@ body {
 }
 
 @media (max-width: 640px) {
+  .home-charts-grid {
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .home-panel-card {
+    padding: 16px 12px;
+  }
+  .chart-container {
+    height: 260px;
+  }
   .home-hero-card {
-    padding: 20px 18px;
+    padding: 16px 14px;
     flex-direction: column-reverse;
     text-align: center;
-    gap: 14px;
+    gap: 12px;
   }
   .home-hero-meta {
     justify-content: center;
   }
   .home-hero-title {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
+  }
+  .home-hero-actions-sdm {
+    justify-content: center;
   }
 }
 
@@ -3888,10 +3925,15 @@ table td {
 
 .rkas-table {
   width: 100%;
+  min-width: 860px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.84rem;
   margin-bottom: 0;
+}
+
+#tableLpj {
+  min-width: 920px;
 }
 
 .rkas-table thead {
@@ -5164,13 +5206,17 @@ table td {
   border: 1.5px solid var(--border-subtle);
   border-radius: 14px;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 #tableAuditLogs {
   width: 100%;
   border-collapse: collapse;
-  min-width: 950px;
+  min-width: 900px;
 }
 
 #tableAuditLogs thead th {
@@ -5350,6 +5396,98 @@ table td {
   line-height: 1.6;
   word-break: break-word;
   font-weight: 500;
+}
+
+/* ========================================================================== */
+/* RESPONSIVE TABLE & TOOLBAR ENHANCEMENTS FOR SMALL SCREENS (< 768px)        */
+/* ========================================================================== */
+@media (max-width: 768px) {
+  /* RKAS Table Mobile Styles */
+  .rkas-table {
+    font-size: 0.78rem;
+  }
+  .rkas-table thead th {
+    padding: 8px 8px;
+    font-size: 0.72rem;
+  }
+  .rkas-table tbody td {
+    padding: 8px 8px;
+  }
+  .rkas-table-card {
+    border-radius: var(--radius-md);
+  }
+  .table-scroll-hint-bar {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+  .rkas-filter-toolbar {
+    gap: 6px;
+  }
+  .search-input-wrap {
+    min-width: 100%;
+  }
+  .filter-controls-group {
+    width: 100%;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .rkas-select-filter {
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    padding: 6px 10px;
+  }
+
+  /* Audit Log Mobile Styles */
+  .audit-filter-card {
+    padding: 12px 14px;
+  }
+  .audit-filter-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .audit-cat-tabs {
+    gap: 6px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    width: 100%;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .audit-cat-tab {
+    padding: 6px 12px;
+    font-size: 0.76rem;
+    flex-shrink: 0;
+  }
+  .audit-search-wrap {
+    min-width: 100%;
+    max-width: 100%;
+  }
+  #tableAuditLogs thead th {
+    padding: 10px 10px !important;
+    font-size: 0.74rem;
+  }
+  #tableAuditLogs tbody td {
+    padding: 10px 10px !important;
+    font-size: 0.78rem;
+  }
+  .audit-device-ua {
+    max-width: 120px;
+  }
+
+  /* LPJ Table Mobile Styles */
+  #tableLpj thead th {
+    padding: 8px 8px;
+    font-size: 0.72rem;
+  }
+  #tableLpj tbody td {
+    padding: 8px 8px;
+    font-size: 0.78rem;
+  }
 }
 
 

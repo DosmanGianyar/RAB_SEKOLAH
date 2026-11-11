@@ -1372,8 +1372,12 @@
       </div>
 
       <!-- 4. Tabel Log Aktivitas Modern -->
-      <div class="table-container audit-table-container">
-        <table class="data-table" id="tableAuditLogs">
+      <div class="rkas-table-card" style="border-radius: 14px; overflow: hidden; margin-bottom: 16px;">
+        <div class="table-scroll-hint-bar">
+          <span><i class="ti ti-arrows-left-right"></i> Geser tabel ke samping dari mana saja untuk melihat detail aktivitas dan perangkat</span>
+        </div>
+        <div class="table-responsive draggable-table-container audit-table-container" style="border: none; border-radius: 0;">
+          <table class="data-table" id="tableAuditLogs">
           <thead>
             <tr>
               <th style="width: 160px; min-width: 150px;">Waktu &amp; Tanggal</th>
@@ -1392,6 +1396,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
       
       <!-- Footer Info Table -->

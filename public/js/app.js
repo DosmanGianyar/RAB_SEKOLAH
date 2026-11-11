@@ -1319,7 +1319,7 @@ function initOrUpdateHomeCharts() {
     homeSnpChart = new Chart(ctxSnp, {
       type: 'bar',
       data: {
-        labels: labels.map(l => l.replace('Standar ', '')),
+        labels: labels.map(l => l.replace('Standar ', '').replace('Sarana & Prasarana', 'Sarpras')),
         datasets: [
           {
             label: 'Pagu Alokasi',
@@ -1346,6 +1346,7 @@ function initOrUpdateHomeCharts() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        resizeDelay: 50,
         indexAxis: 'y',
         interaction: {
           mode: 'index',
@@ -1386,7 +1387,8 @@ function initOrUpdateHomeCharts() {
               color: 'rgba(226, 232, 240, 0.7)'
             },
             ticks: {
-              font: { size: 11 },
+              maxTicksLimit: 5,
+              font: { size: 10 },
               callback: function(value) {
                 if (value >= 1000000000) return (value / 1000000000).toFixed(1) + ' M';
                 if (value >= 1000000) return (value / 1000000).toFixed(0) + ' Jt';
@@ -1397,7 +1399,7 @@ function initOrUpdateHomeCharts() {
           y: {
             grid: { display: false },
             ticks: {
-              font: { size: 11, weight: '600' }
+              font: { size: 10, weight: '600' }
             }
           }
         }
@@ -1433,14 +1435,15 @@ function initOrUpdateHomeCharts() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '70%',
+        resizeDelay: 50,
+        cutout: '66%',
         plugins: {
           legend: {
             position: 'bottom',
             labels: {
-              boxWidth: 12,
-              boxHeight: 12,
-              padding: 12,
+              boxWidth: 10,
+              boxHeight: 10,
+              padding: 10,
               usePointStyle: true,
               pointStyle: 'circle',
               font: {
