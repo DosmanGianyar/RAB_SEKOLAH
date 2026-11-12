@@ -5566,3 +5566,6 @@ input.search-input,
 .aksi-dd-green { color: #047857; }
 .aksi-dd-blue { color: #1d4ed8; }
 .aksi-dd-sep { height: 1px; background: #e2e8f0; margin: 5px 4px; }
+
+/* Menu dropdown Aksi dipasang di <body>: wajib di atas semua elemen */
+body > .aksi-dd-menu { z-index: 2147483000; }

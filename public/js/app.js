@@ -859,7 +859,12 @@ window.simpanPenandatangan = simpanPenandatangan;
 
 // --- Dropdown Aksi (menu fixed agar tidak terpotong tabel) ---
 function closeAksiMenus() {
-  document.querySelectorAll('.aksi-dd-menu.open').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('.aksi-dd-menu.open').forEach(m => {
+    m.classList.remove('open');
+    // kembalikan menu ke baris asalnya (jika masih ada di DOM)
+    if (m._home && m._home.isConnected) m._home.appendChild(m);
+    else m.remove();
+  });
 }
 window.closeAksiMenus = closeAksiMenus;
 
@@ -867,9 +872,12 @@ function toggleAksiMenu(event, btn) {
   event.stopPropagation();
   const menu = btn.parentElement.querySelector('.aksi-dd-menu');
   if (!menu) return;
+  menu._home = btn.parentElement;
   const wasOpen = menu.classList.contains('open');
   closeAksiMenus();
   if (wasOpen) return;
+  // Pindahkan ke <body> agar lepas dari stacking context tabel/kartu (z-index selalu paling atas)
+  document.body.appendChild(menu);
   menu.classList.add('open');
   const r = btn.getBoundingClientRect();
   const mh = menu.offsetHeight;
