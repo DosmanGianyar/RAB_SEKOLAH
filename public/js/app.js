@@ -2568,6 +2568,7 @@ function renderProposalsList(proposals) {
     const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
     const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
     const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
+    const canManageLpj = currentUser && (currentUser.id === p.user_id || currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
 
     if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
       roleActionBtn = `
@@ -2587,22 +2588,33 @@ function renderProposalsList(proposals) {
           <i class="ti ti-cash"></i> Cairkan Kas
         </button>
       `;
-    } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
+    } else if (canManageLpj && p.status === 'DICAIRKAN') {
       roleActionBtn = `
         <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); navigateToLpjEditor(${p.id})" title="Buka formulir lengkap penyusunan LPJ &amp; unggah bukti">
           <i class="ti ti-file-certificate"></i> Buat LPJ
         </button>
       `;
-    } else if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+    } else if (p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+      let btns = '';
+      if (isBendahara) {
+        btns += `
+          <button class="btn btn-warning btn-sm" style="background: #d97706; border-color: #d97706; color: #fff; margin-right: 4px;" onclick="event.stopPropagation(); openVerifikasiLpjModal(${p.id})" title="Periksa berkas nota &amp; sahkan LPJ">
+            <i class="ti ti-clipboard-check"></i> Verifikasi LPJ
+          </button>
+        `;
+      }
+      if (canManageLpj) {
+        btns += `
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); navigateToLpjEditor(${p.id})" title="Ubah atau lengkapi laporan LPJ &amp; berkas nota">
+            <i class="ti ti-edit"></i> Edit LPJ
+          </button>
+        `;
+      }
+      roleActionBtn = btns;
+    } else if (p.status === 'SELESAI' && canManageLpj) {
       roleActionBtn = `
-        <button class="btn btn-warning btn-sm" style="background: #d97706; border-color: #d97706; color: #fff;" onclick="event.stopPropagation(); openVerifikasiLpjModal(${p.id})">
-          <i class="ti ti-clipboard-check"></i> Verifikasi LPJ
-        </button>
-      `;
-    } else if (isOwnerGuru && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
-      roleActionBtn = `
-        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); navigateToLpjEditor(${p.id})" title="Ubah atau lengkapi laporan LPJ &amp; berkas nota">
-          <i class="ti ti-edit"></i> Edit LPJ
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); navigateToLpjEditor(${p.id})" title="Buka dan tinjau berkas LPJ yang telah disahkan">
+          <i class="ti ti-file-check"></i> Rincian LPJ
         </button>
       `;
     }
@@ -2854,6 +2866,7 @@ async function openProposalDetail(id) {
       const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
       const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
       const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
+      const canManageLpj = currentUser && (currentUser.id === p.user_id || currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
 
       // Tombol Cetak Dokumen Resmi untuk status yang sudah disahkan / dicairkan
       if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
@@ -2895,7 +2908,7 @@ async function openProposalDetail(id) {
           openCairkanModal(p.id);
         };
         footer.appendChild(btnCairkan);
-      } else if (isOwnerGuru && p.status === 'DICAIRKAN') {
+      } else if (canManageLpj && p.status === 'DICAIRKAN') {
         const btnLpj = document.createElement('button');
         btnLpj.className = 'btn btn-primary btn-sm';
         btnLpj.innerHTML = '<i class="ti ti-file-certificate"></i> Buat Laporan LPJ';
@@ -2904,27 +2917,30 @@ async function openProposalDetail(id) {
           navigateToLpjEditor(p.id);
         };
         footer.appendChild(btnLpj);
-      } else if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
-        const btnVerifLpj = document.createElement('button');
-        btnVerifLpj.className = 'btn btn-warning btn-sm';
-        btnVerifLpj.style.background = '#d97706';
-        btnVerifLpj.style.borderColor = '#d97706';
-        btnVerifLpj.style.color = '#fff';
-        btnVerifLpj.innerHTML = '<i class="ti ti-clipboard-check"></i> Verifikasi LPJ Bendahara';
-        btnVerifLpj.onclick = () => {
-          closeDetailModal();
-          openVerifikasiLpjModal(p.id);
-        };
-        footer.appendChild(btnVerifLpj);
-      } else if (isOwnerGuru && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
-        const btnEditLpj = document.createElement('button');
-        btnEditLpj.className = 'btn btn-secondary btn-sm';
-        btnEditLpj.innerHTML = '<i class="ti ti-edit"></i> Edit Laporan LPJ';
-        btnEditLpj.onclick = () => {
-          closeDetailModal();
-          navigateToLpjEditor(p.id);
-        };
-        footer.appendChild(btnEditLpj);
+      } else if (p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+        if (isBendahara) {
+          const btnVerifLpj = document.createElement('button');
+          btnVerifLpj.className = 'btn btn-warning btn-sm';
+          btnVerifLpj.style.background = '#d97706';
+          btnVerifLpj.style.borderColor = '#d97706';
+          btnVerifLpj.style.color = '#fff';
+          btnVerifLpj.innerHTML = '<i class="ti ti-clipboard-check"></i> Verifikasi LPJ Bendahara';
+          btnVerifLpj.onclick = () => {
+            closeDetailModal();
+            openVerifikasiLpjModal(p.id);
+          };
+          footer.appendChild(btnVerifLpj);
+        }
+        if (canManageLpj) {
+          const btnEditLpj = document.createElement('button');
+          btnEditLpj.className = 'btn btn-secondary btn-sm';
+          btnEditLpj.innerHTML = '<i class="ti ti-edit"></i> Edit Laporan LPJ';
+          btnEditLpj.onclick = () => {
+            closeDetailModal();
+            navigateToLpjEditor(p.id);
+          };
+          footer.appendChild(btnEditLpj);
+        }
       } else if (p.status === 'SELESAI' && p.lpj) {
         const btnViewLpj = document.createElement('button');
         btnViewLpj.className = 'btn btn-outline-success btn-sm';
@@ -4920,26 +4936,50 @@ function renderLpjView() {
     }
 
     // Action Buttons
+    const canManageLpj = currentUser && (currentUser.id === p.user_id || currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
     let actionsHtml = `
-      <div style="display:flex; gap:4px; justify-content:center; flex-wrap:wrap;">
+      <div style="display:flex; gap:4px; justify-content:center; flex-wrap:wrap; align-items:center;">
         <button class="btn btn-secondary btn-xs" onclick="openProposalDetail(${p.id})" title="Lihat Rincian Kegiatan">
           <i class="ti ti-eye"></i> Detail
         </button>
     `;
 
-    if (isOwnerGuru && (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ')) {
+    if (p.status === 'DICAIRKAN') {
+      if (canManageLpj) {
+        actionsHtml += `
+          <button class="btn btn-primary btn-xs" onclick="navigateToLpjEditor(${p.id})" title="Susun Laporan Pertanggungjawaban (LPJ)">
+            <i class="ti ti-file-certificate"></i> Buat LPJ
+          </button>
+        `;
+      }
+    } else if (p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+      if (isBendahara) {
+        actionsHtml += `
+          <button class="btn btn-warning btn-xs" style="background:#d97706; border-color:#d97706; color:#fff;" onclick="openVerifikasiLpjModal(${p.id})" title="Periksa berkas nota &amp; sahkan LPJ">
+            <i class="ti ti-clipboard-check"></i> Verifikasi
+          </button>
+        `;
+      }
+      if (canManageLpj) {
+        actionsHtml += `
+          <button class="btn btn-secondary btn-xs" onclick="navigateToLpjEditor(${p.id})" title="Ubah atau lengkapi laporan LPJ &amp; berkas nota">
+            <i class="ti ti-edit"></i> Edit LPJ
+          </button>
+        `;
+      }
+    } else if (p.status === 'SELESAI' && canManageLpj) {
       actionsHtml += `
-        <button class="btn btn-primary btn-xs" onclick="openSubmitLpjModal(${p.id})" title="Unggah bukti nota kuitansi & serahkan LPJ">
-          <i class="ti ti-upload"></i> ${p.lpj_file_nota_url ? 'Ganti Nota' : 'Upload Nota'}
+        <button class="btn btn-secondary btn-xs" onclick="navigateToLpjEditor(${p.id})" title="Lihat berkas LPJ yang telah disahkan">
+          <i class="ti ti-file-check"></i> LPJ
         </button>
       `;
     }
 
-    if (isBendahara && p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+    if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
       actionsHtml += `
-        <button class="btn btn-warning btn-xs" style="background:#d97706; border-color:#d97706; color:#fff;" onclick="openVerifikasiLpjModal(${p.id})" title="Periksa berkas nota & sahkan LPJ">
-          <i class="ti ti-clipboard-check"></i> Verifikasi
-        </button>
+        <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn btn-outline-primary btn-xs" title="Cetak Bundel Lengkap LPJ (Cover, Kwitansi, LPJ, Slip, Daftar Hadir, Foto, Nota)">
+          <i class="ti ti-book"></i> Bundel LPJ
+        </a>
       `;
     }
 
