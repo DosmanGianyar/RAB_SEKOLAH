@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KOP Surat SMAN 1 Gianyar - A4 Portrait & Landscape</title>
+  
+  <!-- Style dinamis untuk orientasi cetak default -->
+  <style id="dynamic-print-style">
+    @page {
+      size: A4 portrait;
+      margin: 1.2cm 1.5cm 1.5cm 1.5cm;
+    }
+  </style>
+
+  <style>
+    /* -------------------------------------------------------------
+       FONT BALI SIMBAR
+    ------------------------------------------------------------- */
+    @font-face {
+      font-family: 'Bali Simbar';
+      src: local('Bali Simbar'),
+           local('Bali Simbar Dwijendra'),
+           url('fonts/Bali Simbar.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Times New Roman', Times, Georgia, serif;
+      background-color: #dbe2e8;
+      color: #000;
+      line-height: 1.15;
+      padding: 20px 15px 50px 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* -------------------------------------------------------------
+       TOOLBAR NAVIGASI & KONTROL (Hanya di Layar)
+    ------------------------------------------------------------- */
+    .toolbar {
+      width: 100%;
+      max-width: 900px;
+      background: #ffffff;
+      border: 1px solid #c5ced6;
+      border-radius: 10px;
+      padding: 12px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size: 13.5px;
+      position: sticky;
+      top: 15px;
+      z-index: 1000;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-title {
+      font-weight: 700;
+      color: #1e293b;
+      font-size: 14.5px;
+    }
+
+    .toolbar-tabs {
+      display: flex;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 8px;
+      gap: 3px;
+    }
+
+    .tab-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      color: #0f172a;
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: #0284c7;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 6px 13px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    .btn-primary {
+      background: #0284c7;
+      border-color: #0284c7;
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: #0369a1;
+      border-color: #0369a1;
+    }
+
+    /* -------------------------------------------------------------
+       LEMBAR KERTAS CETAK (A4 PAPER SIMULATION)
+    ------------------------------------------------------------- */
+    .paper-sheet {
+      background: #ffffff;
+      box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+      border-radius: 2px;
+      position: relative;
+      margin-bottom: 35px;
+      transition: all 0.2s ease;
+    }
+
+    /* Format Portrait (Lebar ~ 210mm) */
+    .sheet-portrait {
+      width: 100%;
+      max-width: 820px;
+      min-height: 1050px;
+      padding: 30px 40px 50px 40px;
+    }
+
+    /* Format Landscape (Lebar ~ 297mm) */
+    .sheet-landscape {
+      width: 100%;
+      max-width: 1120px;
+      min-height: 750px;
+      padding: 28px 50px 45px 50px;
+    }
+
+    /* Label tanda halaman di pojok kertas saat pratinjau */
+    .page-watermark {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-family: system-ui, sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      background: #f8fafc;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      user-select: none;
+    }
+
+    /* -------------------------------------------------------------
+       STRUKTUR KOP SURAT (DIDESAIN MEPET, KOMPAK, & PROPORSIONAL)
+    ------------------------------------------------------------- */
+    .kop-container {
+      width: 100%;
+    }
+
+    /* KOP Portrait: Lebar maksimal 740px agar logo memeluk teks tengah */
+    .sheet-portrait .kop-container {
+      max-width: 740px;
+      margin: 0 auto;
+    }
+    .sheet-portrait .kop-header {
+      display: grid;
+      align-items: center;
+      grid-template-columns: 82px 1fr 82px;
+      column-gap: 12px;
+    }
+
+    /* KOP Landscape: Lebar maksimal 820px agar logo tidak terlempar ke pinggir */
+    .sheet-landscape .kop-container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .sheet-landscape .kop-header {
+      display: grid;
+      align-items: center;
+      grid-template-columns: 88px 1fr 88px;
+      column-gap: 16px;
+    }
+
+    /* Slot Logo Kiri & Kanan */
+    .logo-slot {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+
+    .sheet-portrait .logo-slot {
+      min-height: 94px;
+    }
+    .sheet-landscape .logo-slot {
+      min-height: 98px;
+    }
+
+    .logo-slot img {
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      display: block;
+      transition: transform 0.15s ease;
+    }
+
+    .sheet-portrait .logo-slot img {
+      max-height: 94px;
+      max-width: 86px;
+    }
+
+    .sheet-landscape .logo-slot img {
+      max-height: 98px;
+      max-width: 88px;
+    }
+
+    /* Konten Teks Tengah - Sangat Rapat, Mepet, & Ramping */
+    .kop-content {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      line-height: 0.82;
+    }
+
+    /* -------------------------------------------------------------
+       AKSARABALI: BESAR & TEGAS DENGAN JARAK SANGAT PADAT
+    ------------------------------------------------------------- */
+    .aksara-bali {
+      font-family: 'Bali Simbar', 'Bali Simbar Dwijendra', serif;
+      font-weight: normal;
+      color: #000;
+      letter-spacing: 0.3px;
+      line-height: 0.72;
+      margin-top: 0px;
+      margin-bottom: -5px; /* Menghilangkan celah kosong bawah */
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ukuran Huruf Bali Terbaca Jelas & Tegas */
+    .sheet-portrait .aksara-bali {
+      font-size: 31px;
+    }
+    .sheet-landscape .aksara-bali {
+      font-size: 34px;
+    }
+
+    .sheet-portrait .aksara-kecil {
+      font-size: 22px;
+    }
+    .sheet-landscape .aksara-kecil {
+      font-size: 24px;
+    }
+
+    /* Baris 1: PEMERINTAH PROVINSI BALI */
+    .instansi-provinsi {
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      line-height: 0.92;
+      margin-top: 0px;
+      margin-bottom: 1px;
+    }
+    .sheet-portrait .instansi-provinsi { font-size: 18px; }
+    .sheet-landscape .instansi-provinsi { font-size: 19.5px; }
+
+    /* Baris 2: DINAS PENDIDIKAN KEPEMUDAAN DAN OLAHRAGA */
+    .dinas-pendidikan {
+      font-weight: bold;
+      letter-spacing: 0.4px;
+      line-height: 0.92;
+      margin-top: 0px;
+      margin-bottom: 1px;
+    }
+    .sheet-portrait .dinas-pendidikan { font-size: 16px; }
+    .sheet-landscape .dinas-pendidikan { font-size: 17.5px; }
+
+    /* Baris 3: SMA NEGERI 1 GIANYAR */
+    .nama-sekolah {
+      font-weight: bold;
+      letter-spacing: 0.8px;
+      line-height: 0.94;
+      margin-top: 0px;
+      margin-bottom: 1px;
+    }
+    .sheet-portrait .nama-sekolah { font-size: 23px; }
+    .sheet-landscape .nama-sekolah { font-size: 25px; }
+
+    /* Baris 4: ALAMAT & TELEPON */
+    .alamat-kontak {
+      font-weight: bold;
+      line-height: 1.0;
+      margin-top: 0px;
+      margin-bottom: 0px;
+    }
+    .sheet-portrait .alamat-kontak { font-size: 13px; }
+    .sheet-landscape .alamat-kontak { font-size: 14px; }
+
+    /* Baris 5: WEBSITE & EMAIL */
+    .web-email {
+      font-weight: normal;
+      line-height: 1.0;
+      margin-top: 0px;
+      margin-bottom: 0px;
+    }
+    .sheet-portrait .web-email { font-size: 12px; }
+    .sheet-landscape .web-email { font-size: 12.5px; }
+
+    /* Baris 6: NPSN */
+    .npsn {
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      line-height: 1.0;
+      margin-top: 0px;
+      margin-bottom: 0px;
+    }
+    .sheet-portrait .npsn { font-size: 12px; }
+    .sheet-landscape .npsn { font-size: 12.5px; }
+
+    /* -------------------------------------------------------------
+       GARIS GANDA PEMBATAS KOP SURAT
+    ------------------------------------------------------------- */
+    .kop-divider {
+      margin-top: 3px;
+      width: 100%;
+    }
+
+    .line-thick {
+      border: 0;
+      border-top: 2.5px solid #000;
+      margin: 0;
+    }
+
+    .line-gap {
+      height: 1.5px;
+    }
+
+    .line-thin {
+      border: 0;
+      border-top: 0.8px solid #000;
+      margin: 0;
+    }
+
+    /* Simulasi Area Isi Dokumen */
+    .sample-body {
+      margin-top: 25px;
+      border: 1.5px dashed #cbd5e1;
+      border-radius: 6px;
+      padding: 25px;
+      color: #94a3b8;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    /* -------------------------------------------------------------
+       KONTROL TAMPILAN VIEW (PORTRAIT / LANDSCAPE / BOTH)
+    ------------------------------------------------------------- */
+    body.view-portrait #sheetLandscape {
+      display: none !important;
+    }
+
+    body.view-landscape #sheetPortrait {
+      display: none !important;
+    }
+
+    /* -------------------------------------------------------------
+       PENGATURAN CETAK / PRINT (@media print)
+    ------------------------------------------------------------- */
+    @media print {
+      body {
+        background: transparent !important;
+        padding: 0 !important;
+        display: block !important;
+      }
+
+      .toolbar, .page-watermark, .sample-body {
+        display: none !important;
+      }
+
+      .paper-sheet {
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 0 !important;
+        border-radius: 0 !important;
+      }
+
+      body.view-both #sheetPortrait {
+        page-break-after: always;
+        break-after: page;
+      }
+    }
+  </style>
+</head>
+<body class="view-portrait" id="bodyElement">
+
+  <!-- TOOLBAR KONTROL DI LAYAR (Otomatis tersembunyi saat dicetak) -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="toolbar-title">📄 KOP SMAN 1 Gianyar</div>
+      
+      <!-- Pilihan Orientasi Cetak -->
+      <div class="toolbar-tabs">
+        <button class="tab-btn active" id="tabPortrait" onclick="switchView('portrait')">
+          📄 A4 Portrait
+        </button>
+        <button class="tab-btn" id="tabLandscape" onclick="switchView('landscape')">
+          📜 A4 Landscape
+        </button>
+        <button class="tab-btn" id="tabBoth" onclick="switchView('both')">
+          📑 Keduanya (2 Hal)
+        </button>
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <button class="btn btn-primary" onclick="triggerPrint()">
+        <span>🖨️</span> Cetak / Simpan PDF
+      </button>
+    </div>
+  </div>
+
+
+  <!-- =============================================================
+       HALAMAN 1: A4 PORTRAIT
+  ============================================================== -->
+  <div class="paper-sheet sheet-portrait" id="sheetPortrait">
+    <div class="page-watermark">A4 PORTRAIT (210 × 297 mm)</div>
+
+    <div class="kop-container">
+      <div class="kop-header">
+        
+        <!-- Logo Kiri: Pemprov Bali (Ultra-HD Transparent PNG) -->
+        <div class="logo-slot logo-kiri">
+          <img src="logo-provinsi.png" alt="Logo Pemprov Bali">
+        </div>
+
+        <!-- Teks Tengah KOP Surat (Aksara Bali Lebih Besar & Rapat) -->
+        <div class="kop-content">
+          <div class="aksara-bali">p;merin\tH p]opinsi bli</div>
+          <div class="instansi-provinsi">PEMERINTAH PROVINSI BALI</div>
+
+          <div class="aksara-bali">dinS p;n\didikn\ k;p;mudan\ dn\ aoLHrg</div>
+          <div class="dinas-pendidikan">DINAS PENDIDIKAN KEPEMUDAAN DAN OLAHRAGA</div>
+
+          <div class="aksara-bali">,es,em,a, neg]i ,1, giy/</div>
+          <div class="nama-sekolah">SMA NEGERI 1 GIANYAR</div>
+
+          <div class="aksara-bali aksara-kecil">jln\rt\\n, t;gl\tugu giy/, t;l\p : (0361) 943034</div>
+          <div class="alamat-kontak">Jln. Ratna, Tegal Tugu Gianyar, Telp : (0361) 943034</div>
+
+          <div class="web-email">Website : https://sman1-gianyar.sch.id, E-mail: sman1.gianyar1963@gmail.com</div>
+          <div class="npsn">NPSN : 50102079</div>
+        </div>
+
+        <!-- Logo Kanan: DOSMAN (High-Resolution Transparent PNG) -->
+        <div class="logo-slot logo-kanan">
+          <img src="logo-dosman.png" alt="Logo SMAN 1 Gianyar (DOSMAN)">
+        </div>
+
+      </div>
+
+      <!-- Garis Ganda Resmi (Tebal - Spasi - Tipis) -->
+      <div class="kop-divider">
+        <div class="line-thick"></div>
+        <div class="line-gap"></div>
+        <div class="line-thin"></div>
+      </div>
+    </div>
+
+    <!-- Area Isi Dokumen Surat (Simulasi) -->
+    <div class="sample-body">
+      ✍️ <em>[Area Isi Surat Resmi / Dokumen A4 Portrait]</em>
+    </div>
+  </div>
+
+
+  <!-- =============================================================
+       HALAMAN 2: A4 LANDSCAPE
+  ============================================================== -->
+  <div class="paper-sheet sheet-landscape" id="sheetLandscape">
+    <div class="page-watermark">A4 LANDSCAPE (297 × 210 mm)</div>
+
+    <div class="kop-container">
+      <div class="kop-header">
+        
+        <!-- Logo Kiri: Pemprov Bali (Ultra-HD Transparent PNG) -->
+        <div class="logo-slot logo-kiri">
+          <img src="logo-provinsi.png" alt="Logo Pemprov Bali">
+        </div>
+
+        <!-- Teks Tengah KOP Surat (Aksara Bali Lebih Besar & Rapat) -->
+        <div class="kop-content">
+          <div class="aksara-bali">p;merin\tH p]opinsi bli</div>
+          <div class="instansi-provinsi">PEMERINTAH PROVINSI BALI</div>
+
+          <div class="aksara-bali">dinS p;n\didikn\ k;p;mudan\ dn\ aoLHrg</div>
+          <div class="dinas-pendidikan">DINAS PENDIDIKAN KEPEMUDAAN DAN OLAHRAGA</div>
+
+          <div class="aksara-bali">,es,em,a, neg]i ,1, giy/</div>
+          <div class="nama-sekolah">SMA NEGERI 1 GIANYAR</div>
+
+          <div class="aksara-bali aksara-kecil">jln\rt\\n, t;gl\tugu giy/, t;l\p : (0361) 943034</div>
+          <div class="alamat-kontak">Jln. Ratna, Tegal Tugu Gianyar, Telp : (0361) 943034</div>
+
+          <div class="web-email">Website : https://sman1-gianyar.sch.id, E-mail: sman1.gianyar1963@gmail.com</div>
+          <div class="npsn">NPSN : 50102079</div>
+        </div>
+
+        <!-- Logo Kanan: DOSMAN (High-Resolution Transparent PNG) -->
+        <div class="logo-slot logo-kanan">
+          <img src="logo-dosman.png" alt="Logo SMAN 1 Gianyar (DOSMAN)">
+        </div>
+
+      </div>
+
+      <!-- Garis Ganda Resmi (Tebal - Spasi - Tipis) -->
+      <div class="kop-divider">
+        <div class="line-thick"></div>
+        <div class="line-gap"></div>
+        <div class="line-thin"></div>
+      </div>
+    </div>
+
+    <!-- Area Isi Dokumen Surat (Simulasi) -->
+    <div class="sample-body">
+      📊 <em>[Area Tabel / Lampiran / Piagam / Dokumen A4 Landscape]</em>
+    </div>
+  </div>
+
+
+  <!-- =============================================================
+       JAVASCRIPT LOGIC
+  ============================================================== -->
+  <script>
+    let currentMode = 'portrait';
+
+    function switchView(mode) {
+      currentMode = mode;
+      const body = document.getElementById('bodyElement');
+      const printStyle = document.getElementById('dynamic-print-style');
+
+      // Update class body
+      body.className = 'view-' + mode;
+
+      // Update active tab button
+      document.getElementById('tabPortrait').classList.toggle('active', mode === 'portrait');
+      document.getElementById('tabLandscape').classList.toggle('active', mode === 'landscape');
+      document.getElementById('tabBoth').classList.toggle('active', mode === 'both');
+
+      // Update @page size untuk printer
+      if (mode === 'portrait') {
+        printStyle.innerHTML = '@page { size: A4 portrait; margin: 1.2cm 1.5cm 1.5cm 1.5cm; }';
+      } else if (mode === 'landscape') {
+        printStyle.innerHTML = '@page { size: A4 landscape; margin: 1.2cm 1.5cm 1.5cm 1.5cm; }';
+      } else {
+        printStyle.innerHTML = '@page { size: A4; margin: 1.2cm 1.5cm 1.5cm 1.5cm; }';
+      }
+    }
+
+    function triggerPrint() {
+      window.print();
+    }
+  </script>
+</body>
+</html>

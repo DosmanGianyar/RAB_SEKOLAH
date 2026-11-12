@@ -750,6 +750,11 @@ app.get('/cetak/rkas', (req, res) => {
   }
 });
 
+// Pratinjau Standalone KOP Surat Resmi SMA Negeri 1 Gianyar
+app.get('/kop-surat', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'kop-surat.html'));
+});
+
 // 2. Ekspor Data Buku Besar RKAS ke Format Excel (.xlsx)
 app.get('/api/export/rkas/excel', (req, res) => {
   try {

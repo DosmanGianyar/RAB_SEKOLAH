@@ -1679,6 +1679,54 @@ body {
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
 }
 
+.proposal-item-card.status-review {
+  border-left-color: #d97706 !important;
+}
+.proposal-item-card.status-siap-cair {
+  border-left-color: #059669 !important;
+}
+.proposal-item-card.status-dicairkan {
+  border-left-color: #0284c7 !important;
+}
+.proposal-item-card.status-selesai {
+  border-left-color: #10b981 !important;
+}
+
+.proposal-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  margin: 18px 0 8px 0;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.proposal-group-heading:first-child {
+  margin-top: 0;
+}
+.proposal-group-heading.warning {
+  background: #fef3c7;
+  color: #92400e;
+  border-left: 4px solid #d97706;
+}
+.proposal-group-heading.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border-left: 4px solid #059669;
+}
+.proposal-group-heading.info {
+  background: #f0f9ff;
+  color: #075985;
+  border-left: 4px solid #0284c7;
+}
+.proposal-group-heading.done {
+  background: #f1f5f9;
+  color: #334155;
+  border-left: 4px solid #64748b;
+}
+
 .proposal-top-row {
   display: flex;
   align-items: flex-start;
@@ -3755,15 +3803,15 @@ table td {
 }
 
 .search-input-wrap .search-icon {
-  position: absolute;
-  left: 13px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: absolute !important;
+  left: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
   color: #64748b;
-  font-size: 1.15rem;
-  line-height: 1;
-  pointer-events: none;
-  z-index: 2;
+  font-size: 1.15rem !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
   transition: color var(--transition-fast);
 }
 
@@ -3775,11 +3823,13 @@ table td {
 .search-input-wrap input,
 .search-input-wrap .form-input,
 .search-input-wrap .search-input,
-.search-input-wrap .rkas-search-box {
-  width: 100%;
-  padding-left: 42px !important;
+.search-input-wrap .rkas-search-box,
+input.search-input,
+.audit-search-input {
+  width: 100% !important;
+  padding-left: 44px !important;
   padding-right: 36px !important;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 
 .rkas-search-box {

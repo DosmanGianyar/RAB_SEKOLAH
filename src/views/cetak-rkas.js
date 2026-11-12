@@ -3,6 +3,8 @@
 // SMA NEGERI 1 GIANYAR (DOSMAN) — SISTEM SI-ARTHA DOSMAN
 // ==========================================================================
 
+const { renderKopSurat, getKopSuratCss } = require('./kop-surat');
+
 function formatRupiah(val) {
   const num = Number(val) || 0;
   return 'Rp\u00A0' + num.toLocaleString('id-ID');
@@ -216,38 +218,7 @@ function renderCetakRkas({ posList, summary }) {
       border-radius: 4px;
     }
 
-    /* Kop Surat Resmi */
-    .kop-surat {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      border-bottom: 2.5px solid #000000;
-      padding-bottom: 8px;
-      margin-bottom: 12px;
-      position: relative;
-    }
-    .kop-surat::after {
-      content: '';
-      position: absolute;
-      bottom: -4px;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: #000000;
-    }
-    .kop-logo {
-      width: 65px;
-      height: 65px;
-      object-fit: contain;
-    }
-    .kop-text {
-      flex: 1;
-      text-align: center;
-    }
-    .kop-h1 { font-size: 11pt; font-weight: 800; letter-spacing: 0.5px; }
-    .kop-h2 { font-size: 10pt; font-weight: 700; }
-    .kop-h3 { font-size: 14pt; font-weight: 900; letter-spacing: 1px; color: #000; margin: 2px 0; }
-    .kop-p { font-size: 8pt; color: #334155; }
+    ${getKopSuratCss('landscape')}
 
     .doc-title {
       text-align: center;
@@ -409,16 +380,8 @@ function renderCetakRkas({ posList, summary }) {
   <!-- Lembar Cetak Kertas -->
   <div class="print-sheet">
     
-    <!-- Kop Resmi Sekolah -->
-    <div class="kop-surat">
-      <img src="/img/logo_sekolah.png" alt="Logo SMAN 1 Gianyar" class="kop-logo">
-      <div class="kop-text">
-        <div class="kop-h1">PEMERINTAH PROVINSI BALI</div>
-        <div class="kop-h2">DINAS PENDIDIKAN KEPEMUDAAN DAN OLAHRAGA</div>
-        <div class="kop-h3">SMA NEGERI 1 GIANYAR</div>
-        <div class="kop-p">Jalan Ratna No. 1 Gianyar, Telp. (0361) 943034 • Website: www.sman1gianyar.sch.id</div>
-      </div>
-    </div>
+    <!-- KOP RESMI SEKOLAH SESUAI PERGUB BALI NO. 80 TAHUN 2018 (LANDSCAPE CENTERED MAX 820PX) -->
+    ${renderKopSurat({ mode: 'landscape' })}
 
     <!-- Judul Dokumen -->
     <div class="doc-title">

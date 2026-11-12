@@ -4,6 +4,7 @@
 // ==========================================================================
 
 const { terbilang } = require('../utils/terbilang');
+const { renderKopSurat, getKopSuratCss } = require('./kop-surat');
 
 function formatRupiah(val) {
   const num = Number(val) || 0;
@@ -173,53 +174,7 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
       white-space: nowrap;
     }
 
-    /* KOP RESMI SEKOLAH */
-    .kop-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      text-align: center;
-      padding-bottom: 12px;
-      border-bottom: 3px double #0f172a;
-      margin-bottom: 16px;
-    }
-
-    .kop-logo {
-      width: 72px;
-      height: 72px;
-      object-fit: contain;
-      flex-shrink: 0;
-    }
-
-    .kop-text {
-      flex: 1;
-    }
-
-    .kop-text h3 {
-      font-family: 'Tinos', 'Times New Roman', serif;
-      font-size: 13pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #1e293b;
-      margin-bottom: 1px;
-    }
-
-    .kop-text h2 {
-      font-family: 'Tinos', 'Times New Roman', serif;
-      font-size: 15pt;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #0f172a;
-      margin-bottom: 2px;
-    }
-
-    .kop-text p {
-      font-size: 8.5pt;
-      color: #475569;
-    }
+    ${getKopSuratCss('portrait')}
 
     /* Document Title */
     .doc-title-box {
@@ -513,18 +468,8 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
 
   <!-- A4 Print Sheet Canvas -->
   <div class="sheet">
-    <!-- KOP RESMI SEKOLAH -->
-    <div class="kop-wrapper">
-      <img src="/img/logo-pemprov-bali.png" alt="Logo Pemprov Bali" class="kop-logo" onerror="this.style.display='none'">
-      <div class="kop-text">
-        <h3>Pemerintah Provinsi Bali</h3>
-        <h3>Dinas Pendidikan Kepemudaan dan Olahraga</h3>
-        <h2>SMA NEGERI 1 GIANYAR</h2>
-        <p>Jalan Ratna No. 1 Gianyar, Bali • Kode Pos: 80511 • Telp: (0361) 943034</p>
-        <p>Laman: <em>sman1gianyar.sch.id</em> • Pos-el: <em>info@sman1gianyar.sch.id</em></p>
-      </div>
-      <img src="/img/logo_sekolah.png" alt="Logo SMAN 1 Gianyar" class="kop-logo" onerror="this.style.display='none'">
-    </div>
+    <!-- KOP RESMI SEKOLAH SESUAI PERGUB BALI NO. 80 TAHUN 2018 -->
+    ${renderKopSurat({ mode: 'portrait' })}
 
     <!-- Judul Dokumen -->
     <div class="doc-title-box">

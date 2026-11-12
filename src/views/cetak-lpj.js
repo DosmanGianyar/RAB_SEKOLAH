@@ -4,6 +4,7 @@
 // ==========================================================================
 
 const { terbilang } = require('../utils/terbilang');
+const { renderKopSurat, getKopSuratCss } = require('./kop-surat');
 
 function formatRupiah(val) {
   const num = Number(val) || 0;
@@ -182,61 +183,7 @@ function renderCetakLpj({ proposal, qrDataUrl, hostUrl }) {
       white-space: nowrap;
     }
 
-    /* KOP RESMI SEKOLAH */
-    .kop-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      padding-bottom: 12px;
-      border-bottom: 3px double #0f172a;
-      margin-bottom: 16px;
-    }
-
-    .kop-logo {
-      position: absolute;
-      left: 6px;
-      top: 0;
-      width: 68px;
-      height: 68px;
-      object-fit: contain;
-    }
-
-    .kop-text {
-      text-align: center;
-      font-family: 'Tinos', 'Times New Roman', serif;
-    }
-
-    .kop-prov {
-      font-size: 11pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      color: #1e293b;
-    }
-
-    .kop-dinas {
-      font-size: 13pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: #0f172a;
-    }
-
-    .kop-sekolah {
-      font-size: 15pt;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      color: #064e3b;
-      margin: 2px 0;
-    }
-
-    .kop-alamat {
-      font-size: 8.5pt;
-      font-style: italic;
-      color: #475569;
-    }
+    ${getKopSuratCss('portrait')}
 
     /* Judul Laporan */
     .report-title-box {
@@ -517,16 +464,8 @@ function renderCetakLpj({ proposal, qrDataUrl, hostUrl }) {
   <!-- Lembar Kertas A4 -->
   <div class="sheet">
     
-    <!-- KOP RESMI -->
-    <div class="kop-wrapper">
-      <img src="/img/logo_sekolah.png" alt="Logo Sekolah" class="kop-logo" onerror="this.style.display='none'">
-      <div class="kop-text">
-        <div class="kop-prov">PEMERINTAH PROVINSI BALI</div>
-        <div class="kop-dinas">DINAS PENDIDIKAN KEPEMUDAAN DAN OLAHRAGA</div>
-        <div class="kop-sekolah">SMA NEGERI 1 GIANYAR</div>
-        <div class="kop-alamat">Jalan Ratna No. 1, Tegal Tugu, Kec. Gianyar, Kab. Gianyar, Bali 80511 • Telp: (0361) 943034</div>
-      </div>
-    </div>
+    <!-- KOP RESMI SEKOLAH SESUAI PERGUB BALI NO. 80 TAHUN 2018 -->
+    ${renderKopSurat({ mode: 'portrait' })}
 
     <!-- Judul Dokumen -->
     <div class="report-title-box">

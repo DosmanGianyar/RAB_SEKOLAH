@@ -2442,6 +2442,24 @@ function renderProposalsList(proposals) {
     filtered = proposals.filter(p => ['DICAIRKAN', 'MENUNGGU_VERIFIKASI_LPJ'].includes(p.status));
   } else if (currentProposalFilterTab === 'SELESAI') {
     filtered = proposals.filter(p => p.status === 'SELESAI');
+  } else if (currentProposalFilterTab === 'ALL') {
+    // Pada tab 'Semua Usulan', kelompokkan berdasarkan fase alur kerja agar tertib dan rapi
+    const statusPriority = {
+      'MENUNGGU_REVIEW': 1,
+      'PERLU_REVISI': 1,
+      'MENUNGGU_PERSETUJUAN_KEPSEK': 2,
+      'DISETUJUI': 3,
+      'MENUNGGU_VERIFIKASI_LPJ': 4,
+      'DICAIRKAN': 5,
+      'SELESAI': 6,
+      'DITOLAK': 7
+    };
+    filtered = [...proposals].sort((a, b) => {
+      const pA = statusPriority[a.status] || 99;
+      const pB = statusPriority[b.status] || 99;
+      if (pA !== pB) return pA - pB;
+      return b.id - a.id;
+    });
   }
 
   if (filtered.length === 0) {
@@ -2488,7 +2506,54 @@ function renderProposalsList(proposals) {
     return;
   }
 
+  let lastGroupKey = '';
   filtered.forEach(p => {
+    let groupKey = '';
+    let groupTitle = '';
+    let groupClass = '';
+    let groupIcon = '';
+
+    if (['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI'].includes(p.status)) {
+      groupKey = 'REVIEW';
+      groupTitle = 'Menunggu Telaah & Persetujuan (Perlu Ditindaklanjuti)';
+      groupClass = 'warning';
+      groupIcon = 'ti-clock-hour-4';
+    } else if (p.status === 'DISETUJUI') {
+      groupKey = 'SIAP_CAIR';
+      groupTitle = 'Disetujui — Siap Pencairan Kas oleh Bendahara';
+      groupClass = 'success';
+      groupIcon = 'ti-cash';
+    } else if (['DICAIRKAN', 'MENUNGGU_VERIFIKASI_LPJ'].includes(p.status)) {
+      groupKey = 'DICAIRKAN';
+      groupTitle = 'Dana Telah Dicairkan — Dalam Pelaksanaan & LPJ';
+      groupClass = 'info';
+      groupIcon = 'ti-check-double';
+    } else if (p.status === 'SELESAI') {
+      groupKey = 'SELESAI';
+      groupTitle = 'Arsip Kegiatan & LPJ Selesai';
+      groupClass = 'done';
+      groupIcon = 'ti-circle-check';
+    }
+
+    if (currentProposalFilterTab === 'ALL' && groupKey && groupKey !== lastGroupKey) {
+      lastGroupKey = groupKey;
+      const countInGroup = proposals.filter(item => {
+        if (groupKey === 'REVIEW') return ['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI'].includes(item.status);
+        if (groupKey === 'SIAP_CAIR') return item.status === 'DISETUJUI';
+        if (groupKey === 'DICAIRKAN') return ['DICAIRKAN', 'MENUNGGU_VERIFIKASI_LPJ'].includes(item.status);
+        if (groupKey === 'SELESAI') return item.status === 'SELESAI';
+        return false;
+      }).length;
+
+      const heading = document.createElement('div');
+      heading.className = `proposal-group-heading ${groupClass}`;
+      heading.innerHTML = `
+        <span><i class="ti ${groupIcon}" style="margin-right: 6px;"></i> ${groupTitle}</span>
+        <span class="tab-badge-pill badge-${groupClass}">${countInGroup} Usulan</span>
+      `;
+      container.appendChild(heading);
+    }
+
     let statusLabel = p.status.replace(/_/g, ' ');
     if (p.status === 'MENUNGGU_REVIEW') statusLabel = 'Menunggu Review Bendahara';
     if (p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') statusLabel = 'Menunggu Persetujuan Kepsek';
@@ -2576,8 +2641,19 @@ function renderProposalsList(proposals) {
       `;
     }
 
+    let statusThemeClass = '';
+    if (['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI'].includes(p.status)) {
+      statusThemeClass = 'status-review';
+    } else if (p.status === 'DISETUJUI') {
+      statusThemeClass = 'status-siap-cair';
+    } else if (['DICAIRKAN', 'MENUNGGU_VERIFIKASI_LPJ'].includes(p.status)) {
+      statusThemeClass = 'status-dicairkan';
+    } else if (p.status === 'SELESAI') {
+      statusThemeClass = 'status-selesai';
+    }
+
     const card = document.createElement('div');
-    card.className = 'proposal-item-card';
+    card.className = `proposal-item-card ${statusThemeClass}`;
     card.onclick = () => openProposalDetail(p.id);
     card.innerHTML = `
       <div class="proposal-top-row">
