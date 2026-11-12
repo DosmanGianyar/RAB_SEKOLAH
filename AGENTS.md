@@ -30,3 +30,10 @@ ada perintah eksplisit dari pengguna untuk melakukan update ke server.
 ## 4. Gaya komunikasi
 
 - Jawab dalam Bahasa Indonesia, ringkas.
+
+## 5. File database: JANGAN di-commit
+
+- `rab_sekolah.db` (dan `*.db`) masuk `.gitignore`. Jangan `git add -f` atau meng-commit database,
+  KECUALI pengguna meminta secara eksplisit (mis. untuk demo).
+- Saat rilis resmi, seluruh database demo akan dihapus dan dibuat baru.
+

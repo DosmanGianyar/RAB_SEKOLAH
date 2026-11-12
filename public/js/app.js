@@ -2737,10 +2737,10 @@ function renderProposalsList(proposals) {
       `;
       if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
         printActionBtn += `
-          <a href="/cetak-lpj/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; margin-left:4px;" title="Cetak Laporan Kegiatan &amp; Dokumentasi">
+          <a href="/cetak-lpj/${p.akses_token || p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; margin-left:4px;" title="Cetak Laporan Kegiatan &amp; Dokumentasi">
             <i class="ti ti-file-certificate"></i> Lap. Kegiatan
           </a>
-          <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Laporan Keuangan (Kwitansi Komite, Rincian Belanja, Slip, Nota Fisik)">
+          <a href="/cetak-lpj-bundel/${p.akses_token || p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Laporan Keuangan (Kwitansi Komite, Rincian Belanja, Slip, Nota Fisik)">
             <i class="ti ti-printer"></i> Lap. Keuangan
           </a>
         `;
@@ -3076,28 +3076,28 @@ async function openProposalDetail(id) {
 
         const btnCetakLpj = document.createElement('a');
         btnCetakLpj.className = 'btn btn-outline-success btn-sm';
-        btnCetakLpj.href = `/cetak-lpj/${p.id}`;
+        btnCetakLpj.href = `/cetak-lpj/${p.akses_token || p.id}`;
         btnCetakLpj.target = '_blank';
         btnCetakLpj.innerHTML = '<i class="ti ti-file-certificate"></i> Cetak Lap. Kegiatan';
         footer.appendChild(btnCetakLpj);
 
         const btnCetakBundel = document.createElement('a');
         btnCetakBundel.className = 'btn btn-primary btn-sm';
-        btnCetakBundel.href = `/cetak-lpj-bundel/${p.id}`;
+        btnCetakBundel.href = `/cetak-lpj-bundel/${p.akses_token || p.id}`;
         btnCetakBundel.target = '_blank';
         btnCetakBundel.innerHTML = '<i class="ti ti-printer"></i> Cetak Lap. Keuangan';
         footer.appendChild(btnCetakBundel);
       } else if (p.status === 'DICAIRKAN') {
         const btnCetakLpj = document.createElement('a');
         btnCetakLpj.className = 'btn btn-outline-success btn-sm';
-        btnCetakLpj.href = `/cetak-lpj/${p.id}`;
+        btnCetakLpj.href = `/cetak-lpj/${p.akses_token || p.id}`;
         btnCetakLpj.target = '_blank';
         btnCetakLpj.innerHTML = '<i class="ti ti-file-certificate"></i> Cetak Lap. Kegiatan';
         footer.appendChild(btnCetakLpj);
 
         const btnCetakBundel = document.createElement('a');
         btnCetakBundel.className = 'btn btn-outline-primary btn-sm';
-        btnCetakBundel.href = `/cetak-lpj-bundel/${p.id}`;
+        btnCetakBundel.href = `/cetak-lpj-bundel/${p.akses_token || p.id}`;
         btnCetakBundel.target = '_blank';
         btnCetakBundel.innerHTML = '<i class="ti ti-printer"></i> Cetak Lap. Keuangan';
         footer.appendChild(btnCetakBundel);
@@ -4115,7 +4115,7 @@ async function navigateToLpjEditor(proposalId) {
     const btnCetakBottom = document.getElementById('btnEditorCetakLpjBottom');
     [btnCetakTop, btnCetakBottom].forEach(btn => {
       if (btn) {
-        btn.href = `/cetak-lpj/${p.id}`;
+        btn.href = `/cetak-lpj/${p.akses_token || p.id}`;
         btn.style.display = p.lpj ? 'inline-flex' : 'none';
       }
     });
@@ -4124,7 +4124,7 @@ async function navigateToLpjEditor(proposalId) {
     const btnBundelBottom = document.getElementById('btnEditorCetakLpjBundelBottom');
     [btnBundelTop, btnBundelBottom].forEach(btn => {
       if (btn) {
-        btn.href = `/cetak-lpj-bundel/${p.id}`;
+        btn.href = `/cetak-lpj-bundel/${p.akses_token || p.id}`;
         btn.style.display = p.lpj ? 'inline-flex' : 'none';
       }
     });
@@ -5415,8 +5415,8 @@ function renderLpjView() {
     }
 
     ddItems += '<div class="aksi-dd-sep"></div>';
-    ddItems += ddItem('', 'ti-file-certificate', 'Cetak Lap. Kegiatan', { href: `/cetak-lpj/${p.id}`, cls: 'aksi-dd-green', title: 'Laporan Kegiatan (Narasi, Daftar Hadir, Foto)' });
-    ddItems += ddItem('', 'ti-printer', 'Cetak Lap. Keuangan', { href: `/cetak-lpj-bundel/${p.id}`, cls: 'aksi-dd-blue', title: 'Laporan Keuangan (Kwitansi, LPJ Belanja, Nota)' });
+    ddItems += ddItem('', 'ti-file-certificate', 'Cetak Lap. Kegiatan', { href: `/cetak-lpj/${p.akses_token || p.id}`, cls: 'aksi-dd-green', title: 'Laporan Kegiatan (Narasi, Daftar Hadir, Foto)' });
+    ddItems += ddItem('', 'ti-printer', 'Cetak Lap. Keuangan', { href: `/cetak-lpj-bundel/${p.akses_token || p.id}`, cls: 'aksi-dd-blue', title: 'Laporan Keuangan (Kwitansi, LPJ Belanja, Nota)' });
 
     if (typeof canUserDelete === 'function' && canUserDelete()) {
       ddItems += '<div class="aksi-dd-sep"></div>';

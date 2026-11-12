@@ -13,3 +13,7 @@ uploads/daftar_hadir/*
 uploads/foto/*
 !uploads/foto/.gitkeep
 scratch/
+
+# Database lokal: JANGAN di-commit kecuali diminta pengguna (mis. untuk demo)
+rab_sekolah.db
+*.db

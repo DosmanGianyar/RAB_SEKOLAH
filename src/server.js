@@ -255,7 +255,21 @@ app.get('/api/users/stats', requireAuth, (req, res) => {
   }
 });
 
-const { getPenandatanganList, updatePenandatangan } = require('./db');
+const { getPenandatanganList, updatePenandatangan, getPengajuanIdByToken } = require('./db');
+
+// Resolusi akses dokumen cetak: token acak (32 hex) boleh tanpa login; ID numerik wajib login
+const LOGIN_REQUIRED_HTML = '<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Sesi Berakhir: Silakan login terlebih dahulu untuk membuka dokumen.</h2>';
+function resolvePrintProposal(req) {
+  const cookies = parseCookies(req);
+  const user = cookies.session_token ? getUserBySessionToken(cookies.session_token) : null;
+  const param = String(req.params.id || '');
+  if (/^[a-f0-9]{32}$/i.test(param)) {
+    const id = getPengajuanIdByToken(param.toLowerCase());
+    return { user, proposal: id ? getPengajuanById(id) : null, needLogin: false };
+  }
+  if (!user) return { user: null, proposal: null, needLogin: true };
+  return { user, proposal: getPengajuanById(Number(param)), needLogin: false };
+}
 
 // Daftar Penandatangan Dokumen (dibaca semua user login)
 app.get('/api/penandatangan', requireAuth, (req, res) => {
@@ -826,6 +840,10 @@ app.get('/api/pengajuan/:id/qr', async (req, res) => {
 // 1. Render Lembar Cetak / Ekspor PDF Buku Besar RKAS Resmi (A4 Landscape)
 app.get('/cetak/rkas', (req, res) => {
   try {
+    const rkasCookies = parseCookies(req);
+    if (!rkasCookies.session_token || !getUserBySessionToken(rkasCookies.session_token)) {
+      return res.status(401).send(LOGIN_REQUIRED_HTML);
+    }
     const posList = getPosAnggaranList();
     const summary = getSystemSummary();
     const html = renderCetakRkas({ posList, summary });
@@ -1063,9 +1081,8 @@ app.get('/cetak/:id', async (req, res) => {
 // 3b. Render Lembar Cetak Laporan Kegiatan Resmi (A4 Print-Ready)
 app.get('/cetak-lpj/:id', async (req, res) => {
   try {
-    const cookies = parseCookies(req);
-    const user = cookies.session_token ? getUserBySessionToken(cookies.session_token) : null;
-    const proposal = getPengajuanById(Number(req.params.id));
+    const { user, proposal, needLogin } = resolvePrintProposal(req);
+    if (needLogin) return res.status(401).send(LOGIN_REQUIRED_HTML);
     if (!proposal) {
       return res.status(404).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Proposal kegiatan tidak ditemukan.</h2>');
     }
@@ -1100,8 +1117,8 @@ app.get('/cetak-lpj/:id', async (req, res) => {
 // 3c. Render Bundel Cetak Lengkap LPJ Kegiatan Siswa (A4 Print-Ready)
 app.get('/cetak-lpj-bundel/:id', async (req, res) => {
   try {
-    const user = getUserBySessionToken(req.cookies ? req.cookies.session_token : null) || req.user;
-    const proposal = getPengajuanById(Number(req.params.id));
+    const { user, proposal, needLogin } = resolvePrintProposal(req);
+    if (needLogin) return res.status(401).send(LOGIN_REQUIRED_HTML);
     if (!proposal) {
       return res.status(404).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Proposal kegiatan tidak ditemukan.</h2>');
     }

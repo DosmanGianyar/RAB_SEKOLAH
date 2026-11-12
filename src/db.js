@@ -9,6 +9,30 @@ const db = new DatabaseSync(dbPath);
 // Enable WAL mode & foreign keys
 db.exec('PRAGMA foreign_keys = ON;');
 
+// ---- Keamanan Kata Sandi (scrypt + salt acak) ----
+function hashPassword(plain) {
+  const salt = crypto.randomBytes(16);
+  const hash = crypto.scryptSync(String(plain), salt, 64);
+  return 'scrypt$' + salt.toString('hex') + '$' + hash.toString('hex');
+}
+
+function isHashedPassword(stored) {
+  return typeof stored === 'string' && stored.startsWith('scrypt$');
+}
+
+function verifyPassword(plain, stored) {
+  if (!isHashedPassword(stored)) {
+    // Kompatibilitas data lama (teks biasa) - akan di-upgrade otomatis saat login
+    const a = Buffer.from(String(plain));
+    const b = Buffer.from(String(stored || ''));
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+  const [, saltHex, hashHex] = stored.split('$');
+  const expected = Buffer.from(hashHex, 'hex');
+  const actual = crypto.scryptSync(String(plain), Buffer.from(saltHex, 'hex'), expected.length);
+  return crypto.timingSafeEqual(actual, expected);
+}
+
 function initDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -288,12 +312,26 @@ function initDatabase() {
     WHERE id = 4
   `).run();
 
-  // Update akun administrator menjadi 'daput' dengan password '007007'
+  // Akun administrator demo: nama & email saja (kata sandi tidak ditimpa lagi setiap restart)
   db.prepare(`
     UPDATE users 
-    SET nama_lengkap = 'daput', email = 'daput', password = '007007'
+    SET nama_lengkap = 'daput', email = 'daput'
     WHERE role = 'ADMIN' OR id = 5
   `).run();
+
+  // Migrasi keamanan: enkripsi (hash) semua kata sandi yang masih teks biasa
+  const legacyUsers = db.prepare("SELECT id, password FROM users WHERE password IS NULL OR password NOT LIKE 'scrypt$%'").all();
+  const updPass = db.prepare('UPDATE users SET password = ? WHERE id = ?');
+  legacyUsers.forEach(u => updPass.run(hashPassword(u.password || 'password123'), u.id));
+
+  // Token akses acak untuk dokumen cetak (tidak bisa ditebak)
+  const pkCols = db.prepare('PRAGMA table_info(pengajuan_kegiatan)').all().map(x => x.name);
+  if (!pkCols.includes('akses_token')) {
+    db.prepare('ALTER TABLE pengajuan_kegiatan ADD COLUMN akses_token TEXT').run();
+  }
+  const noToken = db.prepare("SELECT id FROM pengajuan_kegiatan WHERE akses_token IS NULL OR akses_token = ''").all();
+  const updToken = db.prepare('UPDATE pengajuan_kegiatan SET akses_token = ? WHERE id = ?');
+  noToken.forEach(r => updToken.run(crypto.randomBytes(16).toString('hex'), r.id));
 
   seedInitialData();
 }
@@ -330,11 +368,11 @@ function seedInitialData() {
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    insertUser.run('I Putu Darma Putra, S.Pd', '198507122010011008', 'darma.osis@sekolah.sch.id', 'password123', 'GURU', 'Pembina OSIS & Kesiswaan');
-    insertUser.run('I Gusti Ngurah Nyoman Okta Ariawan, SSTP', '198804252014022003', 'okta.sdm@sekolah.sch.id', 'password123', 'ANALISIS_SDM', 'Analisis SDM & Otorisasi Pimpinan');
-    insertUser.run('I Gusti Ayu Reina Cahyanti', '198203152008012015', 'reina.bendahara@sekolah.sch.id', 'password123', 'BENDAHARA', 'Sub Bagian Keuangan & Tata Usaha');
-    insertUser.run('I Wayan Sudra Astra, S.Pd., M.Pd', '196811201994121001', 'kepsek@sekolah.sch.id', 'password123', 'KEPALA_SEKOLAH', 'Kepala SMA Negeri 1 Gianyar');
-    insertUser.run('daput', '199501012022011002', 'daput', '007007', 'ADMIN', 'Administrator Sistem');
+    insertUser.run('I Putu Darma Putra, S.Pd', '198507122010011008', 'darma.osis@sekolah.sch.id', hashPassword('password123'), 'GURU', 'Pembina OSIS & Kesiswaan');
+    insertUser.run('I Gusti Ngurah Nyoman Okta Ariawan, SSTP', '198804252014022003', 'okta.sdm@sekolah.sch.id', hashPassword('password123'), 'ANALISIS_SDM', 'Analisis SDM & Otorisasi Pimpinan');
+    insertUser.run('I Gusti Ayu Reina Cahyanti', '198203152008012015', 'reina.bendahara@sekolah.sch.id', hashPassword('password123'), 'BENDAHARA', 'Sub Bagian Keuangan & Tata Usaha');
+    insertUser.run('I Wayan Sudra Astra, S.Pd., M.Pd', '196811201994121001', 'kepsek@sekolah.sch.id', hashPassword('password123'), 'KEPALA_SEKOLAH', 'Kepala SMA Negeri 1 Gianyar');
+    insertUser.run('daput', '199501012022011002', 'daput', hashPassword('007007'), 'ADMIN', 'Administrator Sistem');
   }
 
   // Pastikan kolom baru RKAS tersedia pada tabel pos_anggaran
@@ -806,9 +844,12 @@ function authenticateUser(identifier, password) {
     throw new Error('Akun tidak terdaftar. Periksa kembali Username, Email, atau NIP Anda.');
   }
 
-  const userPass = user.password || 'password123';
-  if (password !== userPass) {
+  if (!verifyPassword(password, user.password || '')) {
     throw new Error('Kata sandi yang Anda masukkan salah.');
+  }
+  // Upgrade otomatis data lama (teks biasa) menjadi hash
+  if (!isHashedPassword(user.password)) {
+    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashPassword(password), user.id);
   }
 
   const { password: _, ...userSafe } = user;
@@ -868,7 +909,7 @@ function createGuruUser({ nama_lengkap, nip, email, password, unit_bagian }, cal
     INSERT INTO users (nama_lengkap, nip, email, password, role, unit_bagian)
     VALUES (?, ?, ?, ?, 'GURU', ?)
   `);
-  const info = stmt.run(nama_lengkap.trim(), cleanNip, cleanEmail, finalPass, cleanUnit);
+  const info = stmt.run(nama_lengkap.trim(), cleanNip, cleanEmail, hashPassword(finalPass), cleanUnit);
   const newUserId = Number(info.lastInsertRowid);
 
   if (callerUser) {
@@ -897,7 +938,7 @@ function resetUserPassword(targetUserId, callerUser, newPassword = 'Dosman2026')
   }
 
   const finalPass = (newPassword && newPassword.trim()) ? newPassword.trim() : 'Dosman2026';
-  db.prepare('UPDATE users SET password = ? WHERE id = ?').run(finalPass, targetUserId);
+  db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashPassword(finalPass), targetUserId);
 
   logSystemActivity({
     user_id: callerUser.id,
@@ -926,12 +967,11 @@ function changeOwnPassword(userId, oldPassword, newPassword) {
     throw new Error('Pengguna tidak ditemukan.');
   }
 
-  const currentPass = user.password || 'password123';
-  if (oldPassword !== currentPass) {
+  if (!verifyPassword(oldPassword, user.password || '')) {
     throw new Error('Kata sandi saat ini yang Anda masukkan salah.');
   }
 
-  db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newPassword, userId);
+  db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashPassword(newPassword), userId);
 
   logSystemActivity({
     user_id: userId,
@@ -990,6 +1030,11 @@ function generateNomorSurat() {
   const countRow = db.prepare('SELECT COUNT(*) as count FROM pengajuan_kegiatan').get();
   const nextNum = (countRow.count + 1).toString().padStart(3, '0');
   return `RAB/${currentYear}/${nextNum}`;
+}
+
+function getPengajuanIdByToken(token) {
+  const row = db.prepare('SELECT id FROM pengajuan_kegiatan WHERE akses_token = ?').get(String(token || ''));
+  return row ? row.id : null;
 }
 
 function getPenandatanganList() {
@@ -1066,8 +1111,8 @@ function createPengajuan({ user_id, pos_anggaran_id, nama_kegiatan, latar_belaka
     INSERT INTO pengajuan_kegiatan (
       user_id, pos_anggaran_id, nomor_surat_ajuan, nama_kegiatan, latar_belakang,
       tanggal_mulai, tanggal_selesai, total_dana_diajukan, total_dana_disetujui,
-      status, kode_verifikasi_qr, bidang_kegiatan
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MENUNGGU_REVIEW', ?, ?)
+      status, kode_verifikasi_qr, bidang_kegiatan, akses_token
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MENUNGGU_REVIEW', ?, ?, ?)
   `);
 
   const resultPengajuan = insertPengajuan.run(
@@ -1081,7 +1126,8 @@ function createPengajuan({ user_id, pos_anggaran_id, nama_kegiatan, latar_belaka
     totalAjuan,
     totalAjuan, // Awalnya sama dengan ajuan sebelum koreksi bendahara
     kodeVerifikasi,
-    bidang
+    bidang,
+    crypto.randomBytes(16).toString('hex')
   );
 
   const pengajuanId = resultPengajuan.lastInsertRowid;
@@ -1978,6 +2024,7 @@ function deletePosAnggaran(id, user) {
 module.exports = {
   db,
   initDatabase,
+  getPengajuanIdByToken,
   getPenandatanganList,
   getPenandatanganMap,
   formatNipCetak,
