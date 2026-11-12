@@ -1055,7 +1055,16 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
 
       <div class="transfer-doc-wrap">
         ${proposal.file_bukti_transfer_url ? `
-          <img src="${proposal.file_bukti_transfer_url}" alt="Bukti Transfer Kas">
+          ${proposal.file_bukti_transfer_url.toLowerCase().endsWith('.pdf') ? `
+            <div class="pdf-render-target" data-pdf-url="${proposal.file_bukti_transfer_url}" data-title="LAMPIRAN BUKTI TRANSFER &amp; SETORAN KAS" data-sub="Diserahkan resmi oleh Bendahara Pengeluaran Sekolah kepada Pemohon / Guru Pembina" data-footer="Dokumen Pencairan Kas — SMA Negeri 1 Gianyar">
+              <div style="padding: 40px 20px; text-align: center; color: #475569;">
+                <div style="font-size: 1.5rem; margin-bottom: 8px;">⏳</div>
+                <div style="font-weight: 700; color: #1e293b;">Memproses Halaman Slip Transfer PDF...</div>
+              </div>
+            </div>
+          ` : `
+            <img src="${proposal.file_bukti_transfer_url}" alt="Bukti Transfer Kas">
+          `}
         ` : `
           <div style="padding: 60px 20px; color: #64748b;">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; display: inline-block;">
@@ -1090,42 +1099,56 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
     <!-- ============================================================= -->
     <!-- HALAMAN 5: LAMPIRAN BERKAS DAFTAR HADIR (PDF/SCAN)            -->
     <!-- ============================================================= -->
-    <div class="sheet page-break">
-      <div class="lampiran-header">
-        <div class="lampiran-title">LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN</div>
-        <div class="lampiran-sub">Presensi Kehadiran Siswa, Guru Pembina, dan Panitia Pelaksana Kegiatan</div>
-      </div>
-
-      <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        ${lpj.file_daftar_hadir_url ? `
-          ${lpj.file_daftar_hadir_url.toLowerCase().endsWith('.pdf') ? `
-            <div style="width: 100%; height: 210mm;">
-              <object data="${lpj.file_daftar_hadir_url}" type="application/pdf" width="100%" height="100%">
-                <p>Dokumen Daftar Hadir: <a href="${lpj.file_daftar_hadir_url}" target="_blank">Unduh Berkas PDF Daftar Hadir</a></p>
-              </object>
+    ${lpj.file_daftar_hadir_url ? `
+      ${lpj.file_daftar_hadir_url.toLowerCase().endsWith('.pdf') ? `
+        <div id="daftarHadirPdfContainer" class="pdf-multipage-container" data-pdf-url="${lpj.file_daftar_hadir_url}" data-title="LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN" data-sub="Presensi Kehadiran Siswa, Guru Pembina, dan Panitia Pelaksana Kegiatan" data-footer="Dokumen Presensi Fisik — SMA Negeri 1 Gianyar">
+          <div class="sheet page-break" id="daftarHadirPdfLoading">
+            <div class="lampiran-header">
+              <div class="lampiran-title">LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN</div>
+              <div class="lampiran-sub">Presensi Kehadiran Siswa, Guru Pembina, dan Panitia Pelaksana Kegiatan</div>
             </div>
-          ` : `
-            <img src="${lpj.file_daftar_hadir_url}" alt="Daftar Hadir Fisik" style="max-height: 200mm;">
-          `}
-        ` : `
-          <div style="padding: 60px 20px; color: #64748b;">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; display: inline-block;">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-            <div style="font-weight: 700; font-size: 1.1rem; color: #334155; margin-bottom: 6px;">Berkas Daftar Hadir Terlampir</div>
-            <p style="font-size: 0.88rem; max-width: 480px; margin: 0 auto;">
-              Belum ada berkas PDF daftar hadir yang diunggah. Guru pembina dapat melampirkan berkas scan tanda tangan daftar hadir saat mengisi formulir LPJ.
-            </p>
+            <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; color: #475569;">
+              <div style="font-size: 2rem; margin-bottom: 12px;">⏳</div>
+              <div style="font-weight: 700; font-size: 1.1rem; color: #1e293b; margin-bottom: 6px;">Mengonversi Berkas PDF Daftar Hadir ke Lembar Cetak...</div>
+              <div style="font-size: 0.85rem; color: #64748b;">Setiap halaman berkas presensi sedang diproses otomatis menjadi halaman cetak berkualitas tinggi.</div>
+            </div>
+            <div class="page-footer-note">Dokumen Presensi Fisik — SMA Negeri 1 Gianyar</div>
           </div>
-        `}
+        </div>
+      ` : `
+        <div class="sheet page-break">
+          <div class="lampiran-header">
+            <div class="lampiran-title">LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN</div>
+            <div class="lampiran-sub">Presensi Kehadiran Siswa, Guru Pembina, dan Panitia Pelaksana Kegiatan</div>
+          </div>
+          <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <img src="${lpj.file_daftar_hadir_url}" alt="Daftar Hadir Fisik" style="max-height: 215mm; max-width: 100%; object-fit: contain;">
+          </div>
+          <div class="page-footer-note">Dokumen Presensi Fisik — SMA Negeri 1 Gianyar</div>
+        </div>
+      `}
+    ` : `
+      <div class="sheet page-break">
+        <div class="lampiran-header">
+          <div class="lampiran-title">LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN</div>
+          <div class="lampiran-sub">Presensi Kehadiran Siswa, Guru Pembina, dan Panitia Pelaksana Kegiatan</div>
+        </div>
+        <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: #64748b;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; display: inline-block;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <div style="font-weight: 700; font-size: 1.1rem; color: #334155; margin-bottom: 6px;">Berkas Daftar Hadir Terlampir</div>
+          <p style="font-size: 0.88rem; max-width: 480px; margin: 0 auto;">
+            Belum ada berkas PDF daftar hadir yang diunggah. Guru pembina dapat melampirkan berkas scan tanda tangan daftar hadir saat mengisi formulir LPJ.
+          </p>
+        </div>
+        <div class="page-footer-note">Dokumen Presensi Fisik — SMA Negeri 1 Gianyar</div>
       </div>
-
-      <div class="page-footer-note">Dokumen Presensi Fisik — SMA Negeri 1 Gianyar</div>
-    </div>
+    `}
 
     <!-- ============================================================= -->
     <!-- HALAMAN 6+: LAMPIRAN FOTO DOKUMENTASI KEGIATAN                -->
@@ -1163,6 +1186,115 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
 
   </div>
 
+  <!-- Pustaka PDF.js untuk Mengonversi Lembar Berkas PDF Menjadi Gambar Cetak Tajam (High DPI) -->
+  <script src="/js/pdf.min.js"></script>
+  <script>
+    (function() {
+      if (!window.pdfjsLib) return;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/pdf.worker.min.js';
+
+      async function processAllPdfTargets() {
+        // 1. Target Multi-halaman (Daftar Hadir dll)
+        var multiContainers = document.querySelectorAll('.pdf-multipage-container');
+        for (var i = 0; i < multiContainers.length; i++) {
+          var container = multiContainers[i];
+          var pdfUrl = container.getAttribute('data-pdf-url');
+          var title = container.getAttribute('data-title') || 'LAMPIRAN DOKUMEN';
+          var sub = container.getAttribute('data-sub') || '';
+          var footer = container.getAttribute('data-footer') || 'SMA Negeri 1 Gianyar';
+          if (!pdfUrl) continue;
+
+          try {
+            var loadingTask = pdfjsLib.getDocument(pdfUrl);
+            var pdf = await loadingTask.promise;
+            
+            // Bersihkan placeholder loading
+            container.innerHTML = '';
+
+            for (var pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+              var page = await pdf.getPage(pageNum);
+              // Skala 2.2 menghasilkan resolusi ~200 DPI sangat jernih saat dicetak ke kertas/PDF
+              var viewport = page.getViewport({ scale: 2.2 });
+
+              var canvas = document.createElement('canvas');
+              var ctx = canvas.getContext('2d');
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+
+              await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+              var imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+              var sheet = document.createElement('div');
+              sheet.className = 'sheet page-break';
+              
+              var pageTitleSuffix = pdf.numPages > 1 ? ' (Lembar ' + pageNum + ' dari ' + pdf.numPages + ')' : '';
+              var footerSuffix = ' — Lembar ' + pageNum + ' dari ' + pdf.numPages;
+
+              sheet.innerHTML = 
+                '<div class=\"lampiran-header\">' +
+                  '<div class=\"lampiran-title\">' + title + pageTitleSuffix + '</div>' +
+                  '<div class=\"lampiran-sub\">' + sub + '</div>' +
+                '</div>' +
+                '<div class=\"transfer-doc-wrap\" style=\"min-height: 200mm; display: flex; align-items: center; justify-content: center; padding: 4mm;\">' +
+                  '<img src=\"' + imgData + '\" alt=\"' + title + ' Hal ' + pageNum + '\" style=\"max-width: 100%; max-height: 220mm; width: auto; height: auto; object-fit: contain; box-shadow: 0 1px 3px rgba(0,0,0,0.08);\">' +
+                '</div>' +
+                '<div class=\"page-footer-note\">' + footer + footerSuffix + '</div>';
+              
+              container.appendChild(sheet);
+            }
+          } catch (err) {
+            console.error('Gagal memproses berkas PDF ke lembar cetak:', err);
+            container.innerHTML = 
+              '<div class=\"sheet page-break\">' +
+                '<div class=\"lampiran-header\">' +
+                  '<div class=\"lampiran-title\">' + title + '</div>' +
+                  '<div class=\"lampiran-sub\">' + sub + '</div>' +
+                '</div>' +
+                '<div class=\"transfer-doc-wrap\" style=\"padding: 50px 20px; text-align: center;\">' +
+                  '<div style=\"color: #b91c1c; font-weight: 700; margin-bottom: 8px;\">Gagal memproses pratinjau halaman PDF: ' + err.message + '</div>' +
+                  '<a href=\"' + pdfUrl + '\" target=\"_blank\" class=\"btn-toolbar btn-primary\" style=\"display:inline-flex; text-decoration:none;\">Buka / Unduh Berkas PDF Asli</a>' +
+                '</div>' +
+                '<div class=\"page-footer-note\">' + footer + '</div>' +
+              '</div>';
+          }
+        }
+
+        // 2. Target Single-page (Slip Bukti Transfer jika PDF)
+        var singleContainers = document.querySelectorAll('.pdf-render-target');
+        for (var j = 0; j < singleContainers.length; j++) {
+          var sContainer = singleContainers[j];
+          var sPdfUrl = sContainer.getAttribute('data-pdf-url');
+          if (!sPdfUrl) continue;
+          try {
+            var sLoadingTask = pdfjsLib.getDocument(sPdfUrl);
+            var sPdf = await sLoadingTask.promise;
+            var sPage = await sPdf.getPage(1);
+            var sViewport = sPage.getViewport({ scale: 2.2 });
+
+            var sCanvas = document.createElement('canvas');
+            var sCtx = sCanvas.getContext('2d');
+            sCanvas.width = sViewport.width;
+            sCanvas.height = sViewport.height;
+
+            await sPage.render({ canvasContext: sCtx, viewport: sViewport }).promise;
+            var sImgData = sCanvas.toDataURL('image/jpeg', 0.95);
+
+            sContainer.innerHTML = '<img src=\"' + sImgData + '\" alt=\"Slip Transfer PDF\" style=\"max-width: 100%; max-height: 200mm; object-fit: contain;\">';
+          } catch (e) {
+            console.error('Gagal render slip PDF:', e);
+            sContainer.innerHTML = '<div style=\"padding: 20px; text-align: center;\"><a href=\"' + sPdfUrl + '\" target=\"_blank\">📄 Buka Berkas Slip PDF</a></div>';
+          }
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', processAllPdfTargets);
+      } else {
+        processAllPdfTargets();
+      }
+    })();
+  </script>
 </body>
 </html>
   `;
