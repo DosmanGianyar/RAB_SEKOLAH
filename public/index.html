@@ -1122,13 +1122,18 @@
               <div>
                 <span class="lpj-section-tag"><i class="ti ti-receipt"></i> Bagian II: Realisasi Belanja &amp; Bukti Nota Fisik</span>
                 <p style="font-size: 0.76rem; color: var(--text-muted); margin: 4px 0 0;">
-                  Tambahkan nota fisik per rekanan/toko, atau 1 nota gabungan yang merangkum beberapa item rincian.
+                  Otomatis diisi sesuai rincian item RAB. Edit manual jika nominal atau kuantitas riil berbeda di toko.
                 </p>
               </div>
-              <button type="button" class="btn-lpj-add-action" onclick="addEditorReceiptRow()">
-                <i class="ti ti-plus"></i>
-                <span>Tambah Nota Belanja</span>
-              </button>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="btn btn-outline-primary btn-xs" onclick="confirmResetReceiptsFromRab()" style="font-weight: 700; gap: 4px; padding: 6px 10px; font-size: 0.76rem;" title="Muat ulang seluruh item belanja persis sesuai rincian RAB">
+                  <i class="ti ti-refresh"></i> Sesuaikan dengan RAB
+                </button>
+                <button type="button" class="btn-lpj-add-action" onclick="addEditorReceiptRow()">
+                  <i class="ti ti-plus"></i>
+                  <span>Tambah Nota Belanja</span>
+                </button>
+              </div>
             </div>
 
             <!-- Dynamic Multi-Receipt Stack -->

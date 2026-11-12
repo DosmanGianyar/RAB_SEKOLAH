@@ -4071,15 +4071,11 @@ async function navigateToLpjEditor(proposalId) {
       }
 
       // Nota Items
-      if (p.lpj.nota_items && p.lpj.nota_items.length > 0) {
+      if (p.lpj && p.lpj.nota_items && p.lpj.nota_items.length > 0) {
         p.lpj.nota_items.forEach(it => addEditorReceiptRow(it));
       } else {
-        addEditorReceiptRow({
-          nama_toko: 'Nota Pembelian',
-          uraian: 'Realisasi belanja kegiatan',
-          nominal: p.lpj.total_belanja_riil || p.total_dana_disetujui,
-          file_url: p.lpj.file_nota_url
-        });
+        // Otomatis populasi dari rincian RAB usulan
+        populateReceiptsFromRab(p);
       }
 
       // Foto Dokumentasi
@@ -4110,13 +4106,8 @@ async function navigateToLpjEditor(proposalId) {
 
       clearEditorMasterFile();
 
-      // Tambahkan default 1 baris nota awal
-      addEditorReceiptRow({
-        nama_toko: '',
-        uraian: '',
-        nominal: p.total_dana_disetujui || 0,
-        file_url: null
-      });
+      // Otomatis populasi daftar nota persis sesuai rincian item RAB usulan
+      populateReceiptsFromRab(p);
 
       // Tambahkan default 1 baris foto dokumentasi
       addEditorFotoRow();
@@ -4142,6 +4133,85 @@ function goBackFromLpjEditor() {
 // --------------------------------------------------------------------------
 // Multi-Nota Repeater di Halaman Editor LPJ
 // --------------------------------------------------------------------------
+
+function populateReceiptsFromRab(proposal) {
+  if (!proposal) return false;
+  const items = Array.isArray(proposal.items) ? proposal.items : [];
+
+  const receiptStack = document.getElementById('editorLpjNotaStack');
+  if (receiptStack) receiptStack.innerHTML = '';
+  editorReceiptRows = [];
+  nextEditorReceiptId = 1;
+
+  if (items.length > 0) {
+    items.forEach(it => {
+      const vol = it.volume_disetujui !== null && it.volume_disetujui !== undefined ? it.volume_disetujui : it.volume_ajuan;
+      const sat = it.satuan_disetujui || it.satuan || '';
+      const harga = it.harga_satuan_disetujui !== null && it.harga_satuan_disetujui !== undefined ? it.harga_satuan_disetujui : it.harga_satuan_ajuan;
+      const sub = it.subtotal_disetujui !== null && it.subtotal_disetujui !== undefined ? it.subtotal_disetujui : (it.subtotal_ajuan || (vol * harga));
+
+      let defaultToko = 'Toko / Rekanan Penyedia';
+      const kat = (it.kategori_belanja || '').toLowerCase();
+      const nama = (it.deskripsi_item || it.nama_item || '').toLowerCase();
+      if (kat.includes('konsumsi') || nama.includes('snack') || nama.includes('makan') || nama.includes('nasi') || nama.includes('minum')) {
+        defaultToko = 'Warung Konsumsi & Katering';
+      } else if (kat.includes('perlengkapan') || kat.includes('alat') || nama.includes('spanduk') || nama.includes('banner') || nama.includes('cetak')) {
+        defaultToko = 'Toko Perlengkapan & Olahraga';
+      } else if (kat.includes('jasa') || kat.includes('honor') || nama.includes('honor') || nama.includes('juri') || nama.includes('narasumber')) {
+        defaultToko = 'Penerima Honor & Jasa';
+      } else if (kat.includes('atk') || nama.includes('kertas') || nama.includes('buku') || nama.includes('alat tulis')) {
+        defaultToko = 'Toko ATK & Fotokopi';
+      }
+
+      addEditorReceiptRow({
+        nama_toko: defaultToko,
+        uraian: `${it.deskripsi_item || it.nama_item} (${vol} ${sat})`,
+        nominal: sub || 0,
+        file_url: null
+      });
+    });
+  } else {
+    addEditorReceiptRow({
+      nama_toko: 'Nota Pembelian / Rekanan',
+      uraian: `Belanja riil kegiatan: ${proposal.nama_kegiatan}`,
+      nominal: proposal.total_dana_disetujui || 0,
+      file_url: null
+    });
+  }
+
+  recalculateEditorMultiTotals();
+  return true;
+}
+
+function confirmResetReceiptsFromRab() {
+  if (!activeLpjProposal) return;
+  const rabCount = (activeLpjProposal.items || []).length;
+  const msg = rabCount > 0
+    ? `Muat ulang daftar nota belanja sesuai ${rabCount} item rincian RAB usulan? Uraian dan nominal akan diset persis seperti anggaran RAB (Anda tetap bisa mengedit manual jika nota fisik berbeda).`
+    : 'Muat ulang nota belanja sesuai total anggaran usulan?';
+
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      icon: 'question',
+      title: 'Sesuaikan dengan Rincian RAB?',
+      text: msg,
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Sesuaikan dengan RAB',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#2563eb'
+    }).then(res => {
+      if (res.isConfirmed) {
+        populateReceiptsFromRab(activeLpjProposal);
+        showNotification('Daftar nota belanja berhasil disesuaikan dengan rincian RAB.');
+      }
+    });
+  } else {
+    if (confirm(msg)) {
+      populateReceiptsFromRab(activeLpjProposal);
+      showNotification('Daftar nota belanja berhasil disesuaikan dengan rincian RAB.');
+    }
+  }
+}
 
 function addEditorReceiptRow(data = null) {
   const rowId = nextEditorReceiptId++;
