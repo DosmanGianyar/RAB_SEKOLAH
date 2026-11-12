@@ -1178,12 +1178,12 @@
                 Lampiran PDF Bundel Lengkap Seluruh Kuitansi (Opsional)
               </label>
               <div class="file-upload-area" onclick="document.getElementById('editorLpjMasterFileInput').click()" style="padding: 14px;">
-                <input type="file" id="editorLpjMasterFileInput" accept="image/*,application/pdf" style="display: none;" onchange="handleEditorMasterFileSelect(event)">
+                <input type="file" id="editorLpjMasterFileInput" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" style="display: none;" onchange="handleEditorMasterFileSelect(event)">
                 <div style="font-weight: 700; font-size: 0.84rem; color: var(--text-main);">
-                  📎 Klik untuk Mengunggah 1 File PDF Gabungan Seluruh Bukti (Jika Ada)
+                  📎 Klik untuk Mengunggah 1 File Gabungan Seluruh Bukti Nota (PDF / Gambar)
                 </div>
                 <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
-                  Jika semua nota telah discan menjadi 1 dokumen PDF utuh (Maksimal 10MB)
+                  Hanya diperbolehkan format PDF atau Foto/Scan (Maksimal 15MB)
                 </div>
               </div>
               <div id="editorLpjMasterPreviewWrap" style="display: none;" class="file-preview-wrap">
@@ -1231,12 +1231,12 @@
             </div>
 
             <div class="file-upload-area" onclick="document.getElementById('editorLpjDaftarHadirInput').click()" style="padding: 14px; border: 1.5px dashed #2563eb; background: #eff6ff; border-radius: 8px; cursor: pointer; text-align: center;">
-              <input type="file" id="editorLpjDaftarHadirInput" accept="application/pdf" style="display: none;" onchange="handleEditorDaftarHadirSelect(event)">
+              <input type="file" id="editorLpjDaftarHadirInput" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" style="display: none;" onchange="handleEditorDaftarHadirSelect(event)">
               <div style="font-weight: 700; font-size: 0.84rem; color: #1e40af;">
-                📄 Klik untuk Memilih File PDF Daftar Hadir
+                📄 Klik untuk Memilih File Daftar Hadir (PDF / Gambar)
               </div>
               <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
-                Format dokumen PDF (Maksimal 10MB)
+                Hanya format dokumen PDF atau Foto/Scan (Maksimal 15MB)
               </div>
             </div>
             <div id="editorLpjDaftarHadirPreviewWrap" style="display: none; align-items: center; gap: 8px; margin-top: 8px; background: #fff; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
@@ -1835,7 +1835,7 @@
             <div class="form-group">
               <label class="form-label" style="font-weight: 700;">Upload Bukti Transfer Kas / Slip Bank</label>
               <div class="file-upload-area" onclick="document.getElementById('cairkanBuktiTransferFile').click()" style="padding: 10px; border: 1.5px dashed #059669; background: #ecfdf5; border-radius: 8px; cursor: pointer; text-align: center;">
-                <input type="file" id="cairkanBuktiTransferFile" accept="image/*,application/pdf" style="display: none;" onchange="handleCairkanFileSelect(event)">
+                <input type="file" id="cairkanBuktiTransferFile" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" style="display: none;" onchange="handleCairkanFileSelect(event)">
                 <div style="font-weight: 700; font-size: 0.82rem; color: #065f46;">
                   📎 Unggah Slip BPD Bali / Bukti Transfer
                 </div>

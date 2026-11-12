@@ -1255,6 +1255,22 @@ app.post('/api/pengajuan/:id/lpj/verifikasi', requireAuth, (req, res) => {
   }
 });
 
+// Global Error Handler Multer & Upload Berkas
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({
+      success: false,
+      message: `Gagal mengunggah berkas: ${err.message}`
+    });
+  } else if (err) {
+    return res.status(400).json({
+      success: false,
+      message: err.message || 'Format berkas tidak diizinkan! Hanya diperbolehkan berkas gambar (JPG, PNG) atau dokumen PDF.'
+    });
+  }
+  next();
+});
+
 // Fallback index (Kompatibel dengan Express 5)
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));

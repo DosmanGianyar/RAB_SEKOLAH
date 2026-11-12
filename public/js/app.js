@@ -3668,12 +3668,36 @@ function showNotification(msg, icon = 'success') {
 // FASE 4: LOGIKA MODUL PENCAIRAN KAS (CASH DISBURSEMENT)
 // ==========================================================================
 
+// Validasi Ekstensi dan Tipe Berkas (Hanya Gambar & PDF)
+function validateUploadedFile(file, allowPdf = true) {
+  if (!file) return false;
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  const validExts = allowPdf ? ['jpg', 'jpeg', 'png', 'webp', 'pdf'] : ['jpg', 'jpeg', 'png', 'webp'];
+  const validTypes = allowPdf
+    ? ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/pdf']
+    : ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+
+  const isExtValid = validExts.includes(ext);
+  const isTypeValid = validTypes.includes(file.type) || file.type.startsWith('image/');
+
+  if (!isExtValid && !isTypeValid) {
+    const jenisStr = allowPdf ? 'file gambar (JPG, PNG) atau dokumen PDF' : 'file foto/gambar (JPG, PNG)';
+    showNotification(`Format berkas tidak diizinkan! Hanya diperbolehkan mengunggah ${jenisStr}.`, 'error');
+    return false;
+  }
+  return true;
+}
+
 let activeCairkanProposal = null;
 let selectedCairkanTransferFile = null;
 
 function handleCairkanFileSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
+  if (!validateUploadedFile(file, true)) {
+    event.target.value = '';
+    return;
+  }
   selectedCairkanTransferFile = file;
   const wrap = document.getElementById('cairkanBuktiTransferPreviewWrap');
   const nameSpan = document.getElementById('cairkanBuktiTransferFileName');
@@ -3868,6 +3892,10 @@ function triggerUploadBuktiTransfer(proposalId) {
 async function handleUploadTransferFileDirect(e) {
   const file = e.target.files[0];
   if (!file || !activeUploadTransferProposalId) return;
+  if (!validateUploadedFile(file, true)) {
+    e.target.value = '';
+    return;
+  }
 
   const id = activeUploadTransferProposalId;
   const formData = new FormData();
@@ -4297,7 +4325,7 @@ function addEditorReceiptRow(data = null) {
       </div>
       <div>
         <label class="form-label" style="font-size: 0.75rem; font-weight: 700; margin-bottom: 4px;">Unggah Foto / Scan Nota Fisik</label>
-        <input type="file" id="editorReceiptFileInput_${rowId}" accept="image/*,application/pdf" style="display: none;" onchange="handleEditorReceiptFileSelect(event, ${rowId})">
+        <input type="file" id="editorReceiptFileInput_${rowId}" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf" style="display: none;" onchange="handleEditorReceiptFileSelect(event, ${rowId})">
         <div id="editorReceiptFileArea_${rowId}">
           ${fileStatusHtml}
         </div>
@@ -4399,6 +4427,11 @@ function handleEditorReceiptFileSelect(event, rowId) {
   const file = event.target.files[0];
   if (!file) return;
 
+  if (!validateUploadedFile(file, true)) {
+    event.target.value = '';
+    return;
+  }
+
   const row = editorReceiptRows.find(r => r.id === rowId);
   if (!row) return;
   row.file = file;
@@ -4464,6 +4497,11 @@ function recalculateEditorCashback() {
 function handleEditorMasterFileSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
+
+  if (!validateUploadedFile(file, true)) {
+    event.target.value = '';
+    return;
+  }
   selectedEditorMasterFile = file;
 
   const wrap = document.getElementById('editorLpjMasterPreviewWrap');
@@ -4492,6 +4530,11 @@ function clearEditorMasterFile(event) {
 function handleEditorDaftarHadirSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
+
+  if (!validateUploadedFile(file, true)) {
+    event.target.value = '';
+    return;
+  }
   selectedEditorDaftarHadirFile = file;
 
   const wrap = document.getElementById('editorLpjDaftarHadirPreviewWrap');
@@ -4546,7 +4589,7 @@ function addEditorFotoRow(data = null) {
       <div class="lpj-foto-preview-box" id="editorFotoPreviewBox_${fotoId}" onclick="document.getElementById('editorFotoInput_${fotoId}').click()">
         ${initialPreview}
       </div>
-      <input type="file" id="editorFotoInput_${fotoId}" accept="image/*" style="display:none;" onchange="handleEditorFotoSelect(event, ${fotoId})">
+      <input type="file" id="editorFotoInput_${fotoId}" accept=".jpg,.jpeg,.png,.webp,image/*" style="display:none;" onchange="handleEditorFotoSelect(event, ${fotoId})">
       <button type="button" class="btn btn-danger btn-xs" style="position:absolute; top:6px; right:6px; border-radius:50%; width:24px; height:24px; padding:0; display:flex; align-items:center; justify-content:center;" onclick="removeEditorFotoRow(${fotoId})" title="Hapus foto">
         ✕
       </button>
@@ -4576,6 +4619,11 @@ function updateEditorFotoCaption(fotoId) {
 function handleEditorFotoSelect(event, fotoId) {
   const file = event.target.files[0];
   if (!file) return;
+
+  if (!validateUploadedFile(file, false)) {
+    event.target.value = '';
+    return;
+  }
 
   const item = editorFotoRows.find(f => f.id === fotoId);
   if (!item) return;

@@ -170,13 +170,50 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
     }
   }
 
-  // Galeri Lampiran Nota Belanja (1-2 Nota per lembar)
-  let notaPagesHtml = '';
+  // 1. Lembar Berkas Bundel Gabungan Seluruh Nota (Master PDF / Gambar jika diunggah)
+  let masterNotaPagesHtml = '';
+  if (lpj.file_nota_url) {
+    const isMasterPdf = lpj.file_nota_url.toLowerCase().endsWith('.pdf');
+    if (isMasterPdf) {
+      masterNotaPagesHtml = `
+        <div class="pdf-multipage-container" data-pdf-url="${lpj.file_nota_url}" data-title="BUNDEL LAMPIRAN NOTA &amp; KUITANSI BELANJA" data-sub="${escapeHtml(proposal.nama_kegiatan)} • Berkas Scan Gabungan" data-footer="Bukti sah verifikasi pembukuan bendahara — SMA Negeri 1 Gianyar">
+          <div class="sheet page-break">
+            <div class="lampiran-header">
+              <div class="lampiran-title">BUNDEL LAMPIRAN NOTA &amp; KUITANSI BELANJA</div>
+              <div class="lampiran-sub">${escapeHtml(proposal.nama_kegiatan)} • Berkas Scan Gabungan</div>
+            </div>
+            <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; color: #475569;">
+              <div style="font-size: 2rem; margin-bottom: 12px;">⏳</div>
+              <div style="font-weight: 700; font-size: 1.1rem; color: #1e293b; margin-bottom: 6px;">Memproses Bundel Scan Nota PDF...</div>
+              <div style="font-size: 0.85rem; color: #64748b;">Setiap halaman berkas bundel kuitansi sedang dikonversi otomatis menjadi lembar siap cetak.</div>
+            </div>
+            <div class="page-footer-note">Bukti sah verifikasi pembukuan bendahara — SMA Negeri 1 Gianyar</div>
+          </div>
+        </div>
+      `;
+    } else {
+      masterNotaPagesHtml = `
+        <div class="sheet page-break">
+          <div class="lampiran-header">
+            <div class="lampiran-title">BUNDEL LAMPIRAN NOTA &amp; KUITANSI BELANJA</div>
+            <div class="lampiran-sub">${escapeHtml(proposal.nama_kegiatan)} • Berkas Scan Gabungan</div>
+          </div>
+          <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; align-items: center; justify-content: center; padding: 4mm;">
+            <img src="${lpj.file_nota_url}" alt="Bundel Nota Fisik" style="max-width: 100%; max-height: 220mm; object-fit: contain;">
+          </div>
+          <div class="page-footer-note">Bukti sah verifikasi pembukuan bendahara — SMA Negeri 1 Gianyar</div>
+        </div>
+      `;
+    }
+  }
+
+  // 2. Galeri Lampiran Nota Belanja Per Toko (1-2 Nota per lembar)
+  let itemNotaPagesHtml = '';
   const validNotas = notaItems.filter(n => n.file_url);
   if (validNotas.length > 0) {
     for (let i = 0; i < validNotas.length; i += 2) {
       const chunk = validNotas.slice(i, i + 2);
-      notaPagesHtml += `
+      itemNotaPagesHtml += `
         <div class="sheet page-break">
           <div class="lampiran-header">
             <div class="lampiran-title">LAMPIRAN BUKTI NOTA &amp; KUITANSI BELANJA</div>
@@ -189,9 +226,15 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
                   <span><strong>Toko/Penyedia:</strong> ${escapeHtml(n.nama_toko || 'Toko Rekanan')}</span>
                   <span><strong>Nominal:</strong> ${formatRupiah(n.nominal)}</span>
                 </div>
-                <div class="nota-img-wrap">
-                  <img src="${n.file_url}" alt="Bukti Nota Belanja">
-                </div>
+                ${n.file_url.toLowerCase().endsWith('.pdf') ? `
+                  <div class="nota-img-wrap pdf-render-target" data-pdf-url="${n.file_url}">
+                    <div style="font-size: 0.8rem; color: #64748b; padding: 20px; text-align: center;">⏳ Memproses Gambar Nota PDF...</div>
+                  </div>
+                ` : `
+                  <div class="nota-img-wrap">
+                    <img src="${n.file_url}" alt="Bukti Nota Belanja" onerror="this.parentElement.innerHTML='<div style=\\'padding:20px;text-align:center;color:#b91c1c;\\'>⚠️ Berkas nota tidak dapat ditampilkan</div>';">
+                  </div>
+                `}
                 ${n.uraian ? `<div class="nota-caption"><em>Uraian:</em> ${escapeHtml(n.uraian)}</div>` : ''}
               </div>
             `).join('')}
@@ -201,6 +244,8 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
       `;
     }
   }
+
+  const allNotaPagesHtml = masterNotaPagesHtml + itemNotaPagesHtml;
 
   return `
 <!DOCTYPE html>
@@ -1321,7 +1366,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
     <!-- ============================================================= -->
     <!-- HALAMAN AKHIR: LAMPIRAN NOTA BELANJA FISIK                    -->
     <!-- ============================================================= -->
-    ${notaPagesHtml || `
+    ${allNotaPagesHtml || `
       <div class="sheet">
         <div class="lampiran-header">
           <div class="lampiran-title">LAMPIRAN BUKTI NOTA &amp; KUITANSI BELANJA</div>
@@ -1431,10 +1476,10 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
             await sPage.render({ canvasContext: sCtx, viewport: sViewport }).promise;
             var sImgData = sCanvas.toDataURL('image/jpeg', 0.95);
 
-            sContainer.innerHTML = '<img src=\"' + sImgData + '\" alt=\"Slip Transfer PDF\" style=\"max-width: 100%; max-height: 200mm; object-fit: contain;\">';
+            sContainer.innerHTML = '<img src=\"' + sImgData + '\" alt=\"Berkas Lampiran PDF\" style=\"max-width: 100%; max-height: 100%; object-fit: contain;\">';
           } catch (e) {
-            console.error('Gagal render slip PDF:', e);
-            sContainer.innerHTML = '<div style=\"padding: 20px; text-align: center;\"><a href=\"' + sPdfUrl + '\" target=\"_blank\">📄 Buka Berkas Slip PDF</a></div>';
+            console.error('Gagal render berkas PDF:', e);
+            sContainer.innerHTML = '<div style=\"padding: 20px; text-align: center;\"><a href=\"' + sPdfUrl + '\" target=\"_blank\">📄 Buka Berkas PDF</a></div>';
           }
         }
       }
