@@ -2778,37 +2778,7 @@ function renderProposalsList(proposals) {
     }
 
     let printActionBtn = '';
-    
-      // Self-approval notice di modal detail
-      if (isSelfProposal && ['MENUNGGU_REVIEW', 'PERLU_REVISI', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'DISETUJUI', 'MENUNGGU_VERIFIKASI_LPJ'].includes(p.status)) {
-        const selfNotice = document.createElement('div');
-        selfNotice.style.cssText = 'color:#92400e; background:#fef3c7; border:1px solid #fde68a; padding:6px 12px; border-radius:6px; font-size:0.75rem; font-weight:600; display:inline-flex; align-items:center; gap:6px;';
-        selfNotice.innerHTML = '<i class="ti ti-shield-alert"></i> Usulan Sendiri: Menunggu persetujuan / verifikasi pejabat otorisasi lainnya.';
-        footer.appendChild(selfNotice);
-      }
-
-      // Tombol Pindah Pos RKAS (Sebelum Pencairan)
-      if ((isBendahara || isKepsek) && ['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI', 'DISETUJUI'].includes(p.status)) {
-        const btnPindahPos = document.createElement('button');
-        btnPindahPos.type = 'button';
-        btnPindahPos.className = 'btn btn-outline-secondary btn-sm';
-        btnPindahPos.innerHTML = '<i class="ti ti-arrows-exchange"></i> Pindah Pos RKAS';
-        btnPindahPos.onclick = () => openModalPindahPos(p);
-        footer.appendChild(btnPindahPos);
-      }
-
-      // Tombol Ubah Bidang Penanggung Jawab
-      if ((isBendahara || isKepsek) && ['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI', 'DISETUJUI', 'DICAIRKAN'].includes(p.status)) {
-        const btnUbahBidang = document.createElement('button');
-        btnUbahBidang.type = 'button';
-        btnUbahBidang.className = 'btn btn-outline-secondary btn-sm';
-        btnUbahBidang.innerHTML = `<i class="ti ti-users"></i> Bidang: ${p.bidang_kegiatan || 'KESISWAAN'}`;
-        btnUbahBidang.title = 'Ubah bidang penanggung jawab kegiatan';
-        btnUbahBidang.onclick = () => promptUbahBidang(p);
-        footer.appendChild(btnUbahBidang);
-      }
-
-      if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
+    if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
       printActionBtn = `
         <a href="/cetak/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" title="Cetak Lembar Disposisi &amp; RAB">
           <i class="ti ti-printer"></i> Disposisi
@@ -2937,6 +2907,7 @@ async function openProposalDetail(id) {
       const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
       const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
       const canManageLpj = currentUser && (currentUser.id === p.user_id || ['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role));
+      const isSelfProposal = currentUser && p.user_id === currentUser.id && currentUser.role !== 'ADMIN';
 
       document.getElementById('detailNomorSurat').textContent = p.nomor_surat_ajuan;
       document.getElementById('detailNamaKegiatan').textContent = p.nama_kegiatan;
@@ -3068,6 +3039,41 @@ async function openProposalDetail(id) {
         btnDelete.innerHTML = '<i class="ti ti-trash"></i> Hapus Usulan Ini';
         btnDelete.onclick = () => handleDeleteProposal(p.id, p.nama_kegiatan);
         footer.prepend(btnDelete);
+      }
+
+      // Self-approval notice di modal detail
+      if (isSelfProposal && ['MENUNGGU_REVIEW', 'PERLU_REVISI', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'DISETUJUI', 'MENUNGGU_VERIFIKASI_LPJ'].includes(p.status)) {
+        const selfNotice = document.createElement('div');
+        selfNotice.style.cssText = 'color:#92400e; background:#fef3c7; border:1px solid #fde68a; padding:6px 12px; border-radius:6px; font-size:0.75rem; font-weight:600; display:inline-flex; align-items:center; gap:6px;';
+        selfNotice.innerHTML = '<i class="ti ti-shield-alert"></i> Usulan Sendiri: Menunggu persetujuan / verifikasi pejabat otorisasi lainnya.';
+        footer.appendChild(selfNotice);
+      }
+
+      // Tombol Pindah Pos RKAS (Sebelum Pencairan)
+      if ((isBendahara || isKepsek) && ['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI', 'DISETUJUI'].includes(p.status)) {
+        const btnPindahPos = document.createElement('button');
+        btnPindahPos.type = 'button';
+        btnPindahPos.className = 'btn btn-outline-secondary btn-sm';
+        btnPindahPos.innerHTML = '<i class="ti ti-arrows-exchange"></i> Pindah Pos RKAS';
+        btnPindahPos.onclick = () => {
+          closeDetailModal();
+          openModalPindahPos(p);
+        };
+        footer.appendChild(btnPindahPos);
+      }
+
+      // Tombol Ubah Bidang Penanggung Jawab
+      if ((isBendahara || isKepsek) && ['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI', 'DISETUJUI', 'DICAIRKAN'].includes(p.status)) {
+        const btnUbahBidang = document.createElement('button');
+        btnUbahBidang.type = 'button';
+        btnUbahBidang.className = 'btn btn-outline-secondary btn-sm';
+        btnUbahBidang.innerHTML = `<i class="ti ti-users"></i> Bidang: ${p.bidang_kegiatan || 'KESISWAAN'}`;
+        btnUbahBidang.title = 'Ubah bidang penanggung jawab kegiatan';
+        btnUbahBidang.onclick = () => {
+          closeDetailModal();
+          promptUbahBidang(p);
+        };
+        footer.appendChild(btnUbahBidang);
       }
 
       // Tombol Cetak Dokumen Resmi untuk status yang sudah disahkan / dicairkan
