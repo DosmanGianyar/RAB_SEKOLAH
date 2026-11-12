@@ -887,14 +887,9 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
         <!-- Tabel Isian Kwitansi -->
         <table class="kwitansi-data-table">
           <tr>
-            <td class="col-lbl">No. Kode</td>
-            <td class="col-col">:</td>
-            <td class="col-val font-bold" style="font-size: 13pt;">${escapeHtml(proposal.nomor_kode_kwitansi || '7')}</td>
-          </tr>
-          <tr>
             <td class="col-lbl">Kode. Rekening</td>
             <td class="col-col">:</td>
-            <td class="col-val"></td>
+            <td class="col-val">${escapeHtml(proposal.kode_rekening || '03.03.09.04')}</td>
           </tr>
           <tr>
             <td class="col-lbl">Sudah terima dari</td>
