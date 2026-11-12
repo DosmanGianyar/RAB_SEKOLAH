@@ -1,3 +1,14 @@
+
+// Deteksi Bidang Penanggung Jawab Otomatis berdasarkan Unit Akun
+function detectDefaultBidang(unitBagian) {
+  const u = String(unitBagian || '').toLowerCase();
+  if (u.includes('kurikulum')) return 'KURIKULUM';
+  if (u.includes('sarana') || u.includes('sarpras')) return 'SARPRAS';
+  if (u.includes('humas')) return 'HUMAS';
+  return 'KESISWAAN';
+}
+window.detectDefaultBidang = detectDefaultBidang;
+
 // ==========================================================================
 // E-RAB SEKOLAH - CLIENT LOGIC & MOBILE-FIRST INTERACTION
 // FASE 1 & FASE 2: Plafon Anggaran, Dynamic Line Items, & Proposal Submission
@@ -181,31 +192,52 @@ async function handleDeleteProposal(id, nama) {
       Swal.fire({
         icon: 'error',
         title: 'Akses Ditolak',
-        text: 'Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang memiliki hak otorisasi untuk menghapus usulan kegiatan.',
+        text: 'Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang memiliki hak untuk mengarsipkan usulan kegiatan.',
         confirmButtonColor: '#059669'
       });
     } else {
-      alert('Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang memiliki hak otorisasi untuk menghapus usulan kegiatan.');
+      alert('Akses Ditolak: Hanya akun Analisis SDM, Kepala Sekolah, dan Administrator yang berhak mengarsipkan usulan.');
     }
     return;
   }
 
   const namaDisplay = nama || 'usulan ini';
-  const confirmation = await confirmDeleteWithSecurityCheckbox({
-    title: 'Konfirmasi Hapus Usulan Kegiatan',
-    itemType: 'Nama Usulan Kegiatan',
-    itemName: namaDisplay,
-    warningNotes: 'Seluruh rincian belanja, riwayat telaah pengesahan, dan berkas nota LPJ akan dihapus permanen. Alokasi pagu anggaran yang sebelumnya tercadangkan atau terserap akan dipulihkan otomatis ke kas sekolah.',
-    checkboxLabel: 'Saya memahami risiko ini dan menyatakan usulan kegiatan ini benar-benar akan dihapus secara permanen.'
-  });
+  let alasanHapus = '';
 
-  if (!confirmation || !confirmation.isConfirmed) return;
+  if (typeof Swal !== 'undefined') {
+    const { value: formValues } = await Swal.fire({
+      title: 'Arsipkan Usulan Kegiatan?',
+      html: `
+        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">
+          Usulan <strong>"${escapeHtml(namaDisplay)}"</strong> akan dipindahkan ke <strong>Kotak Sampah</strong>. Alokasi pagu anggaran akan otomatis dipulihkan ke kas sekolah. Usulan dapat dipulihkan sewaktu-waktu.
+        </p>
+        <div style="text-align:left;">
+          <label style="font-size:0.75rem; font-weight:700; color:var(--text-main);">Alasan Pengarsipan (Opsional):</label>
+          <input id="swalAlasanHapus" class="swal2-input" style="font-size:0.85rem; height:38px; margin:6px 0;" placeholder="Cth: Salah input pos anggaran / kegiatan dibatalkan">
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e11d48',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: '<i class="ti ti-archive"></i> Ya, Pindahkan ke Arsip',
+      cancelButtonText: 'Batal',
+      preConfirm: () => {
+        return document.getElementById('swalAlasanHapus').value;
+      }
+    });
 
-  // Tampilkan loading saat proses penghapusan
+    if (formValues === undefined) return;
+    alasanHapus = formValues || '';
+  } else {
+    if (!confirm(`Apakah Anda yakin ingin memindahkan usulan "${namaDisplay}" ke Kotak Sampah?`)) return;
+    alasanHapus = prompt('Masukkan alasan pengarsipan (opsional):') || '';
+  }
+
   if (typeof Swal !== 'undefined') {
     Swal.fire({
-      title: 'Menghapus Usulan...',
-      text: 'Memulihkan pagu anggaran & membersihkan berkas terkait',
+      title: 'Mengarsipkan Usulan...',
+      text: 'Memulihkan pagu anggaran & memperbarui riwayat',
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading()
     });
@@ -213,7 +245,9 @@ async function handleDeleteProposal(id, nama) {
 
   try {
     const res = await fetch(`/api/pengajuan/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alasan: alasanHapus })
     });
     const result = await res.json();
     if (result.success) {
@@ -497,6 +531,10 @@ function switchRabSubTab(tabName) {
     if (paneRiwayat) paneRiwayat.style.display = 'none';
     populatePosDropdown();
     calculateGrandTotal();
+    const selBidang = document.getElementById('selectBidangKegiatan');
+    if (selBidang && currentUser && typeof detectDefaultBidang === 'function') {
+      selBidang.value = detectDefaultBidang(currentUser.unit_bagian);
+    }
   }
 }
 window.switchRabSubTab = switchRabSubTab;
@@ -2407,6 +2445,10 @@ async function handleSubmitProposal(e) {
         showNotification(`🎉 ${data.message}`);
       }
       document.getElementById('formPengajuanRab').reset();
+      const selBidangAfterReset = document.getElementById('selectBidangKegiatan');
+      if (selBidangAfterReset && currentUser && typeof detectDefaultBidang === 'function') {
+        selBidangAfterReset.value = detectDefaultBidang(currentUser.unit_bagian);
+      }
       // Reset items ke 1 baris
       container.innerHTML = '';
       addItemRow();
@@ -2673,8 +2715,15 @@ function renderProposalsList(proposals) {
     const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
     const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
     const canManageLpj = currentUser && (currentUser.id === p.user_id || ['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role));
+    const isSelfProposal = currentUser && p.user_id === currentUser.id && currentUser.role !== 'ADMIN';
 
-    if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
+    if (isSelfProposal && ['MENUNGGU_REVIEW', 'PERLU_REVISI', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'DISETUJUI', 'MENUNGGU_VERIFIKASI_LPJ'].includes(p.status)) {
+      roleActionBtn = `
+        <span class="badge" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-size: 0.72rem; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="Anda adalah pengusul usulan ini. Otorisasi harus dilakukan oleh pejabat berwenang lainnya.">
+          <i class="ti ti-shield-alert"></i> Usulan Anda (Tunggu Pejabat Lain)
+        </span>
+      `;
+    } else if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
       roleActionBtn = `
         <button class="btn btn-warning btn-sm" style="background: #d97706; border-color: #d97706; color: #fff;" onclick="event.stopPropagation(); openReviewModal(${p.id})">
           <i class="ti ti-edit"></i> Telaah & Koreksi
@@ -2694,7 +2743,7 @@ function renderProposalsList(proposals) {
       `;
     } else if (canManageLpj && p.status === 'DICAIRKAN') {
       const isDraftLpj = p.lpj && p.lpj.status_lpj === 'DRAFT';
-      const btnTitle = isDraftLpj ? 'Lanjutkan LPJ (Draft)' : 'Buat LPJ';
+      const btnTitle = isDraftLpj ? 'Lanjutkan Laporan (Draft)' : 'Susun Laporan';
       const btnIcon = isDraftLpj ? 'ti ti-file-pencil' : 'ti ti-file-certificate';
       const btnClass = isDraftLpj ? 'btn btn-warning btn-sm' : 'btn btn-primary btn-sm';
       const btnStyle = isDraftLpj ? 'background: #f59e0b; border-color: #f59e0b; color: #fff;' : '';
@@ -2708,14 +2757,14 @@ function renderProposalsList(proposals) {
       if (isBendahara) {
         btns += `
           <button class="btn btn-warning btn-sm" style="background: #d97706; border-color: #d97706; color: #fff; margin-right: 4px;" onclick="event.stopPropagation(); openVerifikasiLpjModal(${p.id})" title="Periksa berkas nota &amp; sahkan LPJ">
-            <i class="ti ti-clipboard-check"></i> Verifikasi LPJ
+            <i class="ti ti-clipboard-check"></i> Verifikasi Laporan
           </button>
         `;
       }
       if (canManageLpj) {
         btns += `
           <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); navigateToLpjEditor(${p.id})" title="Ubah atau lengkapi laporan LPJ &amp; berkas nota">
-            <i class="ti ti-edit"></i> Edit LPJ
+            <i class="ti ti-edit"></i> Edit Laporan
           </button>
         `;
       }
@@ -2723,13 +2772,43 @@ function renderProposalsList(proposals) {
     } else if (p.status === 'SELESAI' && canManageLpj) {
       roleActionBtn = `
         <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); navigateToLpjEditor(${p.id})" title="Buka dan tinjau berkas LPJ yang telah disahkan">
-          <i class="ti ti-file-check"></i> Rincian LPJ
+          <i class="ti ti-file-check"></i> Berkas Laporan
         </button>
       `;
     }
 
     let printActionBtn = '';
-    if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
+    
+      // Self-approval notice di modal detail
+      if (isSelfProposal && ['MENUNGGU_REVIEW', 'PERLU_REVISI', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'DISETUJUI', 'MENUNGGU_VERIFIKASI_LPJ'].includes(p.status)) {
+        const selfNotice = document.createElement('div');
+        selfNotice.style.cssText = 'color:#92400e; background:#fef3c7; border:1px solid #fde68a; padding:6px 12px; border-radius:6px; font-size:0.75rem; font-weight:600; display:inline-flex; align-items:center; gap:6px;';
+        selfNotice.innerHTML = '<i class="ti ti-shield-alert"></i> Usulan Sendiri: Menunggu persetujuan / verifikasi pejabat otorisasi lainnya.';
+        footer.appendChild(selfNotice);
+      }
+
+      // Tombol Pindah Pos RKAS (Sebelum Pencairan)
+      if ((isBendahara || isKepsek) && ['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI', 'DISETUJUI'].includes(p.status)) {
+        const btnPindahPos = document.createElement('button');
+        btnPindahPos.type = 'button';
+        btnPindahPos.className = 'btn btn-outline-secondary btn-sm';
+        btnPindahPos.innerHTML = '<i class="ti ti-arrows-exchange"></i> Pindah Pos RKAS';
+        btnPindahPos.onclick = () => openModalPindahPos(p);
+        footer.appendChild(btnPindahPos);
+      }
+
+      // Tombol Ubah Bidang Penanggung Jawab
+      if ((isBendahara || isKepsek) && ['MENUNGGU_REVIEW', 'MENUNGGU_PERSETUJUAN_KEPSEK', 'PERLU_REVISI', 'DISETUJUI', 'DICAIRKAN'].includes(p.status)) {
+        const btnUbahBidang = document.createElement('button');
+        btnUbahBidang.type = 'button';
+        btnUbahBidang.className = 'btn btn-outline-secondary btn-sm';
+        btnUbahBidang.innerHTML = `<i class="ti ti-users"></i> Bidang: ${p.bidang_kegiatan || 'KESISWAAN'}`;
+        btnUbahBidang.title = 'Ubah bidang penanggung jawab kegiatan';
+        btnUbahBidang.onclick = () => promptUbahBidang(p);
+        footer.appendChild(btnUbahBidang);
+      }
+
+      if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
       printActionBtn = `
         <a href="/cetak/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" title="Cetak Lembar Disposisi &amp; RAB">
           <i class="ti ti-printer"></i> Disposisi
@@ -5724,3 +5803,290 @@ window.loadAuditLogsList = loadAuditLogsList;
 window.filterAuditCategory = filterAuditCategory;
 window.handleSearchAuditInput = handleSearchAuditInput;
 window.clearAuditSearch = clearAuditSearch;
+
+
+// ==========================================================================
+// FITUR: KOTAK SAMPAH & PEMULIHAN USULAN (SOFT-DELETE)
+// ==========================================================================
+async function openModalKotakSampah() {
+  const modal = document.getElementById('modalKotakSampah');
+  if (modal) modal.classList.add('active');
+  await loadKotakSampah();
+}
+window.openModalKotakSampah = openModalKotakSampah;
+
+function closeModalKotakSampah() {
+  const modal = document.getElementById('modalKotakSampah');
+  if (modal) modal.classList.remove('active');
+}
+window.closeModalKotakSampah = closeModalKotakSampah;
+
+async function loadKotakSampah() {
+  const box = document.getElementById('kotakSampahContainer');
+  if (!box) return;
+  box.innerHTML = '<div style="text-align:center; padding:25px; color:var(--text-muted);"><i class="ti ti-loader spin-icon"></i> Memuat daftar arsip terhapus...</div>';
+
+  try {
+    const res = await fetch('/api/pengajuan/arsip');
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+
+    if (!data.data || data.data.length === 0) {
+      box.innerHTML = '<div style="text-align:center; padding:35px; color:var(--text-muted);"><i class="ti ti-check" style="font-size:2rem; color:#059669;"></i><p style="margin-top:8px;">Kotak Sampah Kosong. Tidak ada usulan yang sedang diarsipkan.</p></div>';
+      return;
+    }
+
+    box.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        ${data.data.map(p => `
+          <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:260px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-family:monospace; font-weight:700; color:var(--primary); font-size:0.78rem;">${escapeHtml(p.nomor_surat_ajuan)}</span>
+                <span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:0.7rem;">Diarsipkan</span>
+              </div>
+              <div style="font-weight:700; color:#0f172a; font-size:0.88rem; margin:2px 0;">${escapeHtml(p.nama_kegiatan)}</div>
+              <div style="font-size:0.74rem; color:var(--text-muted);">
+                Pemohon: <strong>${escapeHtml(p.pemohon_nama)}</strong> (${escapeHtml(p.pemohon_unit)}) • Pos: ${escapeHtml(p.nama_pos)}
+              </div>
+              <div style="font-size:0.72rem; color:#b91c1c; margin-top:3px; background:#fff1f2; padding:3px 8px; border-radius:4px; display:inline-block;">
+                <i class="ti ti-info-circle"></i> Alasan: "${escapeHtml(p.alasan_hapus || 'Tidak ada keterangan')}" (oleh ${escapeHtml(p.dihapus_oleh_nama || 'Pimpinan')})
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:800; color:#047857; font-size:0.9rem; margin-bottom:4px;">
+                ${formatRupiah(p.total_dana_disetujui || p.total_dana_diajukan)}
+              </div>
+              <button type="button" class="btn btn-success btn-xs" onclick="handleRestoreProposal(${p.id}, '${escapeHtml(p.nama_kegiatan).replace(/'/g, "&#39;")}')">
+                <i class="ti ti-rotate"></i> Pulihkan Usulan
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch (err) {
+    box.innerHTML = `<div style="color:#b91c1c; padding:15px;">Gagal memuat arsip: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function handleRestoreProposal(id, nama) {
+  if (!confirm(`Pulihkan kembali usulan "${nama}" ke daftar aktif? Pagu anggaran pos terkait akan otomatis kembali dicadangkan.`)) return;
+
+  try {
+    const res = await fetch(`/api/pengajuan/${id}/restore`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      if (typeof showNotification === 'function') showNotification(data.message);
+      else alert(data.message);
+      await loadKotakSampah();
+      await loadProposals();
+      await loadPosAnggaran();
+      await loadSummary();
+    } else {
+      alert(data.message || 'Gagal memulihkan usulan.');
+    }
+  } catch (err) {
+    alert('Kesalahan jaringan: ' + err.message);
+  }
+}
+window.handleRestoreProposal = handleRestoreProposal;
+
+// ==========================================================================
+// FITUR: PINDAH POS ANGGARAN RKAS
+// ==========================================================================
+let activePindahProposal = null;
+
+function openModalPindahPos(p) {
+  activePindahProposal = p;
+  const modal = document.getElementById('modalPindahPos');
+  if (!modal) return;
+
+  document.getElementById('pindahPosProposalId').value = p.id;
+  document.getElementById('pindahPosNamaKegiatan').textContent = p.nama_kegiatan;
+  document.getElementById('pindahPosNamaPosLama').textContent = p.nama_pos;
+  document.getElementById('pindahPosNominalDisplay').textContent = formatRupiah(p.total_dana_disetujui || p.total_dana_diajukan);
+  document.getElementById('inputAlasanPindahPos').value = '';
+
+  const sel = document.getElementById('selectTargetPosAnggaran');
+  sel.innerHTML = '<option value="">-- Pilih Pos RKAS Tujuan --</option>';
+
+  const nominalNeeded = Number(p.total_dana_disetujui) || Number(p.total_dana_diajukan) || 0;
+  if (Array.isArray(allPosAnggaran)) {
+    allPosAnggaran
+      .filter(pos => pos.id !== p.pos_anggaran_id)
+      .forEach(pos => {
+        const sisa = Number(pos.sisa_pagu) || 0;
+        const disabled = sisa < nominalNeeded ? 'disabled' : '';
+        const note = sisa < nominalNeeded ? ' (Sisa Pagu Kurang)' : ` (Sisa: ${formatRupiah(sisa)})`;
+        sel.innerHTML += `<option value="${pos.id}" ${disabled}>${escapeHtml(pos.nama_pos)}${note}</option>`;
+      });
+  }
+
+  modal.classList.add('active');
+}
+window.openModalPindahPos = openModalPindahPos;
+
+function closeModalPindahPos() {
+  const modal = document.getElementById('modalPindahPos');
+  if (modal) modal.classList.remove('active');
+  activePindahProposal = null;
+}
+window.closeModalPindahPos = closeModalPindahPos;
+
+async function handlePindahPosSubmit(event) {
+  event.preventDefault();
+  const id = document.getElementById('pindahPosProposalId').value;
+  const targetPosId = document.getElementById('selectTargetPosAnggaran').value;
+  const alasan = document.getElementById('inputAlasanPindahPos').value.trim();
+
+  if (!targetPosId) {
+    alert('Pilih pos anggaran tujuan.');
+    return;
+  }
+
+  const btn = document.getElementById('btnSubmitPindahPos');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader spin-icon"></i> Memindahkan...';
+
+  try {
+    const res = await fetch(`/api/pengajuan/${id}/pindah-pos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_pos_id: targetPosId, alasan })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (typeof showNotification === 'function') showNotification(data.message);
+      else alert(data.message);
+      closeModalPindahPos();
+      closeDetailModal();
+      await loadProposals();
+      await loadPosAnggaran();
+      await loadSummary();
+    } else {
+      alert(data.message || 'Gagal memindahkan pos anggaran.');
+    }
+  } catch (err) {
+    alert('Kesalahan jaringan: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-check"></i> Pindahkan Pos';
+  }
+}
+window.handlePindahPosSubmit = handlePindahPosSubmit;
+
+// Prompt Ubah Bidang Kegiatan
+async function promptUbahBidang(p) {
+  if (typeof Swal !== 'undefined') {
+    const { value: bidangBaru } = await Swal.fire({
+      title: 'Ubah Bidang Penanggung Jawab',
+      html: `
+        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">
+          Pilih bidang untuk usulan <strong>"${escapeHtml(p.nama_kegiatan)}"</strong>. Pejabat Wakasek penandatangan pada Laporan Keuangan akan otomatis menyesuaikan.
+        </p>
+      `,
+      input: 'select',
+      inputOptions: {
+        'KESISWAAN': '🎓 Kesiswaan (Wakasek Kesiswaan)',
+        'KURIKULUM': '📚 Kurikulum (Wakasek Kurikulum)',
+        'SARPRAS': '🏢 Sarana & Prasarana (Wakasek Sarpras)',
+        'HUMAS': '🤝 Hubungan Masyarakat (Wakasek Humas)'
+      },
+      inputValue: p.bidang_kegiatan || 'KESISWAAN',
+      showCancelButton: true,
+      confirmButtonText: 'Simpan Bidang',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#059669'
+    });
+
+    if (!bidangBaru || bidangBaru === p.bidang_kegiatan) return;
+
+    try {
+      const res = await fetch(`/api/pengajuan/${p.id}/bidang`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bidang_kegiatan: bidangBaru })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification(data.message);
+        closeDetailModal();
+        await loadProposals();
+      } else {
+        alert(data.message || 'Gagal mengubah bidang.');
+      }
+    } catch (err) {
+      alert('Kesalahan jaringan: ' + err.message);
+    }
+  }
+}
+window.promptUbahBidang = promptUbahBidang;
+
+// ==========================================================================
+// FITUR: PENGATURAN IDENTITAS SEKOLAH & TEKS KUITANSI RESMI
+// ==========================================================================
+async function openModalPengaturanSekolah() {
+  const modal = document.getElementById('modalPengaturanSekolah');
+  if (modal) modal.classList.add('active');
+  const box = document.getElementById('pengaturanSekolahContainer');
+  if (!box) return;
+  box.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);"><i class="ti ti-loader spin-icon"></i> Memuat data pengaturan...</div>';
+
+  try {
+    const res = await fetch('/api/pengaturan-sekolah');
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+
+    box.innerHTML = data.data.map(item => `
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px;">
+        <label class="form-label" style="font-size:0.75rem; font-weight:700; margin-bottom:2px; display:flex; justify-content:space-between;">
+          <span>${escapeHtml(item.keterangan || item.kunci)}</span>
+          <span style="font-family:monospace; color:var(--text-muted); font-size:0.7rem;">${escapeHtml(item.kunci)}</span>
+        </label>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:4px;">
+          <input type="text" class="form-input" id="inputSch_${item.kunci}" value="${escapeHtml(item.nilai || '')}" style="font-size:0.84rem;">
+          <button type="button" class="btn btn-success btn-sm" onclick="simpanPengaturanSekolah('${item.kunci}', this)" style="white-space:nowrap;">
+            <i class="ti ti-device-floppy"></i> Simpan
+          </button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    box.innerHTML = `<div style="color:#b91c1c; padding:15px;">Gagal memuat: ${escapeHtml(err.message)}</div>`;
+  }
+}
+window.openModalPengaturanSekolah = openModalPengaturanSekolah;
+
+function closeModalPengaturanSekolah() {
+  const modal = document.getElementById('modalPengaturanSekolah');
+  if (modal) modal.classList.remove('active');
+}
+window.closeModalPengaturanSekolah = closeModalPengaturanSekolah;
+
+async function simpanPengaturanSekolah(kunci, btn) {
+  const input = document.getElementById('inputSch_' + kunci);
+  if (!input) return;
+  const nilai = input.value.trim();
+
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch('/api/pengaturan-sekolah/' + encodeURIComponent(kunci), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nilai })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (typeof showNotification === 'function') showNotification('Pengaturan sekolah berhasil diperbarui.');
+      else alert('Tersimpan.');
+    } else {
+      alert(data.message || 'Gagal menyimpan pengaturan.');
+    }
+  } catch (err) {
+    alert('Kesalahan: ' + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+window.simpanPengaturanSekolah = simpanPengaturanSekolah;

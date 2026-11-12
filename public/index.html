@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.9.0">
+  <link rel="stylesheet" href="/css/style.css?v=3.0.0">
 </head>
 <body>
 
@@ -263,6 +263,12 @@
             </button>
             <button type="button" class="btn btn-outline-warning btn-sm" id="btnKelolaPenandatangan" onclick="openModalPenandatangan()">
               <i class="ti ti-signature"></i> Kelola Penandatangan
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnPengaturanSekolah" onclick="openModalPengaturanSekolah()">
+              <i class="ti ti-settings"></i> Identitas &amp; Kuitansi
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" id="btnBukaKotakSampah" onclick="openModalKotakSampah()">
+              <i class="ti ti-archive"></i> Arsip Terhapus
             </button>
             <button type="button" class="btn btn-outline-primary btn-sm" id="btnHeroAuditLog" onclick="switchView('auditlog')">
               <i class="ti ti-shield-lock"></i> Pantau Log Sistem
@@ -2391,14 +2397,107 @@
         <button type="button" class="btn btn-secondary btn-icon-only btn-sm" onclick="closeModalPenandatangan()">✕</button>
       </div>
       <div class="modal-body" style="max-height: 68vh; overflow-y: auto;">
+        <div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.78rem; color: #1e40af; line-height: 1.45;">
+          <strong>💡 Penjelasan Peran Bendahara:</strong><br>
+          • <strong>Bendahara Sekolah:</strong> Akun login operasional pengelola sistem (verifikasi, telaah, kasir pencairan).<br>
+          • <strong>Bendahara Dana Pungutan &amp; Bendahara Pembantu:</strong> Pejabat penandatangan administratif pada cetak kuitansi komite sekolah.
+        </div>
         <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
-          Ubah jabatan, nama, dan NIP pejabat jika terjadi pergantian. Perubahan langsung berlaku pada semua dokumen cetak (LPJ, Laporan Keuangan, Disposisi, RKAS). NIP boleh diawali "PPPK." bila bukan PNS; jika hanya angka, otomatis dicetak dengan awalan "NIP.".
+          Ubah jabatan, nama, dan NIP pejabat jika terjadi pergantian. Perubahan langsung berlaku pada semua dokumen cetak (Laporan Kegiatan, Laporan Keuangan, Disposisi, RKAS). NIP boleh diawali "PPPK." bila bukan PNS; jika hanya angka, otomatis dicetak dengan awalan "NIP.".
         </div>
         <div id="penandatanganContainer" style="display: flex; flex-direction: column; gap: 10px;"></div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end;">
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeModalPenandatangan()">Tutup</button>
       </div>
+    </div>
+  </div>
+
+  
+  <!-- Modal: Pengaturan Identitas Sekolah & Kuitansi (Khusus Pimpinan) -->
+  <div class="modal-overlay" id="modalPengaturanSekolah">
+    <div class="modal-box" style="max-width: 700px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="ti ti-settings" style="color: #2563eb; margin-right: 6px;"></i> Identitas Sekolah &amp; Teks Kuitansi Resmi
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon-only btn-sm" onclick="closeModalPengaturanSekolah()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height: 68vh; overflow-y: auto;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+          Kelola teks kop surat, sumber dana kuitansi komite, dan kode rekening default agar tidak tertulis kaku pada kode aplikasi. Perubahan otomatis berlaku pada seluruh lembar cetak.
+        </div>
+        <div id="pengaturanSekolahContainer" style="display: flex; flex-direction: column; gap: 10px;"></div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModalPengaturanSekolah()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Kotak Sampah / Arsip Usulan Terhapus (Soft-Delete) -->
+  <div class="modal-overlay" id="modalKotakSampah">
+    <div class="modal-box" style="max-width: 850px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="ti ti-archive" style="color: #e11d48; margin-right: 6px;"></i> Kotak Sampah / Arsip Usulan Terhapus
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon-only btn-sm" onclick="closeModalKotakSampah()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height: 68vh; overflow-y: auto;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+          Daftar usulan kegiatan yang diarsipkan oleh pimpinan. Usulan di bawah ini tidak membebani pagu anggaran kas. Anda dapat memulihkannya kembali ke daftar aktif sewaktu-waktu selama sisa pagu masih mencukupi.
+        </div>
+        <div id="kotakSampahContainer"></div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModalKotakSampah()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Pindah Pos Anggaran RKAS (Jika Salah Pos) -->
+  <div class="modal-overlay" id="modalPindahPos">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="ti ti-arrows-exchange" style="color: #059669; margin-right: 6px;"></i> Pindahkan Pos Anggaran RKAS
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon-only btn-sm" onclick="closeModalPindahPos()">✕</button>
+      </div>
+      <form id="formPindahPos" onsubmit="handlePindahPosSubmit(event)">
+        <input type="hidden" id="pindahPosProposalId">
+        <div class="modal-body">
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+            Pindahkan usulan ke pos RKAS lain tanpa menghapus rincian item belanja. Sisa pagu pos lama akan dilepas dan dibebankan ke pos baru.
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;">
+            <div style="font-size: 0.74rem; color: var(--text-muted);">Nama Usulan:</div>
+            <div style="font-weight: 700; color: #0f172a; font-size: 0.86rem;" id="pindahPosNamaKegiatan">-</div>
+            <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px;">Pos RKAS Saat Ini:</div>
+            <div style="font-weight: 600; color: #475569; font-size: 0.82rem;" id="pindahPosNamaPosLama">-</div>
+            <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px;">Nominal Usulan:</div>
+            <div style="font-weight: 800; color: #047857; font-size: 0.92rem;" id="pindahPosNominalDisplay">-</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pilih Pos Anggaran Tujuan (Tersedia Sisa Pagu Cukup) *</label>
+            <select class="form-select" id="selectTargetPosAnggaran" required></select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Alasan Pemindahan Pos (Opsional)</label>
+            <input type="text" class="form-input" id="inputAlasanPindahPos" placeholder="Cth: Salah input pos anggaran saat pengajuan">
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeModalPindahPos()">Batal</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="btnSubmitPindahPos">
+            <i class="ti ti-check"></i> Pindahkan Pos
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -2463,6 +2562,6 @@
   <script src="/libs/tabler/js/tabler.min.js"></script>
   <script src="/libs/sweetalert2/sweetalert2.all.min.js"></script>
   <script src="/libs/chartjs/chart.umd.min.js"></script>
-  <script src="/js/app.js?v=2.9.0"></script>
+  <script src="/js/app.js?v=3.0.0"></script>
 </body>
 </html>

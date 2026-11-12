@@ -1,3 +1,4 @@
+const { getPengaturanSekolahMap } = require('../db');
 // ==========================================================================
 // Komponen KOP Surat Resmi SMA Negeri 1 Gianyar (DOSMAN)
 // Sesuai Standar Tata Naskah Dinas & Pergub Bali No. 80 Tahun 2018
@@ -11,6 +12,7 @@
  * @returns {string} HTML string
  */
 function renderKopSurat({ mode = 'portrait' } = {}) {
+  const SCH = typeof getPengaturanSekolahMap === 'function' ? getPengaturanSekolahMap() : {};
   const modeClass = mode === 'landscape' ? 'landscape' : 'portrait';
 
   return `

@@ -1,4 +1,4 @@
-const { getPenandatanganMap, formatNipCetak } = require('../db');
+const { getPenandatanganMap, formatNipCetak, getPengaturanSekolahMap } = require('../db');
 // ==========================================================================
 // Generator Dokumen Resmi Laporan Kegiatan Siswa A4 Print-Ready
 // SMA NEGERI 1 GIANYAR (DOSMAN)
@@ -57,6 +57,15 @@ function renderCetakLpj({ proposal, qrDataUrl, hostUrl }) {
   // Pejabat Penandatangan Resmi SMAN 1 Gianyar
   const guruNama = proposal.pemohon_nama || 'Ni Wayan Setiawati, S.Pd';
   const guruNip = proposal.pemohon_nip ? (proposal.pemohon_nip.startsWith('PPPK') || proposal.pemohon_nip.startsWith('NIP') ? proposal.pemohon_nip : `NIP. ${proposal.pemohon_nip}`) : '-';
+  const SCH = typeof getPengaturanSekolahMap === 'function' ? getPengaturanSekolahMap() : {};
+  const kotaSurat = SCH.kota_surat || 'Gianyar';
+
+  const isDraftLpj = lpj && lpj.status_lpj === 'DRAFT';
+  const draftWatermarkHtml = isDraftLpj ? `
+    <div style="position: fixed; top: 38%; left: 8%; right: 8%; text-align: center; font-size: 48pt; font-weight: 900; color: rgba(220, 38, 38, 0.18); transform: rotate(-28deg); pointer-events: none; z-index: 99999; border: 5px dashed rgba(220, 38, 38, 0.28); padding: 18px 25px; border-radius: 12px; letter-spacing: 5px; font-family: sans-serif;">
+      DRAFT — BELUM DISAHKAN
+    </div>
+  ` : '';
   const SG = getPenandatanganMap();
   const bendaharaNama = (SG.BENDAHARA || {}).nama || '-';
   const bendaharaNip = formatNipCetak((SG.BENDAHARA || {}).nip);
@@ -570,6 +579,7 @@ function renderCetakLpj({ proposal, qrDataUrl, hostUrl }) {
   </style>
 </head>
 <body>
+  ${draftWatermarkHtml}
 
   <!-- Toolbar Aksi Non-Print -->
   <div class="no-print-toolbar">
@@ -703,7 +713,7 @@ function renderCetakLpj({ proposal, qrDataUrl, hostUrl }) {
         <div>
           <div class="sig-role">
             Pelaksana Kegiatan / Pemohon,<br>
-            Gianyar, ${tanggalCetak}
+            ${kotaSurat}, ${tanggalCetak}
           </div>
           <div class="sig-space"></div>
           <div class="sig-name">${escapeHtml(proposal.pemohon_nama)}</div>

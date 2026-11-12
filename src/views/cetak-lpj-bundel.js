@@ -1,4 +1,4 @@
-const { getPenandatanganMap, formatNipCetak } = require('../db');
+const { getPenandatanganMap, formatNipCetak, getPengaturanSekolahMap } = require('../db');
 // ==========================================================================
 // Generator Bundel Cetak Resmi LPJ Kegiatan Siswa (A4 Print-Ready)
 // Sesuai Standar Resmi SMA Negeri 1 Gianyar & Pergub Bali No. 80 Th 2018
@@ -88,6 +88,18 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
   const tahunAnggaran = proposal.tahun_ajaran ? proposal.tahun_ajaran.split('/')[0] : '2026';
 
   // Pejabat & Penandatangan Standar SMAN 1 Gianyar
+  const SCH = typeof getPengaturanSekolahMap === 'function' ? getPengaturanSekolahMap() : {};
+  const sumberDanaKwitansi = SCH.sumber_dana_kuitansi || 'Dana Komite SMA N 1 Gianyar';
+  const pembayarKwitansi = SCH.pembayar_kuitansi || 'Pembantu Bendahara Dana Pungutan Masyarakat SMA Negeri 1 Gianyar';
+  const kodeRekeningDefault = SCH.kode_rekening_default || '03.03.09.04';
+  const kotaSurat = SCH.kota_surat || 'Gianyar';
+
+  const isDraftLpj = proposal.lpj && proposal.lpj.status_lpj === 'DRAFT';
+  const draftWatermarkHtml = isDraftLpj ? `
+    <div style="position: fixed; top: 38%; left: 8%; right: 8%; text-align: center; font-size: 48pt; font-weight: 900; color: rgba(220, 38, 38, 0.18); transform: rotate(-28deg); pointer-events: none; z-index: 99999; border: 5px dashed rgba(220, 38, 38, 0.28); padding: 18px 25px; border-radius: 12px; letter-spacing: 5px; font-family: sans-serif;">
+      DRAFT — BELUM DISAHKAN
+    </div>
+  ` : '';
   const SG = getPenandatanganMap();
   const sg = (k) => SG[k] || { jabatan: '', nama: '-', nip: '' };
   const kepsekNama = sg('KEPSEK').nama;
@@ -811,6 +823,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
   </style>
 </head>
 <body>
+  ${draftWatermarkHtml}
 
   <!-- Top Toolbar (Hidden on Print) Standar Model Cetak SMAN 1 Gianyar -->
   <div class="no-print-toolbar">
@@ -898,12 +911,12 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
           <tr>
             <td class="col-lbl">Kode. Rekening</td>
             <td class="col-col">:</td>
-            <td class="col-val">${escapeHtml(proposal.kode_rekening || '03.03.09.04')}</td>
+            <td class="col-val">${escapeHtml(proposal.kode_rekening || kodeRekeningDefault)}</td>
           </tr>
           <tr>
             <td class="col-lbl">Sudah terima dari</td>
             <td class="col-col">:</td>
-            <td class="col-val">Pembantu Bendahara Dana Pungutan Masyarakat SMA Negeri 1 Gianyar</td>
+            <td class="col-val">${escapeHtml(pembayarKwitansi)}</td>
           </tr>
           <tr>
             <td class="col-lbl">Terbilang</td>
@@ -916,7 +929,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
             <td class="col-lbl">Untuk Pembayaran</td>
             <td class="col-col">:</td>
             <td class="col-val">
-              Dibayar Belanja Pelaksanaan Kegiatan <strong>${escapeHtml(proposal.nama_kegiatan)}</strong> Pada Dana Komite SMA N 1 Gianyar
+              Dibayar Belanja Pelaksanaan Kegiatan <strong>${escapeHtml(proposal.nama_kegiatan)}</strong> Pada ${escapeHtml(sumberDanaKwitansi)}
             </td>
           </tr>
           <tr>
@@ -936,7 +949,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
           <div class="sig-row-2col" style="margin-bottom: 18px;">
             <div class="sig-col"></div>
             <div class="sig-col-right">
-              Gianyar, ${tglCetak}<br>
+              ${kotaSurat}, ${tglCetak}<br>
               Yang Menerima,
               <div class="sig-space-kwitansi"></div>
               <div class="sig-name">${escapeHtml(guruNama)}</div>
@@ -1079,7 +1092,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
             <div class="sig-nip">${wakasekNip}</div>
           </div>
           <div class="sig-col-right">
-            Gianyar, ${tglCetak}<br>
+            ${kotaSurat}, ${tglCetak}<br>
             Dibuat oleh : Pembina
             <div class="sig-space-kwitansi"></div>
             <div class="sig-name">${escapeHtml(guruNama)}</div>

@@ -153,7 +153,45 @@ function initDatabase() {
   const tableInfo = db.prepare(`PRAGMA table_info(pengajuan_kegiatan)`).all();
   const colNames = tableInfo.map(c => c.name);
 
-  // Tabel pengaturan penandatangan dokumen (dikelola Analis SDM / Kepsek lewat UI)
+  // Tabel pengaturan identitas & format cetak kuitansi sekolah
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS pengaturan_sekolah (
+      kunci TEXT PRIMARY KEY,
+      nilai TEXT NOT NULL,
+      keterangan TEXT,
+      updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+    );
+  `);
+  const seedSekolah = db.prepare('INSERT OR IGNORE INTO pengaturan_sekolah (kunci, nilai, keterangan) VALUES (?, ?, ?)');
+  [
+    ['nama_sekolah', 'SMA NEGERI 1 GIANYAR', 'Nama resmi sekolah'],
+    ['sumber_dana_kuitansi', 'Dana Komite SMA N 1 Gianyar', 'Sumber dana yang dicetak pada kuitansi'],
+    ['pembayar_kuitansi', 'Pembantu Bendahara Dana Pungutan Masyarakat SMA Negeri 1 Gianyar', 'Pihak pembayar pada kuitansi'],
+    ['kode_rekening_default', '03.03.09.04', 'Kode rekening belanja default'],
+    ['tahun_ajaran_aktif', '2026/2027', 'Tahun ajaran aktif berjalan'],
+    ['kota_surat', 'Gianyar', 'Kota pengesahan tanda tangan dokumen'],
+    ['alamat_sekolah', 'Jln. Ratna, Tegal Tugu Gianyar, Telp : (0361) 943034', 'Alamat & telepon pada kop surat'],
+    ['website_sekolah', 'https://sman1-gianyar.sch.id', 'Website resmi pada kop surat'],
+    ['email_sekolah', 'sman1.gianyar1963@gmail.com', 'Email resmi sekolah'],
+    ['npsn_sekolah', '50102079', 'Nomor Pokok Sekolah Nasional']
+  ].forEach(r => seedSekolah.run(...r));
+
+  // Migrasi kolom soft-delete pada pengajuan_kegiatan
+  const pkCols = db.prepare('PRAGMA table_info(pengajuan_kegiatan)').all().map(x => x.name);
+  if (!pkCols.includes('is_deleted')) {
+    db.prepare('ALTER TABLE pengajuan_kegiatan ADD COLUMN is_deleted INTEGER DEFAULT 0').run();
+  }
+  if (!pkCols.includes('alasan_hapus')) {
+    db.prepare('ALTER TABLE pengajuan_kegiatan ADD COLUMN alasan_hapus TEXT').run();
+  }
+  if (!pkCols.includes('deleted_at')) {
+    db.prepare('ALTER TABLE pengajuan_kegiatan ADD COLUMN deleted_at TEXT').run();
+  }
+  if (!pkCols.includes('deleted_by')) {
+    db.prepare('ALTER TABLE pengajuan_kegiatan ADD COLUMN deleted_by INTEGER').run();
+  }
+
+    // Tabel pengaturan penandatangan dokumen (dikelola Analis SDM / Kepsek lewat UI)
   db.exec(`
     CREATE TABLE IF NOT EXISTS pengaturan_penandatangan (
       kode TEXT PRIMARY KEY,
@@ -325,8 +363,8 @@ function initDatabase() {
   legacyUsers.forEach(u => updPass.run(hashPassword(u.password || 'password123'), u.id));
 
   // Token akses acak untuk dokumen cetak (tidak bisa ditebak)
-  const pkCols = db.prepare('PRAGMA table_info(pengajuan_kegiatan)').all().map(x => x.name);
-  if (!pkCols.includes('akses_token')) {
+  const pkColsExisting = db.prepare('PRAGMA table_info(pengajuan_kegiatan)').all().map(x => x.name);
+  if (!pkColsExisting.includes('akses_token')) {
     db.prepare('ALTER TABLE pengajuan_kegiatan ADD COLUMN akses_token TEXT').run();
   }
   const noToken = db.prepare("SELECT id FROM pengajuan_kegiatan WHERE akses_token IS NULL OR akses_token = ''").all();
@@ -1037,6 +1075,34 @@ function getPengajuanIdByToken(token) {
   return row ? row.id : null;
 }
 
+
+// Pengaturan Identitas & Format Cetak Sekolah
+function getPengaturanSekolahMap() {
+  const map = {};
+  const rows = db.prepare('SELECT kunci, nilai, keterangan FROM pengaturan_sekolah').all();
+  rows.forEach(r => { map[r.kunci] = r.nilai; });
+  return map;
+}
+
+function getPengaturanSekolahList() {
+  return db.prepare('SELECT kunci, nilai, keterangan, updated_at FROM pengaturan_sekolah ORDER BY rowid ASC').all();
+}
+
+function updatePengaturanSekolah(kunci, nilai, user = null) {
+  const row = db.prepare('SELECT * FROM pengaturan_sekolah WHERE kunci = ?').get(kunci);
+  if (!row) throw new Error(`Pengaturan dengan kunci "${kunci}" tidak ditemukan.`);
+  db.prepare("UPDATE pengaturan_sekolah SET nilai = ?, updated_at = datetime('now', 'localtime') WHERE kunci = ?")
+    .run(String(nilai || '').trim(), kunci);
+  if (user) {
+    logSystemActivity({
+      user_id: user.id,
+      tipe_aksi: 'SISTEM',
+      aktivitas: `PENGATURAN SEKOLAH DIUBAH: ${user.nama_lengkap} mengubah "${kunci}" menjadi "${nilai}".`
+    });
+  }
+  return { kunci, nilai: String(nilai || '').trim() };
+}
+
 function getPenandatanganList() {
   return db.prepare('SELECT kode, urutan, jabatan, nama, nip FROM pengaturan_penandatangan ORDER BY urutan').all().map(r => ({ ...r }));
 }
@@ -1196,17 +1262,38 @@ function getPengajuanList(userId = null, role = null) {
     JOIN users u ON p.user_id = u.id
     JOIN pos_anggaran pos ON p.pos_anggaran_id = pos.id
     LEFT JOIN lpj_pertanggungjawaban lpj ON lpj.pengajuan_id = p.id
+    WHERE (p.is_deleted = 0 OR p.is_deleted IS NULL)
   `;
 
   const params = [];
   // Jika Guru, hanya tampilkan usulannya sendiri
   if (role === 'GURU' && userId) {
-    sql += ` WHERE p.user_id = ? `;
+    sql += ` AND p.user_id = ? `;
     params.push(userId);
   }
 
   sql += ` ORDER BY p.id DESC `;
   return db.prepare(sql).all(...params);
+}
+
+
+// Ambil Daftar Usulan yang Diarsip / Soft-Deleted (Khusus Analis SDM, Kepsek, Admin)
+function getArchivedPengajuanList() {
+  const sql = `
+    SELECT p.*, 
+           u.nama_lengkap AS pemohon_nama, 
+           u.unit_bagian AS pemohon_unit,
+           pos.nama_pos,
+           pos.tahun_ajaran,
+           del_u.nama_lengkap AS dihapus_oleh_nama
+    FROM pengajuan_kegiatan p
+    JOIN users u ON p.user_id = u.id
+    JOIN pos_anggaran pos ON p.pos_anggaran_id = pos.id
+    LEFT JOIN users del_u ON p.deleted_by = del_u.id
+    WHERE p.is_deleted = 1
+    ORDER BY p.deleted_at DESC, p.id DESC
+  `;
+  return db.prepare(sql).all();
 }
 
 function getPengajuanById(id) {
@@ -1948,55 +2035,199 @@ function verifyLpjByBendahara({
 }
 
 // Rekonsiliasi Otomatis Seluruh Plafon & Serapan Pos Anggaran
+// Rekonsiliasi Otomatis Seluruh Plafon & Serapan Pos Anggaran
 function syncAllPosPagu() {
   db.prepare('UPDATE pos_anggaran SET total_terserap = 0, pagu_tercadangkan = 0').run();
+  
+  // Ambil hanya proposal aktif (bukan soft-deleted dan bukan ditolak)
   const activeProps = db.prepare(`
-    SELECT pos_anggaran_id, status, total_dana_disetujui, total_dana_diajukan
-    FROM pengajuan_kegiatan
-    WHERE status != 'DITOLAK'
+    SELECT p.id, p.pos_anggaran_id, p.status, p.total_dana_disetujui, p.total_dana_diajukan,
+           lpj.total_belanja_riil, lpj.status_lpj
+    FROM pengajuan_kegiatan p
+    LEFT JOIN lpj_pertanggungjawaban lpj ON lpj.pengajuan_id = p.id
+    WHERE (p.is_deleted = 0 OR p.is_deleted IS NULL) AND p.status != 'DITOLAK'
   `).all();
+
+  const posTotals = {}; // id -> { terserap, tercadangkan }
 
   for (const p of activeProps) {
     if (!p.pos_anggaran_id) continue;
-    const nominal = Number(p.total_dana_disetujui) || Number(p.total_dana_diajukan) || 0;
-    if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
-      db.prepare('UPDATE pos_anggaran SET total_terserap = total_terserap + ? WHERE id = ?').run(nominal, p.pos_anggaran_id);
-    } else {
-      db.prepare('UPDATE pos_anggaran SET pagu_tercadangkan = pagu_tercadangkan + ? WHERE id = ?').run(nominal, p.pos_anggaran_id);
+    if (!posTotals[p.pos_anggaran_id]) {
+      posTotals[p.pos_anggaran_id] = { terserap: 0, tercadangkan: 0 };
     }
+
+    const disetujui = Number(p.total_dana_disetujui) || 0;
+    const diajukan = Number(p.total_dana_diajukan) || 0;
+    const nominalCair = disetujui || diajukan;
+
+    if (p.status === 'SELESAI') {
+      // Usulan yang sudah diverifikasi tuntas menyerap dana riil belanja
+      // Sisa kas yang dikembalikan otomatis tidak membebani pos
+      const riil = (p.total_belanja_riil !== null && p.total_belanja_riil !== undefined) 
+        ? Number(p.total_belanja_riil) 
+        : nominalCair;
+      posTotals[p.pos_anggaran_id].terserap += riil;
+    } else if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+      // Kas telah keluar dari rekening sekolah
+      posTotals[p.pos_anggaran_id].terserap += nominalCair;
+    } else {
+      // Usulan aktif yang sedang berjalan / menunggu persetujuan (cadangan pagu)
+      posTotals[p.pos_anggaran_id].tercadangkan += nominalCair;
+    }
+  }
+
+  const stmtUpdate = db.prepare('UPDATE pos_anggaran SET total_terserap = ?, pagu_tercadangkan = ? WHERE id = ?');
+  for (const posId in posTotals) {
+    stmtUpdate.run(posTotals[posId].terserap, posTotals[posId].tercadangkan, Number(posId));
   }
 }
 
-// Hapus Pengajuan / Usulan Kegiatan (Hanya Otoritas Khusus)
-function deletePengajuan(id, user) {
+// Soft-Delete (Arsipkan) Pengajuan Kegiatan
+function deletePengajuan(id, user, alasan = '') {
   const proposal = db.prepare('SELECT * FROM pengajuan_kegiatan WHERE id = ?').get(id);
   if (!proposal) {
     throw new Error('Usulan pengajuan tidak ditemukan.');
   }
 
-  // Hapus semua dependensi: LPJ, nota items, foto dokumentasi, audit log, rincian item, dan data pengajuan utama
-  db.prepare('DELETE FROM lpj_dokumentasi_foto WHERE pengajuan_id = ?').run(id);
-  db.prepare('DELETE FROM lpj_nota_items WHERE pengajuan_id = ?').run(id);
-  db.prepare('DELETE FROM lpj_pertanggungjawaban WHERE pengajuan_id = ?').run(id);
-  db.prepare('DELETE FROM audit_log_koreksi WHERE pengajuan_id = ?').run(id);
-  db.prepare('DELETE FROM rincian_rab_item WHERE pengajuan_id = ?').run(id);
-  db.prepare('DELETE FROM pengajuan_kegiatan WHERE id = ?').run(id);
+  const userId = user ? user.id : null;
+  const userName = user ? user.nama_lengkap : 'Sistem';
+  const userRole = user ? user.role : 'ADMIN';
+  const cleanAlasan = String(alasan || '').trim() || 'Dihapus oleh pengguna berwenang';
+
+  db.prepare(`
+    UPDATE pengajuan_kegiatan 
+    SET is_deleted = 1,
+        alasan_hapus = ?,
+        deleted_at = datetime('now', 'localtime'),
+        deleted_by = ?
+    WHERE id = ?
+  `).run(cleanAlasan, userId, id);
 
   if (user) {
     logSystemActivity({
       user_id: user.id,
+      pengajuan_id: id,
       tipe_aksi: 'USULAN',
-      aktivitas: `HAPUS USULAN: Pengajuan "${proposal.nama_kegiatan}" (Nomor: ${proposal.nomor_surat_ajuan}) berhasil dihapus permanen oleh ${user.nama_lengkap} (${user.role}).`
+      aktivitas: `ARSIP USULAN: Pengajuan "${proposal.nama_kegiatan}" (Nomor: ${proposal.nomor_surat_ajuan}) diarsipkan oleh ${userName} (${userRole}). Alasan: "${cleanAlasan}". Pagu otomatis dipulihkan.`
     });
   }
 
   // Rekonsiliasi ulang seluruh plafon & serapan pos anggaran
   syncAllPosPagu();
 
-  return { success: true, message: `Usulan "${proposal.nama_kegiatan}" berhasil dihapus permanen.` };
+  return { 
+    success: true, 
+    message: `Usulan "${proposal.nama_kegiatan}" berhasil diarsipkan ke Kotak Sampah dan pagu anggaran telah dipulihkan.` 
+  };
 }
 
-// Hapus Pos Anggaran RKAS (Hanya Otoritas Khusus)
+// Pulihkan (Restore) Pengajuan yang Diarsip
+function restorePengajuan(id, user) {
+  const proposal = db.prepare('SELECT * FROM pengajuan_kegiatan WHERE id = ?').get(id);
+  if (!proposal) {
+    throw new Error('Usulan tidak ditemukan.');
+  }
+  if (!proposal.is_deleted) {
+    throw new Error('Usulan ini sedang aktif dan tidak dalam status arsip terhapus.');
+  }
+
+  // Periksa apakah sisa pagu di pos anggaran masih mencukupi untuk dipulihkan
+  const pos = getPosAnggaranById(proposal.pos_anggaran_id);
+  if (!pos) {
+    throw new Error('Pos anggaran terkait sudah tidak tersedia.');
+  }
+  const nominal = Number(proposal.total_dana_disetujui) || Number(proposal.total_dana_diajukan) || 0;
+  if (nominal > pos.sisa_pagu) {
+    throw new Error(`Pagu tidak mencukupi untuk memulihkan usulan ini. Dibutuhkan Rp ${nominal.toLocaleString('id-ID')}, namun sisa pagu pos hanya Rp ${pos.sisa_pagu.toLocaleString('id-ID')}.`);
+  }
+
+  db.prepare(`
+    UPDATE pengajuan_kegiatan 
+    SET is_deleted = 0,
+        alasan_hapus = NULL,
+        deleted_at = NULL,
+        deleted_by = NULL
+    WHERE id = ?
+  `).run(id);
+
+  if (user) {
+    logSystemActivity({
+      user_id: user.id,
+      pengajuan_id: id,
+      tipe_aksi: 'USULAN',
+      aktivitas: `PULIHKAN USULAN: Pengajuan "${proposal.nama_kegiatan}" dipulihkan kembali dari arsip oleh ${user.nama_lengkap} (${user.role}). Pagu kembali dicadangkan.`
+    });
+  }
+
+  syncAllPosPagu();
+
+  return {
+    success: true,
+    message: `Usulan "${proposal.nama_kegiatan}" berhasil dipulihkan kembali ke daftar aktif.`
+  };
+}
+
+// Pindah Pos Anggaran (Jika Salah Pilih Pos Sebelum Pencairan)
+function pindahPosAnggaran({ proposal_id, target_pos_id, user, alasan = '' }) {
+  const proposal = getPengajuanById(proposal_id);
+  if (!proposal) throw new Error('Proposal kegiatan tidak ditemukan.');
+
+  if (['DICAIRKAN', 'MENUNGGU_VERIFIKASI_LPJ', 'SELESAI'].includes(proposal.status)) {
+    throw new Error('Usulan yang sudah dicairkan atau memiliki LPJ tidak dapat dipindahkan pos anggarannya.');
+  }
+
+  if (proposal.pos_anggaran_id === Number(target_pos_id)) {
+    throw new Error('Pos anggaran tujuan sama dengan pos anggaran saat ini.');
+  }
+
+  const targetPos = getPosAnggaranById(target_pos_id);
+  if (!targetPos) throw new Error('Pos anggaran tujuan tidak ditemukan.');
+
+  const nominal = Number(proposal.total_dana_disetujui) || Number(proposal.total_dana_diajukan) || 0;
+  if (nominal > targetPos.sisa_pagu) {
+    throw new Error(`Sisa pagu pos tujuan tidak mencukupi (Tersedia: Rp ${targetPos.sisa_pagu.toLocaleString('id-ID')}, Dibutuhkan: Rp ${nominal.toLocaleString('id-ID')}).`);
+  }
+
+  const posLamaNama = proposal.nama_pos;
+  db.prepare('UPDATE pengajuan_kegiatan SET pos_anggaran_id = ? WHERE id = ?').run(target_pos_id, proposal_id);
+
+  if (user) {
+    logSystemActivity({
+      user_id: user.id,
+      pengajuan_id: proposal_id,
+      tipe_aksi: 'KOREKSI',
+      aktivitas: `PINDAH POS RKAS: Usulan "${proposal.nama_kegiatan}" dipindahkan dari "${posLamaNama}" ke "${targetPos.nama_pos}" oleh ${user.nama_lengkap}. Alasan: "${alasan || 'Penyesuaian pos kegiatan'}".`
+    });
+  }
+
+  syncAllPosPagu();
+  return getPengajuanById(proposal_id);
+}
+
+// Ubah Bidang Kegiatan (Kesiswaan, Kurikulum, Sarpras, Humas)
+function updateBidangKegiatan({ proposal_id, bidang_kegiatan, user }) {
+  const proposal = getPengajuanById(proposal_id);
+  if (!proposal) throw new Error('Proposal tidak ditemukan.');
+  const bidangValid = ['KESISWAAN', 'KURIKULUM', 'SARPRAS', 'HUMAS'];
+  const bidang = String(bidang_kegiatan || '').toUpperCase();
+  if (!bidangValid.includes(bidang)) {
+    throw new Error('Bidang kegiatan tidak valid. Pilih Kesiswaan, Kurikulum, Sarpras, atau Humas.');
+  }
+
+  db.prepare('UPDATE pengajuan_kegiatan SET bidang_kegiatan = ? WHERE id = ?').run(bidang, proposal_id);
+
+  if (user) {
+    logSystemActivity({
+      user_id: user.id,
+      pengajuan_id: proposal_id,
+      tipe_aksi: 'KOREKSI',
+      aktivitas: `UBAH BIDANG: Penanggung jawab usulan "${proposal.nama_kegiatan}" diubah menjadi "${bidang}" oleh ${user.nama_lengkap}.`
+    });
+  }
+
+  return getPengajuanById(proposal_id);
+}
+
 function deletePosAnggaran(id, user) {
   const pos = db.prepare('SELECT * FROM pos_anggaran WHERE id = ?').get(id);
   if (!pos) {
@@ -2024,6 +2255,14 @@ function deletePosAnggaran(id, user) {
 module.exports = {
   db,
   initDatabase,
+  getPengaturanSekolahMap,
+  getPengaturanSekolahList,
+  updatePengaturanSekolah,
+  getArchivedPengajuanList,
+  syncAllPosPagu,
+  restorePengajuan,
+  pindahPosAnggaran,
+  updateBidangKegiatan,
   getPengajuanIdByToken,
   getPenandatanganList,
   getPenandatanganMap,

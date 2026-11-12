@@ -255,7 +255,17 @@ app.get('/api/users/stats', requireAuth, (req, res) => {
   }
 });
 
-const { getPenandatanganList, updatePenandatangan, getPengajuanIdByToken } = require('./db');
+const { 
+  getPenandatanganList, 
+  updatePenandatangan, 
+  getPengajuanIdByToken,
+  getPengaturanSekolahList,
+  updatePengaturanSekolah,
+  getArchivedPengajuanList,
+  restorePengajuan,
+  pindahPosAnggaran,
+  updateBidangKegiatan
+} = require('./db');
 
 // Resolusi akses dokumen cetak: token acak (32 hex) boleh tanpa login; ID numerik wajib login
 const LOGIN_REQUIRED_HTML = '<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Sesi Berakhir: Silakan login terlebih dahulu untuk membuka dokumen.</h2>';
@@ -270,6 +280,28 @@ function resolvePrintProposal(req) {
   if (!user) return { user: null, proposal: null, needLogin: true };
   return { user, proposal: getPengajuanById(Number(param)), needLogin: false };
 }
+
+
+// Pengaturan Identitas & Kuitansi Sekolah
+app.get('/api/pengaturan-sekolah', requireAuth, (req, res) => {
+  try {
+    res.json({ success: true, data: getPengaturanSekolahList() });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.put('/api/pengaturan-sekolah/:kunci', requireAuth, (req, res) => {
+  try {
+    if (!['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Hanya Analisis SDM, Kepala Sekolah, dan Administrator yang berhak mengubah identitas sekolah.' });
+    }
+    const result = updatePengaturanSekolah(req.params.kunci, req.body.nilai, req.user);
+    res.json({ success: true, data: result, message: 'Pengaturan sekolah berhasil diperbarui.' });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
 
 // Daftar Penandatangan Dokumen (dibaca semua user login)
 app.get('/api/penandatangan', requireAuth, (req, res) => {
@@ -566,6 +598,19 @@ app.get('/api/pengajuan', requireAuth, (req, res) => {
   }
 });
 
+// Daftar Usulan yang Diarsip (Kotak Sampah)
+app.get('/api/pengajuan/arsip', requireAuth, (req, res) => {
+  try {
+    if (!['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Akses Ditolak: Hanya pimpinan yang dapat melihat arsip usulan terhapus.' });
+    }
+    const list = getArchivedPengajuanList();
+    res.json({ success: true, data: list });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Detail Pengajuan beserta item baris belanja
 app.get('/api/pengajuan/:id', requireAuth, (req, res) => {
   try {
@@ -589,6 +634,68 @@ app.get('/api/pengajuan/:id', requireAuth, (req, res) => {
   }
 });
 
+
+// Pulihkan (Restore) Usulan dari Kotak Sampah
+app.post('/api/pengajuan/:id/restore', requireAuth, (req, res) => {
+  try {
+    if (!['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Akses Ditolak: Hanya pimpinan yang berwenang memulihkan usulan.' });
+    }
+    const result = restorePengajuan(Number(req.params.id), req.user);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// Pindahkan Usulan ke Pos RKAS Lain (Sebelum Pencairan)
+app.post('/api/pengajuan/:id/pindah-pos', requireAuth, (req, res) => {
+  try {
+    if (!['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Hanya pimpinan dan bendahara yang berhak memindahkan pos anggaran.' });
+    }
+    const { target_pos_id, alasan } = req.body;
+    if (!target_pos_id) {
+      return res.status(400).json({ success: false, message: 'Pos anggaran tujuan wajib dipilih.' });
+    }
+    const updated = pindahPosAnggaran({
+      proposal_id: Number(req.params.id),
+      target_pos_id: Number(target_pos_id),
+      user: req.user,
+      alasan
+    });
+    res.json({
+      success: true,
+      data: updated,
+      message: `Pos anggaran usulan "${updated.nama_kegiatan}" berhasil dipindahkan ke "${updated.nama_pos}". Pagu telah disinkronkan.`
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// Ubah Bidang Penanggung Jawab Kegiatan (Kesiswaan, Kurikulum, Sarpras, Humas)
+app.post('/api/pengajuan/:id/bidang', requireAuth, (req, res) => {
+  try {
+    if (!['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Hanya pimpinan dan bendahara yang berhak mengubah bidang penanggung jawab.' });
+    }
+    const { bidang_kegiatan } = req.body;
+    const updated = updateBidangKegiatan({
+      proposal_id: Number(req.params.id),
+      bidang_kegiatan,
+      user: req.user
+    });
+    res.json({
+      success: true,
+      data: updated,
+      message: `Bidang penanggung jawab usulan berhasil diubah menjadi "${updated.bidang_kegiatan}". Pejabat penandatangan laporan otomatis diperbarui.`
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // Hapus Usulan Pengajuan (Hanya Otoritas: ANALISIS_SDM, KEPALA_SEKOLAH, ADMIN)
 app.delete('/api/pengajuan/:id', requireAuth, (req, res) => {
   try {
@@ -600,7 +707,8 @@ app.delete('/api/pengajuan/:id', requireAuth, (req, res) => {
       });
     }
 
-    const result = deletePengajuan(req.params.id, req.user);
+    const alasan = req.body ? req.body.alasan : '';
+    const result = deletePengajuan(Number(req.params.id), req.user, alasan);
     res.json(result);
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -647,6 +755,13 @@ app.post('/api/pengajuan', requireAuth, (req, res) => {
 app.post('/api/pengajuan/:id/review', requireAuth, (req, res) => {
   try {
     const { items_koreksi, catatan_bendahara, tindakan } = req.body;
+    const targetProposal = getPengajuanById(Number(req.params.id));
+    if (targetProposal && targetProposal.user_id === req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses Ditolak: Anda tidak dapat menelaah atau menyetujui usulan kegiatan yang Anda ajukan sendiri. Otorisasi harus dilakukan oleh pejabat berwenang lainnya.'
+      });
+    }
     
     // Verifikasi peran
     if (!['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
@@ -680,6 +795,13 @@ app.post('/api/pengajuan/:id/review', requireAuth, (req, res) => {
 app.post('/api/pengajuan/:id/kepsek-decision', requireAuth, (req, res) => {
   try {
     const { tindakan, catatan_kepsek } = req.body;
+    const targetProposal = getPengajuanById(Number(req.params.id));
+    if (targetProposal && targetProposal.user_id === req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses Ditolak: Anda tidak dapat memberikan otorisasi pimpinan pada usulan kegiatan yang Anda ajukan sendiri.'
+      });
+    }
 
     // Kepala Sekolah dan Analisis SDM memiliki otoritas pengesahan yang setara
     if (req.user.role !== 'KEPALA_SEKOLAH' && req.user.role !== 'ANALISIS_SDM' && req.user.role !== 'ADMIN') {
@@ -738,6 +860,14 @@ app.post('/api/pengajuan/:id/cairkan', requireAuth, uploadNota.single('file_bukt
 
     if (!['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: 'Hanya Bendahara, Analis SDM, Kepala Sekolah, atau Admin yang berhak mencairkan kas.' });
+    }
+
+    const targetProposal = getPengajuanById(Number(req.params.id));
+    if (targetProposal && targetProposal.user_id === req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses Ditolak: Anda tidak dapat mencairkan kas untuk usulan kegiatan yang Anda ajukan sendiri.'
+      });
     }
 
     if (!metode_pencairan) {
@@ -1285,6 +1415,13 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
 app.post('/api/pengajuan/:id/lpj/verifikasi', requireAuth, (req, res) => {
   try {
     const { tindakan, catatan_verifikasi } = req.body;
+    const targetProposal = getPengajuanById(Number(req.params.id));
+    if (targetProposal && targetProposal.user_id === req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses Ditolak: Anda tidak dapat memverifikasi laporan kegiatan yang Anda ajukan sendiri.'
+      });
+    }
     if (!['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: 'Hanya Bendahara, Analis SDM, Kepala Sekolah, atau Admin yang berhak memverifikasi berkas LPJ.' });
     }
