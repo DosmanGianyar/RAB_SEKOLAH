@@ -12,7 +12,7 @@
   <!-- Tabler Core & Tabler Icons Assets -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=2.7.1">
+  <link rel="stylesheet" href="/css/style.css?v=2.8.0">
 </head>
 <body>
 
@@ -1001,24 +1001,33 @@
       </div>
 
       <!-- 5. Kontainer Tabel Rekap Laporan LPJ & Nota Pembelian -->
-      <div class="rkas-table-card">
-        <div class="table-scroll-hint-bar">
-          <span><i class="ti ti-arrows-left-right"></i> Geser tabel ke samping dari mana saja untuk melihat data kuitansi lengkap</span>
-        </div>
-        <div class="table-responsive draggable-table-container">
-          <table class="rkas-table" id="tableLpj">
+      <div class="rkas-table-card lpj-fixed-card">
+        <div class="lpj-fixed-wrap">
+          <table class="rkas-table lpj-fixed-table" id="tableLpj">
+            <colgroup>
+              <col style="width: 4%;">
+              <col style="width: 10%;">
+              <col style="width: 21%;">
+              <col style="width: 14%;">
+              <col style="width: 10%;">
+              <col style="width: 10%;">
+              <col style="width: 8%;">
+              <col style="width: 7%;">
+              <col style="width: 10%;">
+              <col style="width: 6%;">
+            </colgroup>
             <thead>
               <tr>
-                <th style="width: 48px; text-align: center;">No</th>
-                <th style="min-width: 130px;">No. Usulan &amp; Tgl</th>
-                <th style="min-width: 220px;">Nama Kegiatan &amp; Pembina</th>
-                <th style="min-width: 170px;">Pos RKAS</th>
-                <th style="min-width: 125px; text-align: right;">Dana Kas Cair</th>
-                <th style="min-width: 125px; text-align: right;">Belanja Riil</th>
-                <th style="min-width: 125px; text-align: right;">Sisa Kas Setor</th>
-                <th style="min-width: 130px; text-align: center;">Bukti Nota</th>
-                <th style="min-width: 135px; text-align: center;">Status LPJ</th>
-                <th style="min-width: 140px; text-align: center;">Aksi</th>
+                <th style="text-align: center;">No</th>
+                <th>No. Usulan &amp; Tgl</th>
+                <th>Nama Kegiatan &amp; Pembina</th>
+                <th>Pos RKAS</th>
+                <th style="text-align: right;">Dana Kas Cair</th>
+                <th style="text-align: right;">Belanja Riil</th>
+                <th style="text-align: right;">Sisa Kas Setor</th>
+                <th style="text-align: center;">Bukti Nota</th>
+                <th style="text-align: center;">Status LPJ</th>
+                <th style="text-align: center;">Aksi</th>
               </tr>
             </thead>
             <tbody id="lpjTableBody">
@@ -2454,6 +2463,6 @@
   <script src="/libs/tabler/js/tabler.min.js"></script>
   <script src="/libs/sweetalert2/sweetalert2.all.min.js"></script>
   <script src="/libs/chartjs/chart.umd.min.js"></script>
-  <script src="/js/app.js?v=2.7.1"></script>
+  <script src="/js/app.js?v=2.8.0"></script>
 </body>
 </html>

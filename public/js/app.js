@@ -857,6 +857,35 @@ async function simpanPenandatangan(kode, btn) {
 }
 window.simpanPenandatangan = simpanPenandatangan;
 
+// --- Dropdown Aksi (menu fixed agar tidak terpotong tabel) ---
+function closeAksiMenus() {
+  document.querySelectorAll('.aksi-dd-menu.open').forEach(m => m.classList.remove('open'));
+}
+window.closeAksiMenus = closeAksiMenus;
+
+function toggleAksiMenu(event, btn) {
+  event.stopPropagation();
+  const menu = btn.parentElement.querySelector('.aksi-dd-menu');
+  if (!menu) return;
+  const wasOpen = menu.classList.contains('open');
+  closeAksiMenus();
+  if (wasOpen) return;
+  menu.classList.add('open');
+  const r = btn.getBoundingClientRect();
+  const mh = menu.offsetHeight;
+  const mw = menu.offsetWidth;
+  let top = r.bottom + 4;
+  if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
+  let left = r.right - mw;
+  if (left < 8) left = 8;
+  menu.style.top = top + 'px';
+  menu.style.left = left + 'px';
+}
+window.toggleAksiMenu = toggleAksiMenu;
+document.addEventListener('click', closeAksiMenus);
+window.addEventListener('scroll', closeAksiMenus, true);
+window.addEventListener('resize', closeAksiMenus);
+
 function openModalDaftarGuru() {
   const modal = document.getElementById('modalKelolaGuru');
   if (modal) modal.classList.add('active');
@@ -5352,51 +5381,41 @@ function renderLpjView() {
 
     // Action Buttons
     const canManageLpj = currentUser && (currentUser.id === p.user_id || currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
-    let actionsHtml = `
-      <div class="lpj-actions-col">
-        <button class="btn btn-secondary btn-xs" onclick="openProposalDetail(${p.id})" title="Lihat Rincian Kegiatan">
-          <i class="ti ti-eye"></i> Detail
-        </button>
-    `;
+    const ddItem = (onclickOrHref, icon, label, opts = {}) => {
+      const cls = 'aksi-dd-item' + (opts.cls ? ' ' + opts.cls : '');
+      if (opts.href) {
+        return `<a class="${cls}" href="${opts.href}" target="_blank" title="${opts.title || ''}"><i class="ti ${icon}"></i> ${label}</a>`;
+      }
+      return `<button type="button" class="${cls}" onclick="closeAksiMenus(); ${onclickOrHref}" title="${opts.title || ''}"><i class="ti ${icon}"></i> ${label}</button>`;
+    };
+
+    let ddItems = ddItem(`openProposalDetail(${p.id})`, 'ti-eye', 'Detail', { title: 'Lihat Rincian Kegiatan' });
 
     if (p.status === 'DICAIRKAN') {
       if (canManageLpj) {
-        actionsHtml += `
-          <button class="btn btn-primary btn-xs" onclick="navigateToLpjEditor(${p.id})" title="Susun Laporan Pertanggungjawaban (LPJ)">
-            <i class="ti ti-file-certificate"></i> Buat LPJ
-          </button>
-        `;
+        ddItems += ddItem(`navigateToLpjEditor(${p.id})`, 'ti-file-certificate', 'Buat LPJ', { cls: 'aksi-dd-primary' });
       }
     } else if (p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
       if (isBendahara) {
-        actionsHtml += `
-          <button class="btn btn-warning btn-xs" style="background:#d97706; border-color:#d97706; color:#fff;" onclick="openVerifikasiLpjModal(${p.id})" title="Periksa berkas nota &amp; sahkan LPJ">
-            <i class="ti ti-clipboard-check"></i> Verifikasi
-          </button>
-        `;
+        ddItems += ddItem(`openVerifikasiLpjModal(${p.id})`, 'ti-clipboard-check', 'Verifikasi', { cls: 'aksi-dd-warning' });
       }
       if (canManageLpj) {
-        actionsHtml += `
-          <button class="btn btn-secondary btn-xs" onclick="navigateToLpjEditor(${p.id})" title="Ubah atau lengkapi laporan LPJ &amp; berkas nota">
-            <i class="ti ti-edit"></i> Edit LPJ
-          </button>
-        `;
+        ddItems += ddItem(`navigateToLpjEditor(${p.id})`, 'ti-edit', 'Edit LPJ');
       }
     } else if (p.status === 'SELESAI' && canManageLpj) {
-      actionsHtml += `
-        <button class="btn btn-secondary btn-xs" onclick="navigateToLpjEditor(${p.id})" title="Lihat berkas LPJ yang telah disahkan">
-          <i class="ti ti-file-check"></i> LPJ
-        </button>
-      `;
+      ddItems += ddItem(`navigateToLpjEditor(${p.id})`, 'ti-file-check', 'Lihat / Edit LPJ');
     }
 
-    actionsHtml += `
-        <a href="/cetak-lpj/${p.id}" target="_blank" class="btn btn-secondary btn-xs btn-lap-kegiatan" title="Cetak Laporan Kegiatan Resmi (Narasi, Daftar Hadir, Foto)">
-          <i class="ti ti-file-certificate"></i> Lap. Kegiatan
-        </a>
-        <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn btn-secondary btn-xs btn-lap-keuangan" title="Cetak Laporan Keuangan Resmi (Cover, Kwitansi, LPJ Belanja, Nota)">
-          <i class="ti ti-printer"></i> Lap. Keuangan
-        </a>
+    ddItems += '<div class="aksi-dd-sep"></div>';
+    ddItems += ddItem('', 'ti-file-certificate', 'Cetak Lap. Kegiatan', { href: `/cetak-lpj/${p.id}`, cls: 'aksi-dd-green', title: 'Laporan Kegiatan (Narasi, Daftar Hadir, Foto)' });
+    ddItems += ddItem('', 'ti-printer', 'Cetak Lap. Keuangan', { href: `/cetak-lpj-bundel/${p.id}`, cls: 'aksi-dd-blue', title: 'Laporan Keuangan (Kwitansi, LPJ Belanja, Nota)' });
+
+    const actionsHtml = `
+      <div class="aksi-dd">
+        <button type="button" class="btn btn-secondary btn-xs aksi-dd-btn" onclick="toggleAksiMenu(event, this)">
+          Aksi <i class="ti ti-chevron-down"></i>
+        </button>
+        <div class="aksi-dd-menu">${ddItems}</div>
       </div>
     `;
 
@@ -5416,7 +5435,7 @@ function renderLpjView() {
         <td>
           <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-body); line-height: 1.3;">${escapeHtml(p.nama_pos)}</div>
         </td>
-        <td style="text-align: right; font-weight: 700; color: #0f172a; font-size: 0.86rem; white-space: nowrap;">
+        <td style="text-align: right; font-weight: 700; color: #0f172a; font-size: 0.82rem;">
           ${formatRupiah(danaCair)}
         </td>
         <td style="text-align: right; font-weight: 800; color: #047857; font-size: 0.86rem; white-space: nowrap;">
