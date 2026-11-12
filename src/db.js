@@ -1832,7 +1832,7 @@ function verifyLpjByBendahara({
   }
 
   const user = getUserById(user_id);
-  if (user && user.role !== 'BENDAHARA' && user.role !== 'ADMIN') {
+  if (user && !['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(user.role)) {
     throw new Error('Hanya Bendahara atau Admin yang berhak memverifikasi berkas LPJ.');
   }
 

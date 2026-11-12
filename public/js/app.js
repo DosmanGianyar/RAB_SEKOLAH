@@ -2669,10 +2669,10 @@ function renderProposalsList(proposals) {
 
     // Role-based quick action button on card
     let roleActionBtn = '';
-    const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+    const isBendahara = currentUser && (['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role));
     const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
     const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
-    const canManageLpj = currentUser && (currentUser.id === p.user_id || currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+    const canManageLpj = currentUser && (currentUser.id === p.user_id || ['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role));
 
     if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
       roleActionBtn = `
@@ -2854,10 +2854,10 @@ async function openProposalDetail(id) {
     if (data.success && data.data) {
       const p = data.data;
 
-      const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+      const isBendahara = currentUser && (['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role));
       const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
       const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
-      const canManageLpj = currentUser && (currentUser.id === p.user_id || currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+      const canManageLpj = currentUser && (currentUser.id === p.user_id || ['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role));
 
       document.getElementById('detailNomorSurat').textContent = p.nomor_surat_ajuan;
       document.getElementById('detailNamaKegiatan').textContent = p.nama_kegiatan;
@@ -4166,7 +4166,7 @@ async function navigateToLpjEditor(proposalId) {
     // Setup kartu upload bukti transfer susulan khusus Bendahara & Admin
     const cardTransferBendahara = document.getElementById('editorLpjBendaharaTransferCard');
     if (cardTransferBendahara) {
-      const isBendaharaOrAdmin = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+      const isBendaharaOrAdmin = currentUser && (['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role));
       cardTransferBendahara.style.display = isBendaharaOrAdmin ? 'block' : 'none';
       const wrapTransfer = document.getElementById('editorLpjBuktiTransferPreviewWrap');
       const nameTransfer = document.getElementById('editorLpjBuktiTransferFileName');
@@ -5342,7 +5342,7 @@ function renderLpjView() {
     return;
   }
 
-  const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+  const isBendahara = currentUser && (['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role));
   const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
 
   let rowsHtml = '';
@@ -5388,7 +5388,7 @@ function renderLpjView() {
     }
 
     // Action Buttons
-    const canManageLpj = currentUser && (currentUser.id === p.user_id || currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+    const canManageLpj = currentUser && (currentUser.id === p.user_id || ['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role));
     const ddItem = (onclickOrHref, icon, label, opts = {}) => {
       const cls = 'aksi-dd-item' + (opts.cls ? ' ' + opts.cls : '');
       if (opts.href) {

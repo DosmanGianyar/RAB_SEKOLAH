@@ -635,8 +635,8 @@ app.post('/api/pengajuan/:id/review', requireAuth, (req, res) => {
     const { items_koreksi, catatan_bendahara, tindakan } = req.body;
     
     // Verifikasi peran
-    if (req.user.role !== 'BENDAHARA' && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak menelaah anggaran.' });
+    if (!['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Hanya Bendahara, Analis SDM, Kepala Sekolah, atau Admin yang berhak menelaah anggaran.' });
     }
 
     const updated = reviewProposalByBendahara({
@@ -722,8 +722,8 @@ app.post('/api/pengajuan/:id/cairkan', requireAuth, uploadNota.single('file_bukt
       nomor_kode_kwitansi
     } = req.body;
 
-    if (req.user.role !== 'BENDAHARA' && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak mencairkan kas.' });
+    if (!['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Hanya Bendahara, Analis SDM, Kepala Sekolah, atau Admin yang berhak mencairkan kas.' });
     }
 
     if (!metode_pencairan) {
@@ -764,8 +764,8 @@ app.post('/api/pengajuan/:id/cairkan', requireAuth, uploadNota.single('file_bukt
 // 1B. Endpoint Upload / Update Bukti Transfer Kas Susulan
 app.post('/api/pengajuan/:id/bukti-transfer', requireAuth, uploadNota.single('file_bukti_transfer'), (req, res) => {
   try {
-    if (req.user.role !== 'BENDAHARA' && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak mengunggah bukti transfer.' });
+    if (!['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Hanya Bendahara, Analis SDM, Kepala Sekolah, atau Admin yang berhak mengunggah bukti transfer.' });
     }
     const proposalId = Number(req.params.id);
     const proposal = getPengajuanById(proposalId);
@@ -1268,8 +1268,8 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
 app.post('/api/pengajuan/:id/lpj/verifikasi', requireAuth, (req, res) => {
   try {
     const { tindakan, catatan_verifikasi } = req.body;
-    if (req.user.role !== 'BENDAHARA' && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak memverifikasi berkas LPJ.' });
+    if (!['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Hanya Bendahara, Analis SDM, Kepala Sekolah, atau Admin yang berhak memverifikasi berkas LPJ.' });
     }
 
     const updated = verifyLpjByBendahara({
