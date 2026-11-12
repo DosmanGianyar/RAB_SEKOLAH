@@ -2266,6 +2266,7 @@ async function handleSubmitProposal(e) {
   const payload = {
     pos_anggaran_id: Number(posId),
     nama_kegiatan: document.getElementById('inputNamaKegiatan').value.trim(),
+    bidang_kegiatan: (document.getElementById('selectBidangKegiatan') || {}).value || 'KESISWAAN',
     latar_belakang: document.getElementById('inputLatarBelakang').value.trim(),
     tanggal_mulai: document.getElementById('inputTglMulai').value,
     tanggal_selesai: document.getElementById('inputTglSelesai').value,

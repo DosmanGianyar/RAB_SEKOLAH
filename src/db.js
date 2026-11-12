@@ -129,6 +129,9 @@ function initDatabase() {
   const tableInfo = db.prepare(`PRAGMA table_info(pengajuan_kegiatan)`).all();
   const colNames = tableInfo.map(c => c.name);
 
+  if (!colNames.includes('bidang_kegiatan')) {
+    db.prepare("ALTER TABLE pengajuan_kegiatan ADD COLUMN bidang_kegiatan TEXT DEFAULT 'KESISWAAN'").run();
+  }
   if (!colNames.includes('bank_tujuan')) {
     db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN bank_tujuan TEXT`).run();
   }
@@ -964,7 +967,9 @@ function generateNomorSurat() {
   return `RAB/${currentYear}/${nextNum}`;
 }
 
-function createPengajuan({ user_id, pos_anggaran_id, nama_kegiatan, latar_belakang, tanggal_mulai, tanggal_selesai, items }) {
+function createPengajuan({ user_id, pos_anggaran_id, nama_kegiatan, latar_belakang, tanggal_mulai, tanggal_selesai, items, bidang_kegiatan }) {
+  const bidangValid = ['KESISWAAN', 'KURIKULUM', 'SARPRAS', 'HUMAS'];
+  const bidang = bidangValid.includes(String(bidang_kegiatan || '').toUpperCase()) ? String(bidang_kegiatan).toUpperCase() : 'KESISWAAN';
   if (!items || !Array.isArray(items) || items.length === 0) {
     throw new Error('Minimal harus ada 1 item belanja dalam rincian RAB.');
   }
@@ -1008,8 +1013,8 @@ function createPengajuan({ user_id, pos_anggaran_id, nama_kegiatan, latar_belaka
     INSERT INTO pengajuan_kegiatan (
       user_id, pos_anggaran_id, nomor_surat_ajuan, nama_kegiatan, latar_belakang,
       tanggal_mulai, tanggal_selesai, total_dana_diajukan, total_dana_disetujui,
-      status, kode_verifikasi_qr
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MENUNGGU_REVIEW', ?)
+      status, kode_verifikasi_qr, bidang_kegiatan
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MENUNGGU_REVIEW', ?, ?)
   `);
 
   const resultPengajuan = insertPengajuan.run(
@@ -1022,7 +1027,8 @@ function createPengajuan({ user_id, pos_anggaran_id, nama_kegiatan, latar_belaka
     tanggal_selesai || '',
     totalAjuan,
     totalAjuan, // Awalnya sama dengan ajuan sebelum koreksi bendahara
-    kodeVerifikasi
+    kodeVerifikasi,
+    bidang
   );
 
   const pengajuanId = resultPengajuan.lastInsertRowid;

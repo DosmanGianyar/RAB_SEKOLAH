@@ -95,8 +95,17 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
   const bendaharaPembantuNama = 'I Nyoman Suwaradana';
   const bendaharaPembantuNip = '19721010 200903 1 003';
   const ketuaKomiteNama = 'Ir. Pande Nyoman Yuliana';
-  const wakasekNama = 'I Putu Darma Putra, S.Pd';
-  const wakasekNip = 'PPPK. 19880930 202221 1 001';
+  const WAKASEK_MAP = {
+    KESISWAAN: { jabatan: 'Wakasek Kesiswaan', nama: 'I Putu Darma Putra, S.Pd', nip: 'PPPK. 19880930 202221 1 001' },
+    KURIKULUM: { jabatan: 'Wakasek Kurikulum', nama: 'I Gusti Nyoman Susanta, S.Pd', nip: 'NIP. 19670627 199002 1 001' },
+    SARPRAS: { jabatan: 'Wakasek Sarana & Prasarana', nama: 'I Wayan Sumartika, S.Pd., M.Pd', nip: 'NIP. 19950502 201903 1 005' },
+    HUMAS: { jabatan: 'Wakasek Humas', nama: 'Drs. I Ketut Reta, M.Pd', nip: 'NIP. 19680623 199303 1 008' }
+  };
+  const bidangKey = String(proposal.bidang_kegiatan || 'KESISWAAN').toUpperCase();
+  const wakasek = WAKASEK_MAP[bidangKey] || WAKASEK_MAP.KESISWAAN;
+  const wakasekNama = wakasek.nama;
+  const wakasekNip = wakasek.nip;
+  const wakasekJabatan = wakasek.jabatan;
 
   // Guru / Pembina
   const guruNama = proposal.pemohon_nama || 'Ni Wayan Setiawati, S.Pd';
@@ -982,7 +991,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
               <div class="sig-name">${ketuaKomiteNama}</div>
             </div>
             <div class="sig-col-right">
-              Wakasek Kesiswaan<br>
+              ${wakasekJabatan}<br>
               SMA Negeri 1 Gianyar
               <div class="sig-space-kwitansi"></div>
               <div class="sig-name">${wakasekNama}</div>

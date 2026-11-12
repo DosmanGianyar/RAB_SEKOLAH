@@ -572,7 +572,7 @@ app.delete('/api/pengajuan/:id', requireAuth, (req, res) => {
 // Buat Usulan Proposal Kegiatan & Rincian RAB Baru
 app.post('/api/pengajuan', requireAuth, (req, res) => {
   try {
-    const { pos_anggaran_id, nama_kegiatan, latar_belakang, tanggal_mulai, tanggal_selesai, items } = req.body;
+    const { pos_anggaran_id, nama_kegiatan, latar_belakang, tanggal_mulai, tanggal_selesai, items, bidang_kegiatan } = req.body;
     
     if (!pos_anggaran_id || !nama_kegiatan) {
       return res.status(400).json({ success: false, message: 'Pos anggaran dan nama kegiatan wajib diisi.' });
@@ -589,7 +589,8 @@ app.post('/api/pengajuan', requireAuth, (req, res) => {
       latar_belakang,
       tanggal_mulai,
       tanggal_selesai,
-      items
+      items,
+      bidang_kegiatan
     });
 
     res.status(201).json({
