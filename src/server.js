@@ -1131,7 +1131,9 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
       jumlah_peserta,
       resume_hasil,
       kendala,
-      solusi_tindak_lanjut
+      solusi_tindak_lanjut,
+      tanggal_laporan,
+      is_draft
     } = req.body;
 
     // Petakan semua berkas yang terunggah berdasarkan nama field
@@ -1145,6 +1147,9 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
         fileMap[f.fieldname] = `/uploads/${sub}/${f.filename}`;
       });
     }
+
+    // Berkas Bukti Transfer Bank (jika diunggah/diperbarui oleh Bendahara)
+    const fileBuktiTransferUrl = fileMap['file_bukti_transfer'] || req.body.existing_bukti_transfer_url || null;
 
     // Berkas Daftar Hadir (PDF/Scan)
     const fileDaftarHadirUrl = fileMap['file_daftar_hadir'] || req.body.existing_daftar_hadir_url || null;
@@ -1199,6 +1204,8 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
       singleFileUrl = `/uploads/nota/${req.files[0].filename}`;
     }
 
+    const isDraft = is_draft === 'true' || is_draft === true;
+
     const updated = submitLpjByGuru({
       pengajuan_id: Number(req.params.id),
       user_id: req.user.id,
@@ -1213,13 +1220,19 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
       resume_hasil,
       kendala,
       solusi_tindak_lanjut,
-      foto_dokumentasi: parsedFotoItems
+      foto_dokumentasi: parsedFotoItems,
+      tanggal_laporan,
+      is_draft: isDraft,
+      file_bukti_transfer_url: fileBuktiTransferUrl
     });
 
     res.json({
       success: true,
       data: updated,
-      message: 'Laporan Pertanggungjawaban (LPJ) & berkas bukti berhasil disimpan.'
+      is_draft: isDraft,
+      message: isDraft
+        ? 'Draft Laporan berhasil disimpan. Laporan belum diteruskan ke Bendahara.'
+        : 'Laporan berhasil disimpan dan resmi diserahkan ke Bendahara.'
     });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });

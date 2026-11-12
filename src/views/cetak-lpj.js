@@ -22,6 +22,21 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
+function formatDateIndo(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  } catch (e) {
+    return dateStr;
+  }
+}
+
 function renderCetakLpj({ proposal, qrDataUrl, hostUrl }) {
   const lpj = proposal.lpj || {};
   const danaCair = lpj.total_dana_cair !== null && lpj.total_dana_cair !== undefined ? Number(lpj.total_dana_cair) : Number(proposal.total_dana_disetujui || 0);
@@ -29,12 +44,14 @@ function renderCetakLpj({ proposal, qrDataUrl, hostUrl }) {
   const sisaPengembalian = lpj.sisa_pengembalian_dana !== null && lpj.sisa_pengembalian_dana !== undefined ? Number(lpj.sisa_pengembalian_dana) : Math.max(0, danaCair - belanjaRiil);
   const totalKalimat = terbilang(belanjaRiil);
 
-  // Tanggal Cetak
-  const tanggalCetak = new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
+  // Tanggal Dokumen Laporan (dapat disesuaikan lewat input tanggal laporan di form LPJ)
+  const tanggalCetak = lpj.tanggal_laporan
+    ? formatDateIndo(lpj.tanggal_laporan)
+    : new Date().toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
 
   // Pejabat Penandatangan Resmi SMAN 1 Gianyar
   const guruNama = proposal.pemohon_nama || 'Ni Wayan Setiawati, S.Pd';

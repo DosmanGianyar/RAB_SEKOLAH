@@ -1043,8 +1043,11 @@
           <a href="#" target="_blank" class="btn btn-outline-primary btn-sm" id="btnEditorCetakLpjBundel" title="Pratinjau &amp; Cetak Laporan Keuangan">
             <i class="ti ti-printer" style="color: #2563eb;"></i> Cetak Lap. Keuangan
           </a>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="saveLpjAsDraft(event)" id="btnEditorDraftLpjTop" title="Simpan sebagai draft sementara (belum diteruskan ke Bendahara)">
+            <i class="ti ti-device-floppy"></i> Simpan Draft
+          </button>
           <button type="button" class="btn btn-primary btn-sm" onclick="submitLpjFromEditor(event)" id="btnEditorSubmitLpjTop">
-            <i class="ti ti-check"></i> Simpan &amp; Serahkan LPJ
+            <i class="ti ti-send"></i> Simpan &amp; Serahkan ke Bendahara
           </button>
         </div>
       </div>
@@ -1082,6 +1085,34 @@
                 Referensi Rincian Barang &amp; Jasa yang Disetujui (RAB Awal):
               </div>
               <div id="editorLpjApprovedItemsList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+            </div>
+          </div>
+
+          <!-- KARTU KHUSUS BENDAHARA: Upload / Pembaruan Bukti Transfer Kas & Slip Bank -->
+          <div class="lpj-editor-card" id="editorLpjBendaharaTransferCard" style="display: none; border-left: 4px solid #2563eb; background: #f0f7ff;">
+            <div class="lpj-editor-card-header">
+              <span class="lpj-section-tag" style="background: #dbeafe; color: #1e40af;">
+                <i class="ti ti-cash"></i> Area Khusus Bendahara: Berkas Bukti Transfer Kas
+              </span>
+              <span id="editorLpjTransferStatusBadge" class="status-pill DICAIRKAN" style="font-size: 0.72rem;">Sudah Ada Bukti</span>
+            </div>
+            <div style="font-size: 0.8rem; color: #334155; margin-bottom: 10px;">
+              Jika saat pencairan kas sebelumnya belum sempat mengunggah bukti transfer, Bendahara dapat mengunggah atau mengganti berkas slip transfer bank di sini. Berkas ini otomatis tampil pada lembar <strong>Laporan Keuangan</strong>.
+            </div>
+            <div class="file-upload-area" onclick="document.getElementById('editorLpjBuktiTransferInput').click()" style="padding: 14px; border: 1.5px dashed #2563eb; background: #ffffff; border-radius: 8px; cursor: pointer; text-align: center;">
+              <input type="file" id="editorLpjBuktiTransferInput" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" style="display: none;" onchange="handleEditorBuktiTransferSelect(event)">
+              <div style="font-weight: 700; font-size: 0.84rem; color: #1e40af;">
+                🏦 Klik untuk Mengunggah / Mengganti Slip Bukti Transfer (PDF / Gambar)
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+                Format berkas yang diterima: Gambar (.jpg, .png) atau Dokumen PDF (Maksimal 15MB)
+              </div>
+            </div>
+            <div id="editorLpjTransferPreviewWrap" style="display: none; align-items: center; gap: 8px; margin-top: 8px; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #bfdbfe;">
+              <span style="font-size: 1.2rem; color: #2563eb;">📄</span>
+              <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; font-weight: 600;" id="editorLpjTransferFileName">bukti-transfer.pdf</div>
+              <a href="#" target="_blank" id="editorLpjTransferViewLink" class="btn btn-outline-primary btn-xs" style="text-decoration:none;">Lihat Berkas</a>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="clearEditorBuktiTransfer(event)">Hapus / Ganti</button>
             </div>
           </div>
 
@@ -1274,10 +1305,27 @@
           </div>
 
           <!-- KARTU 6: Catatan Tambahan -->
-          <div class="lpj-editor-card" style="margin-bottom: 0;">
+          <div class="lpj-editor-card">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" style="font-weight: 700;">Catatan Tambahan untuk Bendahara (Opsional)</label>
               <textarea class="form-textarea" id="editorLpjCatatanTambahan" rows="2" placeholder="Cth: Bukti fisik kuitansi asli dan sisa dana tunai telah diserahkan langsung ke ruang Tata Usaha..."></textarea>
+            </div>
+          </div>
+
+          <!-- KARTU 7: Tanggal Dokumen Laporan (LPJ) -->
+          <div class="lpj-editor-card" style="margin-bottom: 0; border-left: 4px solid #059669; background: #fcfdfd;">
+            <div class="lpj-editor-card-header">
+              <span class="lpj-section-tag" style="background: #ecfdf5; color: #065f46;">
+                <i class="ti ti-calendar-event"></i> Tanggal Pengesahan Dokumen Laporan (LPJ) *
+              </span>
+            </div>
+            <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+              <div style="flex: 0 0 auto;">
+                <input type="date" class="form-input" id="editorLpjTanggalLaporan" style="font-weight: 700; font-size: 0.92rem; padding: 7px 12px; width: 190px;" required>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); flex: 1;">
+                Tanggal ini akan tertera pada seluruh lembar tanda tangan dokumen resmi <strong>Laporan Kegiatan</strong> dan <strong>Laporan Keuangan</strong>. Dapat diganti sesuai tanggal riil penyusunan/pengesahan.
+              </div>
             </div>
           </div>
 
@@ -1286,15 +1334,18 @@
             <button type="button" class="btn btn-secondary btn-sm" onclick="goBackFromLpjEditor()">
               ← Batal &amp; Kembali
             </button>
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <a href="#" target="_blank" class="btn btn-secondary btn-sm" id="btnEditorCetakLpjBottom" title="Pratinjau Lembar Cetak Laporan Kegiatan">
                 <i class="ti ti-file-certificate" style="color: #059669;"></i> Cetak Lap. Kegiatan
               </a>
               <a href="#" target="_blank" class="btn btn-outline-primary btn-sm" id="btnEditorCetakLpjBundelBottom" title="Cetak Laporan Keuangan (Kwitansi Komite, Rincian Belanja, Slip, Nota Fisik)">
                 <i class="ti ti-printer" style="color: #2563eb;"></i> Cetak Lap. Keuangan
               </a>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="saveLpjAsDraft(event)" id="btnEditorDraftLpjBottom" title="Simpan sebagai draft sementara (belum diserahkan ke Bendahara)">
+                <i class="ti ti-device-floppy"></i> Simpan Draft
+              </button>
               <button type="submit" class="btn btn-primary btn-sm" id="btnEditorSubmitLpjBottom">
-                📋 Simpan &amp; Serahkan LPJ ke Bendahara
+                <i class="ti ti-send"></i> Simpan &amp; Serahkan ke Bendahara
               </button>
             </div>
           </div>

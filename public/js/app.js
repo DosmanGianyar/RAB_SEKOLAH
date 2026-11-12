@@ -2559,7 +2559,10 @@ function renderProposalsList(proposals) {
     if (p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') statusLabel = 'Menunggu Persetujuan Kepsek';
     if (p.status === 'DISETUJUI') statusLabel = 'Disetujui (Siap Dicairkan)';
     if (p.status === 'PERLU_REVISI') statusLabel = 'Perlu Revisi';
-    if (p.status === 'DICAIRKAN') statusLabel = 'Dana Dicairkan (Siap LPJ)';
+    if (p.status === 'DICAIRKAN') {
+      const isDraftLpj = p.lpj && p.lpj.status_lpj === 'DRAFT';
+      statusLabel = isDraftLpj ? 'Dana Dicairkan (Draft LPJ)' : 'Dana Dicairkan (Siap LPJ)';
+    }
     if (p.status === 'MENUNGGU_VERIFIKASI_LPJ') statusLabel = 'Menunggu Verifikasi LPJ';
     if (p.status === 'SELESAI') statusLabel = 'Selesai & LPJ Terverifikasi';
 
@@ -2589,9 +2592,14 @@ function renderProposalsList(proposals) {
         </button>
       `;
     } else if (canManageLpj && p.status === 'DICAIRKAN') {
+      const isDraftLpj = p.lpj && p.lpj.status_lpj === 'DRAFT';
+      const btnTitle = isDraftLpj ? 'Lanjutkan LPJ (Draft)' : 'Buat LPJ';
+      const btnIcon = isDraftLpj ? 'ti ti-file-pencil' : 'ti ti-file-certificate';
+      const btnClass = isDraftLpj ? 'btn btn-warning btn-sm' : 'btn btn-primary btn-sm';
+      const btnStyle = isDraftLpj ? 'background: #f59e0b; border-color: #f59e0b; color: #fff;' : '';
       roleActionBtn = `
-        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); navigateToLpjEditor(${p.id})" title="Buka formulir lengkap penyusunan LPJ &amp; unggah bukti">
-          <i class="ti ti-file-certificate"></i> Buat LPJ
+        <button class="${btnClass}" style="${btnStyle}" onclick="event.stopPropagation(); navigateToLpjEditor(${p.id})" title="Buka formulir lengkap penyusunan LPJ &amp; unggah bukti">
+          <i class="${btnIcon}"></i> ${btnTitle}
         </button>
       `;
     } else if (p.status === 'MENUNGGU_VERIFIKASI_LPJ') {
@@ -3951,6 +3959,7 @@ async function handleUploadTransferFileDirect(e) {
 let activeLpjProposal = null;
 let selectedEditorMasterFile = null;
 let selectedEditorDaftarHadirFile = null;
+let selectedEditorBuktiTransferFile = null;
 let editorReceiptRows = [];
 let nextEditorReceiptId = 1;
 let editorFotoRows = [];
@@ -4050,6 +4059,25 @@ async function navigateToLpjEditor(proposalId) {
     selectedEditorMasterFile = null;
     selectedEditorDaftarHadirFile = null;
     clearEditorDaftarHadir();
+    selectedEditorBuktiTransferFile = null;
+    clearEditorBuktiTransfer();
+
+    // Setup kartu upload bukti transfer susulan khusus Bendahara & Admin
+    const cardTransferBendahara = document.getElementById('editorLpjBendaharaTransferCard');
+    if (cardTransferBendahara) {
+      const isBendaharaOrAdmin = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+      cardTransferBendahara.style.display = isBendaharaOrAdmin ? 'block' : 'none';
+      const wrapTransfer = document.getElementById('editorLpjBuktiTransferPreviewWrap');
+      const nameTransfer = document.getElementById('editorLpjBuktiTransferFileName');
+      if (p.file_bukti_transfer_url) {
+        if (wrapTransfer && nameTransfer) {
+          wrapTransfer.style.display = 'flex';
+          nameTransfer.innerHTML = `<a href="${p.file_bukti_transfer_url}" target="_blank" style="color:inherit; text-decoration:underline;">${p.file_bukti_transfer_url.split('/').pop()}</a> <span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:0.7rem; margin-left:6px;">Tersimpan</span>`;
+        }
+      } else {
+        if (wrapTransfer) wrapTransfer.style.display = 'none';
+      }
+    }
 
     const receiptStack = document.getElementById('editorLpjNotaStack');
     if (receiptStack) receiptStack.innerHTML = '';
@@ -4141,6 +4169,17 @@ async function navigateToLpjEditor(proposalId) {
 
       // Tambahkan default 1 baris foto dokumentasi
       addEditorFotoRow();
+    }
+
+    // Setup tanggal laporan pengesahan
+    const elTglLaporan = document.getElementById('editorLpjTanggalLaporan');
+    if (elTglLaporan) {
+      if (p.lpj && p.lpj.tanggal_laporan) {
+        elTglLaporan.value = p.lpj.tanggal_laporan;
+      } else {
+        const todayStr = new Date().toISOString().split('T')[0];
+        elTglLaporan.value = todayStr;
+      }
     }
 
     recalculateEditorMultiTotals();
@@ -4560,6 +4599,39 @@ function clearEditorDaftarHadir(event) {
   }
 }
 
+// Berkas Bukti Transfer (Khusus Bendahara)
+function handleEditorBuktiTransferSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!validateUploadedFile(file, true)) {
+    event.target.value = '';
+    return;
+  }
+  selectedEditorBuktiTransferFile = file;
+
+  const wrap = document.getElementById('editorLpjBuktiTransferPreviewWrap');
+  const nameSpan = document.getElementById('editorLpjBuktiTransferFileName');
+
+  if (wrap && nameSpan) {
+    wrap.style.display = 'flex';
+    nameSpan.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+  }
+}
+
+function clearEditorBuktiTransfer(event) {
+  if (event) event.stopPropagation();
+  selectedEditorBuktiTransferFile = null;
+
+  const input = document.getElementById('editorLpjBuktiTransferInput');
+  if (input) input.value = '';
+
+  const wrap = document.getElementById('editorLpjBuktiTransferPreviewWrap');
+  if (wrap) {
+    wrap.style.display = 'none';
+  }
+}
+
 // --------------------------------------------------------------------------
 // Dokumentasi Foto Kegiatan di Halaman Editor LPJ
 // --------------------------------------------------------------------------
@@ -4644,8 +4716,17 @@ function handleEditorFotoSelect(event, fotoId) {
 // Submit LPJ dari Halaman Editor
 // --------------------------------------------------------------------------
 
+function saveLpjAsDraft(event) {
+  if (event) event.preventDefault();
+  executeSaveLpj({ isDraft: true });
+}
+
 async function submitLpjFromEditor(event) {
   if (event) event.preventDefault();
+  executeSaveLpj({ isDraft: false });
+}
+
+async function executeSaveLpj({ isDraft = false } = {}) {
   if (!activeLpjProposal) return;
 
   const id = activeLpjProposal.id;
@@ -4661,16 +4742,16 @@ async function submitLpjFromEditor(event) {
   });
 
   const totalBelanja = editorReceiptRows.reduce((sum, r) => sum + (Number(r.nominal) || 0), 0);
-  if (totalBelanja <= 0) {
+  if (!isDraft && totalBelanja <= 0) {
     if (typeof Swal !== 'undefined') {
       Swal.fire({
         icon: 'warning',
         title: 'Nominal Belanja Kosong',
-        text: 'Harap masukkan nominal belanja riil pada minimal satu bukti nota.',
+        text: 'Harap masukkan nominal belanja riil pada minimal satu bukti nota sebelum menyerahkan ke bendahara.',
         confirmButtonColor: '#059669'
       });
     } else {
-      alert('Harap masukkan nominal belanja riil pada minimal satu bukti nota.');
+      alert('Harap masukkan nominal belanja riil pada minimal satu bukti nota sebelum menyerahkan ke bendahara.');
     }
     return;
   }
@@ -4682,18 +4763,30 @@ async function submitLpjFromEditor(event) {
   });
 
   const formData = new FormData();
+  formData.append('is_draft', isDraft ? 'true' : 'false');
   formData.append('total_belanja_riil', totalBelanja);
 
-  // Field Laporan Deskripsi & Pelaksanaan
-  const latarBelakang = document.getElementById('editorLpjLatarBelakang').value.trim();
-  const tujuan = document.getElementById('editorLpjTujuan').value.trim();
-  const tempat = document.getElementById('editorLpjTempat').value.trim();
-  const peserta = document.getElementById('editorLpjPeserta').value.trim();
+  const tglInput = document.getElementById('editorLpjTanggalLaporan');
+  const tanggalLaporan = tglInput ? tglInput.value : '';
+  if (tanggalLaporan) {
+    formData.append('tanggal_laporan', tanggalLaporan);
+  }
 
-  const resumeHasil = document.getElementById('editorLpjResumeHasil').value.trim();
-  const kendala = document.getElementById('editorLpjKendala').value.trim();
-  const solusi = document.getElementById('editorLpjSolusi').value.trim();
-  const catatanTambahan = document.getElementById('editorLpjCatatanTambahan').value.trim();
+  // File Bukti Transfer (Khusus jika diupload oleh Bendahara)
+  if (selectedEditorBuktiTransferFile) {
+    formData.append('file_bukti_transfer', selectedEditorBuktiTransferFile);
+  }
+
+  // Field Laporan Deskripsi & Pelaksanaan
+  const latarBelakang = (document.getElementById('editorLpjLatarBelakang')?.value || '').trim();
+  const tujuan = (document.getElementById('editorLpjTujuan')?.value || '').trim();
+  const tempat = (document.getElementById('editorLpjTempat')?.value || '').trim();
+  const peserta = (document.getElementById('editorLpjPeserta')?.value || '').trim();
+
+  const resumeHasil = (document.getElementById('editorLpjResumeHasil')?.value || '').trim();
+  const kendala = (document.getElementById('editorLpjKendala')?.value || '').trim();
+  const solusi = (document.getElementById('editorLpjSolusi')?.value || '').trim();
+  const catatanTambahan = (document.getElementById('editorLpjCatatanTambahan')?.value || '').trim();
 
   formData.append('catatan_lpj', latarBelakang || catatanTambahan);
   formData.append('tujuan_kegiatan', tujuan);
@@ -4747,14 +4840,27 @@ async function submitLpjFromEditor(event) {
   });
   formData.append('foto_dokumentasi', JSON.stringify(fotoPayload));
 
-  const submitBtns = [
+  const allActionBtns = [
+    document.getElementById('btnEditorSubmitLpjBottom'),
+    document.getElementById('btnEditorSubmitLpjTop'),
+    document.getElementById('btnEditorDraftLpjBottom'),
+    document.getElementById('btnEditorDraftLpjTop')
+  ].filter(Boolean);
+
+  allActionBtns.forEach(b => {
+    b.disabled = true;
+  });
+
+  const activeSubmitBtns = isDraft ? [
+    document.getElementById('btnEditorDraftLpjBottom'),
+    document.getElementById('btnEditorDraftLpjTop')
+  ].filter(Boolean) : [
     document.getElementById('btnEditorSubmitLpjBottom'),
     document.getElementById('btnEditorSubmitLpjTop')
   ].filter(Boolean);
 
-  submitBtns.forEach(b => {
-    b.disabled = true;
-    b.innerHTML = '<i class="ti ti-loader rotate"></i> Menyimpan Laporan...';
+  activeSubmitBtns.forEach(b => {
+    b.innerHTML = isDraft ? '<i class="ti ti-loader rotate"></i> Menyimpan Draft...' : '<i class="ti ti-loader rotate"></i> Menyimpan & Mengirim...';
   });
 
   try {
@@ -4765,11 +4871,15 @@ async function submitLpjFromEditor(event) {
     const data = await res.json();
     if (data.success) {
       if (typeof Swal !== 'undefined') {
+        const titleText = isDraft ? 'Draft LPJ Berhasil Disimpan!' : 'Laporan LPJ Berhasil Diserahkan!';
+        const infoSub = isDraft
+          ? 'Laporan tersimpan sebagai draf. Anda dapat melanjutkan pengeditan kapan saja sebelum diserahkan ke Bendahara.'
+          : (data.message || 'Laporan telah diteruskan ke Bendahara untuk verifikasi.');
         Swal.fire({
           icon: 'success',
-          title: 'Laporan LPJ Berhasil Disimpan!',
+          title: titleText,
           html: `
-            <p>${data.message}</p>
+            <p>${infoSub}</p>
             <div style="margin-top: 15px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
               <a href="/cetak-lpj/${id}" target="_blank" class="btn btn-outline-success" style="font-size: 0.82rem; padding: 6px 12px; text-decoration: none;">
                 🖨️ Cetak Lap. Kegiatan
@@ -4785,7 +4895,7 @@ async function submitLpjFromEditor(event) {
           goBackFromLpjEditor();
         });
       } else {
-        alert(data.message);
+        alert(isDraft ? 'Draft LPJ berhasil disimpan.' : data.message);
         goBackFromLpjEditor();
       }
 
@@ -4802,7 +4912,7 @@ async function submitLpjFromEditor(event) {
       if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'error',
-          title: 'Gagal Menyimpan LPJ',
+          title: isDraft ? 'Gagal Menyimpan Draft' : 'Gagal Menyimpan LPJ',
           text: data.message,
           confirmButtonColor: '#059669'
         });
@@ -4819,19 +4929,32 @@ async function submitLpjFromEditor(event) {
         confirmButtonColor: '#059669'
       });
     } else {
-      alert(`Terjadi kesalahan jaringan: ${err.message}`);
+      alert(`Error: ${err.message}`);
     }
   } finally {
-    submitBtns.forEach(b => {
+    allActionBtns.forEach(b => {
       b.disabled = false;
-      b.innerHTML = '<i class="ti ti-check"></i> Simpan & Serahkan LPJ';
+    });
+    const draftBtns = [
+      document.getElementById('btnEditorDraftLpjBottom'),
+      document.getElementById('btnEditorDraftLpjTop')
+    ].filter(Boolean);
+    draftBtns.forEach(b => {
+      b.innerHTML = '<i class="ti ti-file-pencil"></i> Simpan Draft';
+    });
+    const sendBtns = [
+      document.getElementById('btnEditorSubmitLpjBottom'),
+      document.getElementById('btnEditorSubmitLpjTop')
+    ].filter(Boolean);
+    sendBtns.forEach(b => {
+      b.innerHTML = '<i class="ti ti-check"></i> Simpan & Serahkan ke Bendahara';
     });
   }
 }
 
-
-// Bendahara LPJ Verification Modal
-let activeVerifLpjProposal = null;
+// --------------------------------------------------------------------------
+// Verifikasi & Pengesahan LPJ oleh Bendahara
+// --------------------------------------------------------------------------
 
 async function openVerifikasiLpjModal(proposalId) {
   const modal = document.getElementById('modalVerifikasiLpj');

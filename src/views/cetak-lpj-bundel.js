@@ -77,8 +77,10 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
     ? Number(lpj.sisa_pengembalian_dana)
     : Math.max(0, danaCair - belanjaRiil);
 
-  // Tanggal cetak & pelaksanaan
-  const tglCetak = formatDateIndo(proposal.tanggal_pencairan || new Date());
+  // Tanggal cetak & pelaksanaan (prioritaskan tanggal_laporan jika telah diatur di formulir LPJ)
+  const tglCetak = lpj.tanggal_laporan
+    ? formatDateIndo(lpj.tanggal_laporan)
+    : formatDateIndo(proposal.tanggal_pencairan || new Date());
   const tglMulai = formatDateIndo(proposal.tanggal_mulai);
   const tglSelesai = formatDateIndo(proposal.tanggal_selesai);
   const bulanLaporan = getMonthNameIndo(proposal.tanggal_mulai || proposal.tanggal_pencairan);

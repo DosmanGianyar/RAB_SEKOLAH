@@ -172,6 +172,9 @@ function initDatabase() {
   if (!lpjColNames.includes('file_daftar_hadir_url')) {
     db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN file_daftar_hadir_url TEXT`).run();
   }
+  if (!lpjColNames.includes('tanggal_laporan')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN tanggal_laporan TEXT`).run();
+  }
 
   // Migrasi kolom password pada users jika belum ada
   const userTableInfo = db.prepare(`PRAGMA table_info(users)`).all();
@@ -1567,7 +1570,10 @@ function submitLpjByGuru({
   resume_hasil = '',
   kendala = '',
   solusi_tindak_lanjut = '',
-  foto_dokumentasi = []
+  foto_dokumentasi = [],
+  tanggal_laporan = null,
+  is_draft = false,
+  file_bukti_transfer_url = null
 }) {
   const proposal = getPengajuanById(pengajuan_id);
   if (!proposal) {
@@ -1575,12 +1581,22 @@ function submitLpjByGuru({
   }
 
   if (proposal.status !== 'DICAIRKAN' && proposal.status !== 'MENUNGGU_VERIFIKASI_LPJ') {
-    throw new Error(`LPJ hanya dapat diajukan jika dana telah dicairkan (status: DICAIRKAN). Status saat ini: "${proposal.status}".`);
+    throw new Error(`LPJ hanya dapat diproses jika dana telah dicairkan (status: DICAIRKAN). Status saat ini: "${proposal.status}".`);
   }
 
   const user = getUserById(user_id);
   if (user && user.role === 'GURU' && proposal.user_id !== user.id) {
-    throw new Error('Akses Ditolak: Anda hanya berhak membuat LPJ dari usulan kegiatan Anda sendiri.');
+    throw new Error('Akses Ditolak: Anda hanya berhak mengedit laporan dari usulan kegiatan Anda sendiri.');
+  }
+
+  // Jika Bendahara/Admin mengunggah bukti transfer kas saat edit LPJ
+  if (file_bukti_transfer_url) {
+    db.prepare(`
+      UPDATE pengajuan_kegiatan
+      SET file_bukti_transfer_url = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(file_bukti_transfer_url, pengajuan_id);
   }
 
   // Hitung total belanja riil: dari rincian nota atau langsung dari form input
@@ -1596,7 +1612,7 @@ function submitLpjByGuru({
 
   // Periksa apakah LPJ sebelumnya sudah pernah dibuat
   const existingLpj = db.prepare(`
-    SELECT id, file_nota_url FROM lpj_pertanggungjawaban WHERE pengajuan_id = ?
+    SELECT id, file_nota_url, tanggal_laporan FROM lpj_pertanggungjawaban WHERE pengajuan_id = ?
   `).get(pengajuan_id);
 
   // Cari file URL utama (dari file_nota_url, atau nota item pertama yang memiliki file, atau data lama)
@@ -1606,6 +1622,8 @@ function submitLpjByGuru({
     if (itemWithFile) primaryFileUrl = itemWithFile.file_url;
   }
   const finalFileUrl = primaryFileUrl || (existingLpj ? existingLpj.file_nota_url : null);
+  const finalTanggalLaporan = tanggalLaporan || (existingLpj ? existingLpj.tanggal_laporan : null) || new Date().toISOString().split('T')[0];
+  const targetStatusLpj = is_draft ? 'DRAFT' : 'MENUNGGU_VERIFIKASI';
 
   let lpjId = null;
   if (existingLpj) {
@@ -1624,13 +1642,15 @@ function submitLpjByGuru({
           resume_hasil = ?,
           kendala = ?,
           solusi_tindak_lanjut = ?,
-          status_lpj = 'MENUNGGU_VERIFIKASI',
+          tanggal_laporan = ?,
+          status_lpj = ?,
           created_at = datetime('now', 'localtime')
       WHERE id = ?
     `).run(
       danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, file_daftar_hadir_url || null, catatan_lpj || '',
       tujuan_kegiatan || '', tempat_pelaksanaan || '', jumlah_peserta || '',
       resume_hasil || '', kendala || '', solusi_tindak_lanjut || '',
+      finalTanggalLaporan, targetStatusLpj,
       lpjId
     );
   } else {
@@ -1638,12 +1658,13 @@ function submitLpjByGuru({
       INSERT INTO lpj_pertanggungjawaban (
         pengajuan_id, total_dana_cair, total_belanja_riil, sisa_pengembalian_dana,
         file_nota_url, file_daftar_hadir_url, catatan_lpj, tujuan_kegiatan, tempat_pelaksanaan, jumlah_peserta,
-        resume_hasil, kendala, solusi_tindak_lanjut, status_lpj
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'MENUNGGU_VERIFIKASI')
+        resume_hasil, kendala, solusi_tindak_lanjut, tanggal_laporan, status_lpj
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       pengajuan_id, danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, file_daftar_hadir_url || null, catatan_lpj || '',
       tujuan_kegiatan || '', tempat_pelaksanaan || '', jumlah_peserta || '',
-      resume_hasil || '', kendala || '', solusi_tindak_lanjut || ''
+      resume_hasil || '', kendala || '', solusi_tindak_lanjut || '',
+      finalTanggalLaporan, targetStatusLpj
     );
     lpjId = insertLpjRes.lastInsertRowid;
   }
@@ -1697,15 +1718,17 @@ function submitLpjByGuru({
     });
   }
 
-  // Update status proposal menjadi MENUNGGU_VERIFIKASI_LPJ
-  db.prepare(`
-    UPDATE pengajuan_kegiatan
-    SET status = 'MENUNGGU_VERIFIKASI_LPJ'
-    WHERE id = ?
-  `).run(pengajuan_id);
+  // Update status proposal: hanya jika BUKAN draft
+  if (!is_draft) {
+    db.prepare(`
+      UPDATE pengajuan_kegiatan
+      SET status = 'MENUNGGU_VERIFIKASI_LPJ'
+      WHERE id = ?
+    `).run(pengajuan_id);
+  }
 
   // Catat di Audit Trail
-  const guruName = user ? user.nama_lengkap : 'Guru Pemohon';
+  const operatorName = user ? user.nama_lengkap : 'Pengguna';
   const jumlahNotaText = Array.isArray(nota_items) && nota_items.length > 0 ? ` (${nota_items.length} berkas nota fisik)` : '';
   let detailInfo = `Belanja Riil: Rp ${belanjaRiil.toLocaleString('id-ID')}${jumlahNotaText}`;
   if (sisaPengembalian > 0) {
@@ -1714,12 +1737,21 @@ function submitLpjByGuru({
     detailInfo += ` (Kelebihan biaya: Rp ${(belanjaRiil - danaCair).toLocaleString('id-ID')})`;
   }
 
-  logSystemActivity({
-    pengajuan_id,
-    user_id,
-    tipe_aksi: 'LPJ',
-    aktivitas: `LPJ DIAJUKAN: ${guruName} menyerahkan berkas LPJ. ${detailInfo}.`
-  });
+  if (is_draft) {
+    logSystemActivity({
+      pengajuan_id,
+      user_id,
+      tipe_aksi: 'LPJ',
+      aktivitas: `DRAFT LPJ DISIMPAN: ${operatorName} menyimpan kemajuan draft laporan (belum diteruskan ke Bendahara). ${detailInfo}.`
+    });
+  } else {
+    logSystemActivity({
+      pengajuan_id,
+      user_id,
+      tipe_aksi: 'LPJ',
+      aktivitas: `LPJ DIAJUKAN: ${operatorName} menyerahkan berkas laporan resmi ke Bendahara. ${detailInfo}.`
+    });
+  }
 
   return getPengajuanById(pengajuan_id);
 }
