@@ -5541,3 +5541,9 @@ input.search-input,
 }
 
 
+
+/* Kolom aksi tabel Laporan: tombol seragam, tersusun rapi */
+.lpj-actions-col { display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 128px; }
+.lpj-actions-col .btn { width: 100%; justify-content: center; text-align: center; white-space: nowrap; text-decoration: none; padding-top: 6px; padding-bottom: 6px; }
+.lpj-actions-col .btn-lap-kegiatan { color: #047857; border-color: #a7f3d0; background: #ecfdf5; }
+.lpj-actions-col .btn-lap-keuangan { color: #1d4ed8; border-color: #bfdbfe; background: #eff6ff; }

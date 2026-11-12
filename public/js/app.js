@@ -5353,7 +5353,7 @@ function renderLpjView() {
     // Action Buttons
     const canManageLpj = currentUser && (currentUser.id === p.user_id || currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
     let actionsHtml = `
-      <div style="display:flex; gap:4px; justify-content:center; flex-wrap:wrap; align-items:center;">
+      <div class="lpj-actions-col">
         <button class="btn btn-secondary btn-xs" onclick="openProposalDetail(${p.id})" title="Lihat Rincian Kegiatan">
           <i class="ti ti-eye"></i> Detail
         </button>
@@ -5391,10 +5391,10 @@ function renderLpjView() {
     }
 
     actionsHtml += `
-        <a href="/cetak-lpj/${p.id}" target="_blank" class="btn btn-outline-success btn-xs" title="Cetak Laporan Kegiatan Resmi (Narasi, Daftar Hadir, Foto)">
+        <a href="/cetak-lpj/${p.id}" target="_blank" class="btn btn-secondary btn-xs btn-lap-kegiatan" title="Cetak Laporan Kegiatan Resmi (Narasi, Daftar Hadir, Foto)">
           <i class="ti ti-file-certificate"></i> Lap. Kegiatan
         </a>
-        <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn btn-secondary btn-xs" title="Cetak Laporan Keuangan Resmi (Cover, Kwitansi, LPJ Belanja, Nota)">
+        <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn btn-secondary btn-xs btn-lap-keuangan" title="Cetak Laporan Keuangan Resmi (Cover, Kwitansi, LPJ Belanja, Nota)">
           <i class="ti ti-printer"></i> Lap. Keuangan
         </a>
       </div>
