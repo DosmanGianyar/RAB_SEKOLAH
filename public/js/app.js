@@ -5418,6 +5418,11 @@ function renderLpjView() {
     ddItems += ddItem('', 'ti-file-certificate', 'Cetak Lap. Kegiatan', { href: `/cetak-lpj/${p.id}`, cls: 'aksi-dd-green', title: 'Laporan Kegiatan (Narasi, Daftar Hadir, Foto)' });
     ddItems += ddItem('', 'ti-printer', 'Cetak Lap. Keuangan', { href: `/cetak-lpj-bundel/${p.id}`, cls: 'aksi-dd-blue', title: 'Laporan Keuangan (Kwitansi, LPJ Belanja, Nota)' });
 
+    if (typeof canUserDelete === 'function' && canUserDelete()) {
+      ddItems += '<div class="aksi-dd-sep"></div>';
+      ddItems += ddItem(`handleDeleteProposal(${p.id}, '${escapeHtml(p.nama_kegiatan).replace(/'/g, "&#39;")}')`, 'ti-trash', 'Hapus Usulan', { cls: 'aksi-dd-danger', title: 'Hapus permanen usulan beserta LPJ-nya' });
+    }
+
     const actionsHtml = `
       <div class="aksi-dd">
         <button type="button" class="btn btn-secondary btn-xs aksi-dd-btn" onclick="toggleAksiMenu(event, this)">

@@ -5569,3 +5569,6 @@ input.search-input,
 
 /* Menu dropdown Aksi dipasang di <body>: wajib di atas semua elemen */
 body > .aksi-dd-menu { z-index: 2147483000; }
+
+.aksi-dd-danger { color: #b91c1c; }
+.aksi-dd-danger:hover { background: #fef2f2; }
