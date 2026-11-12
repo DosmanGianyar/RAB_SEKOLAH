@@ -222,62 +222,55 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
       color: #000000;
       font-size: 11pt;
       line-height: 1.35;
+      padding: 24px;
+      margin: 0;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Bilah Navigasi Print di Layar Komputer */
-    .screen-toolbar {
-      position: sticky;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: #0f172a;
-      color: #ffffff;
-      padding: 10px 20px;
+    /* Bilah Navigasi Print Standar Layar (Disembunyikan saat dicetak) */
+    .no-print-toolbar {
+      max-width: 210mm;
+      margin: 0 auto 16px;
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
-      z-index: 1000;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-
-    .toolbar-title {
-      font-weight: 700;
-      font-size: 0.95rem;
-      display: flex;
       align-items: center;
-      gap: 8px;
+      background: #ffffff;
+      padding: 12px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     }
 
-    .toolbar-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    .btn-print {
-      background: #059669;
-      color: #ffffff;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 0.88rem;
-      cursor: pointer;
+    .btn-toolbar {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      transition: background 0.15s;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      transition: all 0.2s;
     }
 
-    .btn-print:hover { background: #047857; }
-
-    .btn-back {
-      background: #334155;
+    .btn-primary {
+      background: #2563eb;
       color: #ffffff;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
+    }
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
       font-size: 0.88rem;
       cursor: pointer;
       text-decoration: none;
@@ -732,8 +725,9 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
       body {
         background: #ffffff !important;
         color: #000000 !important;
+        padding: 0 !important;
       }
-      .screen-toolbar {
+      .no-print-toolbar {
         display: none !important;
       }
       .sheet-wrapper {
@@ -745,6 +739,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
         padding: 0 !important;
         width: 100% !important;
         min-height: auto !important;
+        margin: 0 !important;
       }
       .cover-frame {
         min-height: 270mm !important;
@@ -754,27 +749,26 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
 </head>
 <body>
 
-  <!-- Bilah Navigasi Layar (Disembunyikan saat dicetak) -->
-  <div class="screen-toolbar">
-    <div class="toolbar-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <line x1="16" y1="13" x2="8" y2="13"></line>
-        <line x1="16" y1="17" x2="8" y2="17"></line>
-        <polyline points="10 9 9 9 8 9"></polyline>
-      </svg>
-      Bundel Lengkap LPJ: ${escapeHtml(proposal.nama_kegiatan)}
+  <!-- Top Toolbar (Hidden on Print) Standar Model Cetak SMAN 1 Gianyar -->
+  <div class="no-print-toolbar">
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="background: #ef4444; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.8px;">MODE DEMO</span>
+        <div style="font-weight: 800; font-size: 1rem; color: #0f172a;">Pratinjau Bundel Dokumen LPJ Resmi (Standar Cetak A4)</div>
+      </div>
+      <div style="font-size: 0.8rem; color: #dc2626; font-weight: 600; margin-top: 2px;">Dokumen simulasi uji coba internal SMA Negeri 1 Gianyar (Belum berlaku definitif)</div>
     </div>
-    <div class="toolbar-actions">
-      <a href="/#" class="btn-back">Kembali ke Aplikasi</a>
-      <button class="btn-print" onclick="window.print()">
+    <div style="display: flex; gap: 10px;">
+      <a href="/" class="btn-toolbar btn-secondary">
+        ← Kembali ke Aplikasi
+      </a>
+      <button onclick="window.print()" class="btn-toolbar btn-primary">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="6 9 6 2 18 2 18 9"></polyline>
           <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
           <rect x="6" y="14" width="12" height="8"></rect>
         </svg>
-        Cetak Bundel / Simpan PDF
+        Cetak Bundel LPJ (PDF)
       </button>
     </div>
   </div>

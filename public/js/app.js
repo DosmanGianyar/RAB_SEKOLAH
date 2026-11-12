@@ -2632,13 +2632,13 @@ function renderProposalsList(proposals) {
             <i class="ti ti-file-certificate"></i> LPJ
           </a>
           <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Bundel Lengkap LPJ (Cover, Kwitansi, LPJ, Slip, Daftar Hadir, Foto, Nota)">
-            <i class="ti ti-book"></i> Bundel LPJ
+            <i class="ti ti-printer"></i> Bundel LPJ
           </a>
         `;
       } else if (p.status === 'DICAIRKAN') {
         printActionBtn += `
           <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Bundel Berkas Kwitansi Komite &amp; Pencairan Kas">
-            <i class="ti ti-book"></i> Kwitansi / Bundel
+            <i class="ti ti-printer"></i> Kwitansi / Bundel
           </a>
         `;
       }
@@ -4975,16 +4975,8 @@ function renderLpjView() {
       `;
     }
 
-    if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
-      actionsHtml += `
-        <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn btn-outline-primary btn-xs" title="Cetak Bundel Lengkap LPJ (Cover, Kwitansi, LPJ, Slip, Daftar Hadir, Foto, Nota)">
-          <i class="ti ti-book"></i> Bundel LPJ
-        </a>
-      `;
-    }
-
     actionsHtml += `
-        <a href="/cetak/${p.id}" target="_blank" class="btn btn-secondary btn-xs" title="Cetak Disposisi & Rincian">
+        <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn btn-secondary btn-xs" title="Cetak Bundel Lengkap LPJ Resmi (Cover, Kwitansi, LPJ, Lampiran)">
           <i class="ti ti-printer"></i>
         </a>
       </div>
