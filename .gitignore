@@ -6,3 +6,10 @@ rab_sekolah.db-wal
 rab_sekolah.db-shm
 uploads/nota/*
 !uploads/nota/.gitkeep
+uploads/transfer/*
+!uploads/transfer/.gitkeep
+uploads/daftar_hadir/*
+!uploads/daftar_hadir/.gitkeep
+uploads/foto/*
+!uploads/foto/.gitkeep
+scratch/

@@ -141,6 +141,12 @@ function initDatabase() {
   if (!colNames.includes('catatan_pencairan')) {
     db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN catatan_pencairan TEXT`).run();
   }
+  if (!colNames.includes('file_bukti_transfer_url')) {
+    db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN file_bukti_transfer_url TEXT`).run();
+  }
+  if (!colNames.includes('nomor_kode_kwitansi')) {
+    db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN nomor_kode_kwitansi TEXT`).run();
+  }
 
   // Migrasi aman untuk kolom Template LPJ Lengkap pada lpj_pertanggungjawaban
   const lpjTableInfo = db.prepare(`PRAGMA table_info(lpj_pertanggungjawaban)`).all();
@@ -162,6 +168,9 @@ function initDatabase() {
   }
   if (!lpjColNames.includes('solusi_tindak_lanjut')) {
     db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN solusi_tindak_lanjut TEXT`).run();
+  }
+  if (!lpjColNames.includes('file_daftar_hadir_url')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN file_daftar_hadir_url TEXT`).run();
   }
 
   // Migrasi kolom password pada users jika belum ada
@@ -1100,6 +1109,7 @@ function getPengajuanById(id) {
            u.unit_bagian AS pemohon_unit,
            u.role AS pemohon_role,
            pos.nama_pos,
+           pos.kode_rekening AS kode_rekening_pos,
            pos.tahun_ajaran,
            pos.pagu_awal,
            (pos.pagu_awal - pos.total_terserap - pos.pagu_tercadangkan) AS sisa_pagu_pos
@@ -1405,7 +1415,9 @@ function disburseProposal({
   penerima_dana,
   nomor_referensi_transfer,
   tanggal_pencairan,
-  catatan_pencairan
+  catatan_pencairan,
+  file_bukti_transfer_url,
+  nomor_kode_kwitansi
 }) {
   const proposal = getPengajuanById(proposal_id);
   if (!proposal) {
@@ -1431,7 +1443,9 @@ function disburseProposal({
         penerima_dana = ?,
         nomor_referensi_transfer = ?,
         tanggal_pencairan = ?,
-        catatan_pencairan = ?
+        catatan_pencairan = ?,
+        file_bukti_transfer_url = COALESCE(?, file_bukti_transfer_url),
+        nomor_kode_kwitansi = COALESCE(?, nomor_kode_kwitansi)
     WHERE id = ?
   `).run(
     metode_pencairan,
@@ -1441,6 +1455,8 @@ function disburseProposal({
     nomor_referensi_transfer || null,
     tglCair,
     catatan_pencairan || null,
+    file_bukti_transfer_url || null,
+    nomor_kode_kwitansi || null,
     proposal_id
   );
 
@@ -1517,6 +1533,7 @@ function submitLpjByGuru({
   user_id,
   total_belanja_riil,
   file_nota_url,
+  file_daftar_hadir_url,
   catatan_lpj,
   nota_items = [],
   tujuan_kegiatan = '',
@@ -1574,6 +1591,7 @@ function submitLpjByGuru({
           total_belanja_riil = ?,
           sisa_pengembalian_dana = ?,
           file_nota_url = ?,
+          file_daftar_hadir_url = COALESCE(?, file_daftar_hadir_url),
           catatan_lpj = ?,
           tujuan_kegiatan = ?,
           tempat_pelaksanaan = ?,
@@ -1585,7 +1603,7 @@ function submitLpjByGuru({
           created_at = datetime('now', 'localtime')
       WHERE id = ?
     `).run(
-      danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '',
+      danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, file_daftar_hadir_url || null, catatan_lpj || '',
       tujuan_kegiatan || '', tempat_pelaksanaan || '', jumlah_peserta || '',
       resume_hasil || '', kendala || '', solusi_tindak_lanjut || '',
       lpjId
@@ -1594,11 +1612,11 @@ function submitLpjByGuru({
     const insertLpjRes = db.prepare(`
       INSERT INTO lpj_pertanggungjawaban (
         pengajuan_id, total_dana_cair, total_belanja_riil, sisa_pengembalian_dana,
-        file_nota_url, catatan_lpj, tujuan_kegiatan, tempat_pelaksanaan, jumlah_peserta,
+        file_nota_url, file_daftar_hadir_url, catatan_lpj, tujuan_kegiatan, tempat_pelaksanaan, jumlah_peserta,
         resume_hasil, kendala, solusi_tindak_lanjut, status_lpj
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'MENUNGGU_VERIFIKASI')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'MENUNGGU_VERIFIKASI')
     `).run(
-      pengajuan_id, danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, catatan_lpj || '',
+      pengajuan_id, danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, file_daftar_hadir_url || null, catatan_lpj || '',
       tujuan_kegiatan || '', tempat_pelaksanaan || '', jumlah_peserta || '',
       resume_hasil || '', kendala || '', solusi_tindak_lanjut || ''
     );

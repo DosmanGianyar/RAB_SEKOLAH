@@ -41,33 +41,48 @@ const {
 
 const { renderCetakDisposisi } = require('./views/cetak-disposisi');
 const { renderCetakLpj } = require('./views/cetak-lpj');
+const { renderCetakLpjBundel } = require('./views/cetak-lpj-bundel');
 const { renderCetakRkas } = require('./views/cetak-rkas');
 const { renderVerifikasiPublik } = require('./views/verifikasi-publik');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '..', 'uploads', 'nota');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Ensure upload directories exist
+const uploadDir = path.join(__dirname, '..', 'uploads');
+const uploadSubdirs = ['nota', 'transfer', 'daftar_hadir', 'foto'];
+uploadSubdirs.forEach(sub => {
+  const p = path.join(uploadDir, sub);
+  if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+});
 
-// Konfigurasi Multer untuk Unggah Berkas Nota LPJ (Fase 5)
+// Konfigurasi Multer Terpadu untuk Berkas LPJ, Transfer & Dokumentasi
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    let sub = 'nota';
+    if (file.fieldname === 'file_bukti_transfer') {
+      sub = 'transfer';
+    } else if (file.fieldname === 'file_daftar_hadir') {
+      sub = 'daftar_hadir';
+    } else if (file.fieldname.startsWith('foto_kegiatan')) {
+      sub = 'foto';
+    }
+    cb(null, path.join(uploadDir, sub));
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const safeName = 'nota-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + ext;
+    let prefix = 'nota-';
+    if (file.fieldname === 'file_bukti_transfer') prefix = 'transfer-';
+    else if (file.fieldname === 'file_daftar_hadir') prefix = 'daftar-hadir-';
+    else if (file.fieldname.startsWith('foto_kegiatan')) prefix = 'foto-';
+    const safeName = prefix + Date.now() + '-' + Math.round(Math.random() * 1e9) + ext;
     cb(null, safeName);
   }
 });
 
 const uploadNota = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // Maksimal 10MB
+  limits: { fileSize: 15 * 1024 * 1024 }, // Maksimal 15MB
   fileFilter: (req, file, cb) => {
     const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -667,8 +682,8 @@ app.get('/api/pengajuan/:id/audit', requireAuth, (req, res) => {
 // FASE 4: MODUL PENCAIRAN KAS & DISPOSISI BER-QR CODE RESMI
 // ==========================================================================
 
-// 1. Eksekusi Pencairan Kas oleh Bendahara / Admin
-app.post('/api/pengajuan/:id/cairkan', requireAuth, (req, res) => {
+// 1. Eksekusi Pencairan Kas oleh Bendahara / Admin (Mendukung Upload Bukti Transfer & No Kode Kwitansi)
+app.post('/api/pengajuan/:id/cairkan', requireAuth, uploadNota.single('file_bukti_transfer'), (req, res) => {
   try {
     const {
       metode_pencairan,
@@ -677,7 +692,8 @@ app.post('/api/pengajuan/:id/cairkan', requireAuth, (req, res) => {
       penerima_dana,
       nomor_referensi_transfer,
       tanggal_pencairan,
-      catatan_pencairan
+      catatan_pencairan,
+      nomor_kode_kwitansi
     } = req.body;
 
     if (req.user.role !== 'BENDAHARA' && req.user.role !== 'ADMIN') {
@@ -686,6 +702,13 @@ app.post('/api/pengajuan/:id/cairkan', requireAuth, (req, res) => {
 
     if (!metode_pencairan) {
       return res.status(400).json({ success: false, message: 'Pilihan metode pencairan (TUNAI/TRANSFER_BANK) wajib diisi.' });
+    }
+
+    let fileBuktiTransferUrl = null;
+    if (req.file) {
+      fileBuktiTransferUrl = `/uploads/transfer/${req.file.filename}`;
+    } else if (req.body.existing_bukti_transfer_url) {
+      fileBuktiTransferUrl = req.body.existing_bukti_transfer_url;
     }
 
     const updated = disburseProposal({
@@ -697,7 +720,9 @@ app.post('/api/pengajuan/:id/cairkan', requireAuth, (req, res) => {
       penerima_dana,
       nomor_referensi_transfer,
       tanggal_pencairan,
-      catatan_pencairan
+      catatan_pencairan,
+      file_bukti_transfer_url: fileBuktiTransferUrl,
+      nomor_kode_kwitansi: nomor_kode_kwitansi || null
     });
 
     res.json({
@@ -1014,6 +1039,32 @@ app.get('/cetak-lpj/:id', async (req, res) => {
   }
 });
 
+// 3c. Render Bundel Cetak Lengkap LPJ Kegiatan Siswa (A4 Print-Ready)
+app.get('/cetak-lpj-bundel/:id', async (req, res) => {
+  try {
+    const user = getUserBySessionToken(req.cookies ? req.cookies.session_token : null) || req.user;
+    const proposal = getPengajuanById(Number(req.params.id));
+    if (!proposal) {
+      return res.status(404).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Proposal kegiatan tidak ditemukan.</h2>');
+    }
+
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const hostUrl = `${protocol}://${host}`;
+
+    const html = renderCetakLpjBundel({
+      proposal,
+      hostUrl
+    });
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.error('Error rendering bundel cetak LPJ:', err);
+    res.status(500).send('Terjadi kesalahan saat membuat dokumen bundel cetak LPJ: ' + err.message);
+  }
+});
+
 // 4. Portal Publik Verifikasi Keabsahan Dokumen Digital (Scan QR Code)
 app.get('/verifikasi/:token', (req, res) => {
   try {
@@ -1050,13 +1101,20 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
       solusi_tindak_lanjut
     } = req.body;
 
-    // Petakan semua berkas yang terunggah berdasarkan nama field (misal: nota_file_0, foto_kegiatan_0, file_nota)
+    // Petakan semua berkas yang terunggah berdasarkan nama field
     const fileMap = {};
     if (req.files && Array.isArray(req.files)) {
       req.files.forEach(f => {
-        fileMap[f.fieldname] = `/uploads/nota/${f.filename}`;
+        let sub = 'nota';
+        if (f.fieldname === 'file_bukti_transfer') sub = 'transfer';
+        else if (f.fieldname === 'file_daftar_hadir') sub = 'daftar_hadir';
+        else if (f.fieldname.startsWith('foto_kegiatan')) sub = 'foto';
+        fileMap[f.fieldname] = `/uploads/${sub}/${f.filename}`;
       });
     }
+
+    // Berkas Daftar Hadir (PDF/Scan)
+    const fileDaftarHadirUrl = fileMap['file_daftar_hadir'] || req.body.existing_daftar_hadir_url || null;
 
     // 1. Parsing data item nota jika dikirim dalam bentuk JSON repeater
     let parsedNotaItems = [];
@@ -1113,6 +1171,7 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
       user_id: req.user.id,
       total_belanja_riil: (total_belanja_riil !== undefined && total_belanja_riil !== '') ? Number(total_belanja_riil) : 0,
       file_nota_url: singleFileUrl,
+      file_daftar_hadir_url: fileDaftarHadirUrl,
       catatan_lpj,
       nota_items: parsedNotaItems,
       tujuan_kegiatan,

@@ -2616,8 +2616,17 @@ function renderProposalsList(proposals) {
       `;
       if (p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
         printActionBtn += `
-          <a href="/cetak-lpj/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; margin-left:4px;" title="Cetak Laporan Pertanggungjawaban (LPJ) Lengkap">
+          <a href="/cetak-lpj/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; margin-left:4px;" title="Cetak Laporan Pertanggungjawaban (LPJ)">
             <i class="ti ti-file-certificate"></i> LPJ
+          </a>
+          <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Bundel Lengkap LPJ (Cover, Kwitansi, LPJ, Slip, Daftar Hadir, Foto, Nota)">
+            <i class="ti ti-book"></i> Bundel LPJ
+          </a>
+        `;
+      } else if (p.status === 'DICAIRKAN') {
+        printActionBtn += `
+          <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Bundel Berkas Kwitansi Komite &amp; Pencairan Kas">
+            <i class="ti ti-book"></i> Kwitansi / Bundel
           </a>
         `;
       }
@@ -2927,11 +2936,25 @@ async function openProposalDetail(id) {
         footer.appendChild(btnViewLpj);
 
         const btnCetakLpj = document.createElement('a');
-        btnCetakLpj.className = 'btn btn-primary btn-sm';
+        btnCetakLpj.className = 'btn btn-outline-success btn-sm';
         btnCetakLpj.href = `/cetak-lpj/${p.id}`;
         btnCetakLpj.target = '_blank';
-        btnCetakLpj.innerHTML = '<i class="ti ti-printer"></i> Cetak LPJ Resmi (PDF)';
+        btnCetakLpj.innerHTML = '<i class="ti ti-printer"></i> Cetak LPJ Saja';
         footer.appendChild(btnCetakLpj);
+
+        const btnCetakBundel = document.createElement('a');
+        btnCetakBundel.className = 'btn btn-primary btn-sm';
+        btnCetakBundel.href = `/cetak-lpj-bundel/${p.id}`;
+        btnCetakBundel.target = '_blank';
+        btnCetakBundel.innerHTML = '<i class="ti ti-book"></i> Cetak Bundel Lengkap LPJ';
+        footer.appendChild(btnCetakBundel);
+      } else if (p.status === 'DICAIRKAN') {
+        const btnCetakBundel = document.createElement('a');
+        btnCetakBundel.className = 'btn btn-outline-primary btn-sm';
+        btnCetakBundel.href = `/cetak-lpj-bundel/${p.id}`;
+        btnCetakBundel.target = '_blank';
+        btnCetakBundel.innerHTML = '<i class="ti ti-book"></i> Pratinjau Kwitansi / Bundel';
+        footer.appendChild(btnCetakBundel);
       }
     }
   } catch (err) {
@@ -3610,6 +3633,28 @@ function showNotification(msg, icon = 'success') {
 // ==========================================================================
 
 let activeCairkanProposal = null;
+let selectedCairkanTransferFile = null;
+
+function handleCairkanFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  selectedCairkanTransferFile = file;
+  const wrap = document.getElementById('cairkanBuktiTransferPreviewWrap');
+  const nameSpan = document.getElementById('cairkanBuktiTransferFileName');
+  if (wrap && nameSpan) {
+    wrap.style.display = 'flex';
+    nameSpan.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+  }
+}
+
+function clearCairkanFile(event) {
+  if (event) event.stopPropagation();
+  selectedCairkanTransferFile = null;
+  const input = document.getElementById('cairkanBuktiTransferFile');
+  if (input) input.value = '';
+  const wrap = document.getElementById('cairkanBuktiTransferPreviewWrap');
+  if (wrap) wrap.style.display = 'none';
+}
 
 async function openCairkanModal(proposalId) {
   const modal = document.getElementById('modalCairkanDana');
@@ -3635,6 +3680,19 @@ async function openCairkanModal(proposalId) {
       document.getElementById('cairkanNomorRef').value = '';
       document.getElementById('cairkanNomorRekening').value = '';
 
+      // Kode Kwitansi & Bukti Transfer
+      const elKode = document.getElementById('cairkanNomorKodeKwitansi');
+      if (elKode) elKode.value = p.nomor_kode_kwitansi || '7';
+      selectedCairkanTransferFile = null;
+      const wrapTf = document.getElementById('cairkanBuktiTransferPreviewWrap');
+      const nameTf = document.getElementById('cairkanBuktiTransferFileName');
+      if (p.file_bukti_transfer_url && wrapTf && nameTf) {
+        wrapTf.style.display = 'flex';
+        nameTf.textContent = p.file_bukti_transfer_url.split('/').pop();
+      } else if (wrapTf) {
+        wrapTf.style.display = 'none';
+      }
+
       // Reset ke mode Kas Tunai
       const radioTunai = document.querySelector('input[name="metode_pencairan"][value="TUNAI"]');
       if (radioTunai) radioTunai.checked = true;
@@ -3649,6 +3707,7 @@ async function openCairkanModal(proposalId) {
 function closeCairkanModal() {
   document.getElementById('modalCairkanDana').classList.remove('active');
   activeCairkanProposal = null;
+  selectedCairkanTransferFile = null;
 }
 
 function handlePaymentMethodChange() {
@@ -3680,20 +3739,26 @@ async function handlePencairanSubmit(e) {
   const penerima_dana = document.getElementById('cairkanPenerimaDana').value.trim();
   const tanggal_pencairan = document.getElementById('cairkanTanggal').value;
   const catatan_pencairan = document.getElementById('cairkanCatatan').value.trim();
+  const nomor_kode_kwitansi = document.getElementById('cairkanNomorKodeKwitansi')?.value.trim() || '7';
+
+  const formData = new FormData();
+  formData.append('metode_pencairan', metode_pencairan);
+  formData.append('bank_tujuan', bank_tujuan);
+  formData.append('nomor_rekening', nomor_rekening);
+  formData.append('nomor_referensi_transfer', nomor_referensi_transfer);
+  formData.append('penerima_dana', penerima_dana);
+  formData.append('tanggal_pencairan', tanggal_pencairan);
+  formData.append('catatan_pencairan', catatan_pencairan);
+  formData.append('nomor_kode_kwitansi', nomor_kode_kwitansi);
+
+  if (selectedCairkanTransferFile) {
+    formData.append('file_bukti_transfer', selectedCairkanTransferFile);
+  }
 
   try {
     const res = await fetch(`/api/pengajuan/${id}/cairkan`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        metode_pencairan,
-        bank_tujuan,
-        nomor_rekening,
-        nomor_referensi_transfer,
-        penerima_dana,
-        tanggal_pencairan,
-        catatan_pencairan
-      })
+      body: formData
     });
 
     const data = await res.json();
@@ -3703,9 +3768,16 @@ async function handlePencairanSubmit(e) {
         Swal.fire({
           icon: 'success',
           title: 'Kas Berhasil Dicairkan!',
-          text: data.message,
+          html: `
+            <p>${data.message}</p>
+            <div style="margin-top: 14px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+              <a href="/cetak-lpj-bundel/${id}" target="_blank" class="btn btn-outline-primary" style="font-size: 0.85rem; padding: 6px 12px; text-decoration: none;">
+                📑 Cetak Bundel Kwitansi &amp; Dokumen
+              </a>
+            </div>
+          `,
           confirmButtonColor: '#059669',
-          timer: 3000
+          confirmButtonText: 'Tutup'
         });
       } else {
         showNotification(`✓ ${data.message}`);
@@ -3746,6 +3818,7 @@ async function handlePencairanSubmit(e) {
 // State Editor Halaman Penuh LPJ
 let activeLpjProposal = null;
 let selectedEditorMasterFile = null;
+let selectedEditorDaftarHadirFile = null;
 let editorReceiptRows = [];
 let nextEditorReceiptId = 1;
 let editorFotoRows = [];
@@ -3805,6 +3878,15 @@ async function navigateToLpjEditor(proposalId) {
       }
     });
 
+    const btnBundelTop = document.getElementById('btnEditorCetakLpjBundel');
+    const btnBundelBottom = document.getElementById('btnEditorCetakLpjBundelBottom');
+    [btnBundelTop, btnBundelBottom].forEach(btn => {
+      if (btn) {
+        btn.href = `/cetak-lpj-bundel/${p.id}`;
+        btn.style.display = p.lpj ? 'inline-flex' : 'none';
+      }
+    });
+
     // Tampilkan Referensi Rincian Item RAB Disetujui
     const refBox = document.getElementById('editorLpjApprovedItemsRefBox');
     const refList = document.getElementById('editorLpjApprovedItemsList');
@@ -3834,6 +3916,8 @@ async function navigateToLpjEditor(proposalId) {
     editorFotoRows = [];
     nextEditorFotoId = 1;
     selectedEditorMasterFile = null;
+    selectedEditorDaftarHadirFile = null;
+    clearEditorDaftarHadir();
 
     const receiptStack = document.getElementById('editorLpjNotaStack');
     if (receiptStack) receiptStack.innerHTML = '';
@@ -3870,6 +3954,18 @@ async function navigateToLpjEditor(proposalId) {
         }
       } else {
         clearEditorMasterFile();
+      }
+
+      // Berkas Daftar Hadir PDF
+      if (p.lpj.file_daftar_hadir_url) {
+        const wrapDh = document.getElementById('editorLpjDaftarHadirPreviewWrap');
+        const nameDh = document.getElementById('editorLpjDaftarHadirFileName');
+        if (wrapDh && nameDh) {
+          wrapDh.style.display = 'flex';
+          nameDh.textContent = p.lpj.file_daftar_hadir_url.split('/').pop();
+        }
+      } else {
+        clearEditorDaftarHadir();
       }
 
       // Nota Items
@@ -4197,6 +4293,34 @@ function clearEditorMasterFile(event) {
   }
 }
 
+// Berkas Daftar Hadir (PDF)
+function handleEditorDaftarHadirSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  selectedEditorDaftarHadirFile = file;
+
+  const wrap = document.getElementById('editorLpjDaftarHadirPreviewWrap');
+  const nameSpan = document.getElementById('editorLpjDaftarHadirFileName');
+
+  if (wrap && nameSpan) {
+    wrap.style.display = 'flex';
+    nameSpan.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+  }
+}
+
+function clearEditorDaftarHadir(event) {
+  if (event) event.stopPropagation();
+  selectedEditorDaftarHadirFile = null;
+
+  const input = document.getElementById('editorLpjDaftarHadirInput');
+  if (input) input.value = '';
+
+  const wrap = document.getElementById('editorLpjDaftarHadirPreviewWrap');
+  if (wrap) {
+    wrap.style.display = 'none';
+  }
+}
+
 // --------------------------------------------------------------------------
 // Dokumentasi Foto Kegiatan di Halaman Editor LPJ
 // --------------------------------------------------------------------------
@@ -4357,6 +4481,11 @@ async function submitLpjFromEditor(event) {
     formData.append('file_nota', selectedEditorMasterFile);
   }
 
+  // Berkas Daftar Hadir PDF (opsional)
+  if (selectedEditorDaftarHadirFile) {
+    formData.append('file_daftar_hadir', selectedEditorDaftarHadirFile);
+  }
+
   // Foto dokumentasi
   const fotoPayload = [];
   editorFotoRows.forEach((f, idx) => {
@@ -4397,9 +4526,12 @@ async function submitLpjFromEditor(event) {
           title: 'Laporan LPJ Berhasil Disimpan!',
           html: `
             <p>${data.message}</p>
-            <div style="margin-top: 15px;">
-              <a href="/cetak-lpj/${id}" target="_blank" class="btn btn-outline-success" style="font-size: 0.85rem; padding: 8px 14px; text-decoration: none;">
-                🖨️ Buka & Cetak Laporan PDF Resmi
+            <div style="margin-top: 15px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+              <a href="/cetak-lpj/${id}" target="_blank" class="btn btn-outline-success" style="font-size: 0.82rem; padding: 6px 12px; text-decoration: none;">
+                🖨️ Cetak Lembar LPJ Saja
+              </a>
+              <a href="/cetak-lpj-bundel/${id}" target="_blank" class="btn btn-primary" style="font-size: 0.82rem; padding: 6px 12px; text-decoration: none;">
+                📑 Cetak Bundel Lengkap LPJ
               </a>
             </div>
           `,
