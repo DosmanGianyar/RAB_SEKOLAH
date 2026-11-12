@@ -1037,11 +1037,11 @@
           <span class="invoice-badge-tag" id="editorLpjNomorSurat">Nomor Surat</span>
         </div>
         <div class="header-right-actions">
-          <a href="#" target="_blank" class="btn btn-secondary btn-sm" id="btnEditorCetakLpj" title="Pratinjau &amp; Cetak Lembar LPJ Standar">
-            <i class="ti ti-printer" style="color: #059669;"></i> Cetak LPJ Saja
+          <a href="#" target="_blank" class="btn btn-secondary btn-sm" id="btnEditorCetakLpj" title="Pratinjau &amp; Cetak Lembar Laporan Kegiatan">
+            <i class="ti ti-file-certificate" style="color: #059669;"></i> Cetak Lap. Kegiatan
           </a>
-          <a href="#" target="_blank" class="btn btn-outline-primary btn-sm" id="btnEditorCetakLpjBundel" title="Cetak Bundel Lengkap (Cover, Kwitansi 6 TTD, Lembar LPJ, Slip Bank, Daftar Hadir, Foto, Nota)">
-            <i class="ti ti-book" style="color: #2563eb;"></i> Cetak Bundel Lengkap LPJ
+          <a href="#" target="_blank" class="btn btn-outline-primary btn-sm" id="btnEditorCetakLpjBundel" title="Pratinjau &amp; Cetak Laporan Keuangan">
+            <i class="ti ti-printer" style="color: #2563eb;"></i> Cetak Lap. Keuangan
           </a>
           <button type="button" class="btn btn-primary btn-sm" onclick="submitLpjFromEditor(event)" id="btnEditorSubmitLpjTop">
             <i class="ti ti-check"></i> Simpan &amp; Serahkan LPJ
@@ -1225,7 +1225,7 @@
               <div>
                 <span class="lpj-section-tag"><i class="ti ti-file-text"></i> Bagian IV: Lampiran Daftar Hadir Kegiatan (PDF)</span>
                 <p style="font-size: 0.76rem; color: var(--text-muted); margin: 4px 0 0;">
-                  Unggah berkas PDF daftar hadir / presensi siswa dan pembina. Halaman ini akan digabungkan langsung ke lembar lampiran Daftar Hadir pada Bundel LPJ.
+                  Unggah berkas PDF daftar hadir / presensi siswa dan pembina. Halaman ini akan digabungkan langsung ke lembar lampiran Daftar Hadir pada Laporan Kegiatan.
                 </p>
               </div>
             </div>
@@ -1252,7 +1252,7 @@
               <div>
                 <span class="lpj-section-tag"><i class="ti ti-camera"></i> Bagian V: Dokumentasi Foto Kegiatan</span>
                 <p style="font-size: 0.76rem; color: var(--text-muted); margin: 4px 0 0;">
-                  Unggah foto-foto pelaksanaan kegiatan (dapat ditambahkan sebanyak-banyaknya) beserta keterangan untuk dicetak rapi pada lampiran foto Bundel LPJ.
+                  Unggah foto-foto pelaksanaan kegiatan (dapat ditambahkan sebanyak-banyaknya) beserta keterangan untuk dicetak rapi pada lembar lampiran foto Laporan Kegiatan.
                 </p>
               </div>
               <button type="button" class="btn-lpj-add-action" onclick="addEditorFotoRow()">
@@ -1287,11 +1287,11 @@
               ← Batal &amp; Kembali
             </button>
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-              <a href="#" target="_blank" class="btn btn-secondary btn-sm" id="btnEditorCetakLpjBottom" title="Pratinjau Lembar Cetak LPJ Standar">
-                <i class="ti ti-printer" style="color: #059669;"></i> Cetak LPJ Saja
+              <a href="#" target="_blank" class="btn btn-secondary btn-sm" id="btnEditorCetakLpjBottom" title="Pratinjau Lembar Cetak Laporan Kegiatan">
+                <i class="ti ti-file-certificate" style="color: #059669;"></i> Cetak Lap. Kegiatan
               </a>
-              <a href="#" target="_blank" class="btn btn-outline-primary btn-sm" id="btnEditorCetakLpjBundelBottom" title="Cetak Bundel Lengkap LPJ (Cover, Kwitansi, LPJ, Slip, Daftar Hadir, Foto, Nota)">
-                <i class="ti ti-book" style="color: #2563eb;"></i> Cetak Bundel Lengkap LPJ
+              <a href="#" target="_blank" class="btn btn-outline-primary btn-sm" id="btnEditorCetakLpjBundelBottom" title="Cetak Laporan Keuangan (Kwitansi Komite, Rincian Belanja, Slip, Nota Fisik)">
+                <i class="ti ti-printer" style="color: #2563eb;"></i> Cetak Lap. Keuangan
               </a>
               <button type="submit" class="btn btn-primary btn-sm" id="btnEditorSubmitLpjBottom">
                 📋 Simpan &amp; Serahkan LPJ ke Bendahara
