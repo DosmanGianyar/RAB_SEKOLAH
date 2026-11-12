@@ -1483,6 +1483,31 @@ function disburseProposal({
   return getPengajuanById(proposal_id);
 }
 
+// Upload / Update Bukti Transfer Kas Susulan
+function updateBuktiTransfer({ proposal_id, user_id, file_bukti_transfer_url, nomor_kode_kwitansi }) {
+  const proposal = getPengajuanById(proposal_id);
+  if (!proposal) throw new Error('Proposal kegiatan tidak ditemukan.');
+
+  db.prepare(`
+    UPDATE pengajuan_kegiatan
+    SET file_bukti_transfer_url = ?,
+        nomor_kode_kwitansi = COALESCE(?, nomor_kode_kwitansi),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(file_bukti_transfer_url, nomor_kode_kwitansi || null, proposal_id);
+
+  const user = getUserById(user_id);
+  const operatorName = user ? user.nama_lengkap : 'Bendahara Sekolah';
+  logSystemActivity({
+    pengajuan_id: proposal_id,
+    user_id,
+    tipe_aksi: 'USULAN',
+    aktivitas: `BUKTI TRANSFER DIPERBARUI: ${operatorName} mengunggah/memperbarui berkas scan bukti transfer bank & slip kas.`
+  });
+
+  return getPengajuanById(proposal_id);
+}
+
 // FASE 4: Ambil Data Proposal Berdasarkan Token QR Code untuk Verifikasi Publik
 function getPengajuanByQrToken(token) {
   const proposal = db.prepare(`
@@ -1889,6 +1914,7 @@ module.exports = {
   reviewProposalByBendahara,
   decisionProposalByKepsek,
   disburseProposal,
+  updateBuktiTransfer,
   getPengajuanByQrToken,
   submitLpjByGuru,
   verifyLpjByBendahara,

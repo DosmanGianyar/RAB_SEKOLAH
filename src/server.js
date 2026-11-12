@@ -33,6 +33,7 @@ const {
   reviewProposalByBendahara,
   decisionProposalByKepsek,
   disburseProposal,
+  updateBuktiTransfer,
   getPengajuanByQrToken,
   submitLpjByGuru,
   verifyLpjByBendahara,
@@ -732,6 +733,42 @@ app.post('/api/pengajuan/:id/cairkan', requireAuth, uploadNota.single('file_bukt
     });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 1B. Endpoint Upload / Update Bukti Transfer Kas Susulan
+app.post('/api/pengajuan/:id/bukti-transfer', requireAuth, uploadNota.single('file_bukti_transfer'), (req, res) => {
+  try {
+    if (req.user.role !== 'BENDAHARA' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Hanya Bendahara atau Admin yang berhak mengunggah bukti transfer.' });
+    }
+    const proposalId = Number(req.params.id);
+    const proposal = getPengajuanById(proposalId);
+    if (!proposal) {
+      return res.status(404).json({ success: false, message: 'Proposal kegiatan tidak ditemukan.' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Harap pilih berkas gambar atau PDF bukti transfer bank / slip kas.' });
+    }
+
+    const fileUrl = `/uploads/transfer/${req.file.filename}`;
+    const nomorKodeKwitansi = req.body.nomor_kode_kwitansi || proposal.nomor_kode_kwitansi || '7';
+
+    const updated = updateBuktiTransfer({
+      proposal_id: proposalId,
+      user_id: req.user.id,
+      file_bukti_transfer_url: fileUrl,
+      nomor_kode_kwitansi: nomorKodeKwitansi
+    });
+
+    res.json({
+      success: true,
+      data: updated,
+      file_url: fileUrl,
+      message: 'Bukti transfer kas / slip bank berhasil disimpan dan dilampirkan.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

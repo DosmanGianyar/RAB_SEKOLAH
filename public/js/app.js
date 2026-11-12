@@ -2765,16 +2765,35 @@ async function openProposalDetail(id) {
       // Banner Info Realisasi Pencairan Kas (Fase 4)
       const bannerCair = document.getElementById('detailPencairanInfoBanner');
       if (bannerCair) {
-        if (p.status === 'DICAIRKAN' || p.status === 'SELESAI') {
+        if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
           const metodeStr = p.metode_pencairan === 'TRANSFER_BANK'
             ? `Transfer Bank ${p.bank_tujuan || ''} (No. Rek: ${p.nomor_rekening || '-'}, Ref: ${p.nomor_referensi_transfer || '-'})`
             : 'Kas Tunai Langsung';
+
+          const buktiTfHtml = p.file_bukti_transfer_url
+            ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #a7f3d0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                 <div style="display: flex; align-items: center; gap: 6px;">
+                   <span style="font-weight: 700; color: #065f46;">📄 Berkas Bukti Transfer:</span>
+                   <a href="${p.file_bukti_transfer_url}" target="_blank" class="btn btn-outline-success btn-xs" style="text-decoration: none; font-weight: 700;">
+                     <i class="ti ti-eye"></i> Lihat Slip Bank
+                   </a>
+                 </div>
+                 ${(isBendahara) ? `<button type="button" class="btn btn-secondary btn-xs" onclick="triggerUploadBuktiTransfer(${p.id})"><i class="ti ti-upload"></i> Ganti File Slip</button>` : ''}
+               </div>`
+            : `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #fca5a5; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; background: #fff1f2; padding: 6px 10px; border-radius: 6px;">
+                 <div style="font-size: 0.78rem; color: #991b1b;">
+                   <strong>⚠️ Slip Bukti Transfer Bank:</strong> Belum ada scan slip yang dilampirkan.
+                 </div>
+                 ${(isBendahara) ? `<button type="button" class="btn btn-primary btn-xs" style="background:#059669; border-color:#059669; font-weight:700;" onclick="triggerUploadBuktiTransfer(${p.id})"><i class="ti ti-upload"></i> Unggah Bukti Transfer Sekarang</button>` : ''}
+               </div>`;
+
           bannerCair.style.display = 'block';
           bannerCair.innerHTML = `
             <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.82rem; color: #065f46;">
               <div style="font-weight: 800; font-size: 0.88rem; margin-bottom: 4px;">💵 REALISASI KAS: TELAH DICAIRKAN RESMI</div>
               <div>Dicairkan pada <strong>${p.tanggal_pencairan || '-'}</strong> via <strong>${metodeStr}</strong> kepada <strong>${p.penerima_dana || p.pemohon_nama}</strong>.</div>
               ${p.catatan_pencairan ? `<div style="font-size: 0.75rem; margin-top: 4px; font-style: italic; color: #047857;">Catatan: "${p.catatan_pencairan}"</div>` : ''}
+              ${buktiTfHtml}
             </div>
           `;
         } else {
@@ -3824,6 +3843,73 @@ async function handlePencairanSubmit(e) {
     } else {
       alert(`Terjadi kesalahan jaringan saat mencairkan kas: ${err.message}`);
     }
+  }
+}
+
+// Upload / Perbarui Bukti Transfer Kas Langsung (Untuk Usulan yang Sudah Dicairkan)
+let activeUploadTransferProposalId = null;
+
+function triggerUploadBuktiTransfer(proposalId) {
+  activeUploadTransferProposalId = proposalId;
+  let fileInput = document.getElementById('hiddenUploadTransferInput');
+  if (!fileInput) {
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.id = 'hiddenUploadTransferInput';
+    fileInput.accept = 'image/*,application/pdf';
+    fileInput.style.display = 'none';
+    fileInput.onchange = handleUploadTransferFileDirect;
+    document.body.appendChild(fileInput);
+  }
+  fileInput.click();
+}
+
+async function handleUploadTransferFileDirect(e) {
+  const file = e.target.files[0];
+  if (!file || !activeUploadTransferProposalId) return;
+
+  const id = activeUploadTransferProposalId;
+  const formData = new FormData();
+  formData.append('file_bukti_transfer', file);
+
+  try {
+    showNotification('Mengunggah bukti transfer kas...');
+    const res = await fetch(`/api/pengajuan/${id}/bukti-transfer`, {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Bukti Transfer Berhasil Disimpan!',
+          html: `<p>${data.message}</p><p style="font-size:0.8rem; color:#64748b; margin-top:8px;">Halaman Lampiran Bukti Transfer di Bundel LPJ kini telah terlampir resmi.</p>`,
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        showNotification(`✓ ${data.message}`);
+      }
+      loadProposalsList();
+      openProposalDetail(id);
+    } else {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Mengunggah',
+          text: data.message,
+          confirmButtonColor: '#ef4444'
+        });
+      } else {
+        alert(data.message || 'Gagal mengunggah bukti transfer.');
+      }
+    }
+  } catch (err) {
+    console.error('Error uploading transfer proof:', err);
+    alert('Terjadi kesalahan saat mengunggah bukti transfer.');
+  } finally {
+    e.target.value = '';
+    activeUploadTransferProposalId = null;
   }
 }
 
