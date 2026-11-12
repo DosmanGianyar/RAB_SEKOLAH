@@ -4269,9 +4269,14 @@ function addEditorReceiptRow(data = null) {
           ${rowItem.nama_toko ? escapeHtml(rowItem.nama_toko) : 'Nota Pembelian / Jasa'}
         </span>
       </div>
-      <button type="button" class="btn btn-outline-danger btn-xs" onclick="removeEditorReceiptRow(${rowId})" title="Hapus nota ini" ${editorReceiptRows.length <= 1 ? 'style="display:none;"' : ''} id="btnRemoveEditorReceipt_${rowId}">
-        <i class="ti ti-trash"></i> Hapus Nota
-      </button>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" class="btn btn-outline-danger btn-xs" onclick="clearEditorReceiptFileOnly(${rowId})" title="Hapus berkas/scan nota fisik yang diunggah (item belanja tetap tersimpan)" id="btnClearEditorReceiptFile_${rowId}">
+          <i class="ti ti-trash"></i> Hapus Nota
+        </button>
+        <button type="button" class="btn btn-secondary btn-xs" onclick="removeEditorReceiptRow(${rowId})" title="Hapus baris item belanja ini dari daftar LPJ" ${editorReceiptRows.length <= 1 ? 'style="display:none;"' : ''} id="btnRemoveEditorReceipt_${rowId}">
+          <i class="ti ti-x"></i> Hapus Baris Item
+        </button>
+      </div>
     </div>
 
     <div class="lpj-receipt-grid">
@@ -4307,6 +4312,9 @@ function addEditorReceiptRow(data = null) {
 
 function removeEditorReceiptRow(rowId) {
   if (editorReceiptRows.length <= 1) return;
+  if (!confirm('Apakah Anda yakin ingin menghapus baris item belanja ini dari daftar realisasi LPJ?')) {
+    return;
+  }
   editorReceiptRows = editorReceiptRows.filter(r => r.id !== rowId);
   const card = document.getElementById(`editorReceiptCard_${rowId}`);
   if (card) card.remove();
@@ -4318,6 +4326,44 @@ function removeEditorReceiptRow(rowId) {
 
   updateEditorReceiptRemoveButtons();
   recalculateEditorMultiTotals();
+}
+
+function clearEditorReceiptFileOnly(rowId) {
+  const row = editorReceiptRows.find(r => r.id === rowId);
+  if (!row) return;
+
+  const hadFile = !!(row.file || row.existing_file_url);
+
+  // Hapus hanya berkas nota fisik yang di-upload, jangan hapus item belanjanya
+  row.file = null;
+  row.existing_file_url = null;
+
+  const input = document.getElementById(`editorReceiptFileInput_${rowId}`);
+  if (input) input.value = '';
+
+  const area = document.getElementById(`editorReceiptFileArea_${rowId}`);
+  if (area) {
+    area.innerHTML = `
+      <div class="lpj-receipt-file-picker" id="editorReceiptFilePicker_${rowId}" onclick="document.getElementById('editorReceiptFileInput_${rowId}').click()">
+        <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+          <i class="ti ti-camera" style="font-size: 0.95rem; color: var(--primary);"></i> Foto / PDF Nota
+        </span>
+        <span class="btn btn-outline-success btn-xs" style="padding: 2px 8px; font-size: 0.7rem; pointer-events: none;">Pilih File</span>
+      </div>
+      <div class="lpj-receipt-preview-chip" id="editorReceiptPreviewChip_${rowId}" style="display: none;"></div>
+    `;
+  }
+
+  if (hadFile) {
+    showNotification('Berkas nota fisik berhasil dihapus. Item rincian belanja tetap tersimpan.', 'info');
+  } else {
+    showNotification('Belum ada berkas nota yang diunggah pada item ini. Item belanja tetap aman.', 'info');
+  }
+}
+
+function clearEditorReceiptFile(event, rowId) {
+  if (event) event.stopPropagation();
+  clearEditorReceiptFileOnly(rowId);
 }
 
 function updateEditorReceiptRemoveButtons() {
@@ -4366,30 +4412,6 @@ function handleEditorReceiptFileSelect(event, rowId) {
         <span style="font-size:0.68rem; color:var(--text-muted);">(${Math.round(file.size / 1024)} KB)</span>
         <button type="button" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem; color: var(--rose); margin-left:auto;" onclick="clearEditorReceiptFile(event, ${rowId})">✕ Hapus</button>
       </div>
-    `;
-  }
-}
-
-function clearEditorReceiptFile(event, rowId) {
-  if (event) event.stopPropagation();
-  const row = editorReceiptRows.find(r => r.id === rowId);
-  if (!row) return;
-  row.file = null;
-  row.existing_file_url = null;
-
-  const input = document.getElementById(`editorReceiptFileInput_${rowId}`);
-  if (input) input.value = '';
-
-  const area = document.getElementById(`editorReceiptFileArea_${rowId}`);
-  if (area) {
-    area.innerHTML = `
-      <div class="lpj-receipt-file-picker" id="editorReceiptFilePicker_${rowId}" onclick="document.getElementById('editorReceiptFileInput_${rowId}').click()">
-        <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-          <i class="ti ti-camera" style="font-size: 0.95rem; color: var(--primary);"></i> Foto / PDF Nota
-        </span>
-        <span class="btn btn-outline-success btn-xs" style="padding: 2px 8px; font-size: 0.7rem; pointer-events: none;">Pilih File</span>
-      </div>
-      <div class="lpj-receipt-preview-chip" id="editorReceiptPreviewChip_${rowId}" style="display: none;"></div>
     `;
   }
 }
