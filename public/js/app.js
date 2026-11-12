@@ -2750,6 +2750,12 @@ async function openProposalDetail(id) {
     const data = await res.json();
     if (data.success && data.data) {
       const p = data.data;
+
+      const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+      const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
+      const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
+      const canManageLpj = currentUser && (currentUser.id === p.user_id || currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
+
       document.getElementById('detailNomorSurat').textContent = p.nomor_surat_ajuan;
       document.getElementById('detailNamaKegiatan').textContent = p.nama_kegiatan;
       document.getElementById('detailPemohon').textContent = `${p.pemohon_nama} (${p.pemohon_unit})`;
@@ -2881,11 +2887,6 @@ async function openProposalDetail(id) {
         btnDelete.onclick = () => handleDeleteProposal(p.id, p.nama_kegiatan);
         footer.prepend(btnDelete);
       }
-
-      const isBendahara = currentUser && (currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
-      const isKepsek = currentUser && (currentUser.role === 'KEPALA_SEKOLAH' || currentUser.role === 'ANALISIS_SDM' || currentUser.role === 'ADMIN');
-      const isOwnerGuru = currentUser && (currentUser.id === p.user_id || currentUser.role === 'ADMIN');
-      const canManageLpj = currentUser && (currentUser.id === p.user_id || currentUser.role === 'BENDAHARA' || currentUser.role === 'ADMIN');
 
       // Tombol Cetak Dokumen Resmi untuk status yang sudah disahkan / dicairkan
       if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
