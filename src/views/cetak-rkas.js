@@ -1,3 +1,4 @@
+const { getPenandatanganMap, formatNipCetak } = require('../db');
 // ==========================================================================
 // Generator Lembar Cetak / Ekspor PDF Buku Besar RKAS Resmi (A4 Landscape)
 // SMA NEGERI 1 GIANYAR (DOSMAN) — SISTEM SI-ARTHA DOSMAN
@@ -21,6 +22,8 @@ function escapeHtml(str) {
 }
 
 function renderCetakRkas({ posList, summary }) {
+  const SG = getPenandatanganMap();
+  const sgv = (k) => SG[k] || { nama: '-', nip: '' };
   const currentDate = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -445,24 +448,24 @@ function renderCetakRkas({ posList, summary }) {
         <div class="sign-box-title">Diverifikasi &amp; Disahkan Oleh:</div>
         <div style="font-size: 7.8pt; font-weight: 700; color: #0f172a; margin-top: 2px;">Analisis SDM &amp; Otorisasi Pimpinan</div>
         <div class="sign-space"></div>
-        <div class="sign-name">I Gusti Ngurah Nyoman Okta Ariawan, SSTP</div>
-        <div class="sign-nip">NIP. 198804252014022003</div>
+        <div class="sign-name">${sgv('ANALIS_SDM').nama}</div>
+        <div class="sign-nip">${formatNipCetak(sgv('ANALIS_SDM').nip)}</div>
       </div>
 
       <div>
         <div class="sign-box-title">Pengelola Administrasi Keuangan:</div>
         <div style="font-size: 7.8pt; font-weight: 700; color: #0f172a; margin-top: 2px;">Bendahara Sekolah / Komite</div>
         <div class="sign-space"></div>
-        <div class="sign-name">I Gusti Ayu Reina Cahyanti</div>
-        <div class="sign-nip">NIP. 198203152008012015</div>
+        <div class="sign-name">${sgv('BENDAHARA').nama}</div>
+        <div class="sign-nip">${formatNipCetak(sgv('BENDAHARA').nip)}</div>
       </div>
 
       <div>
         <div class="sign-box-title">Gianyar, ${currentDate}</div>
         <div style="font-size: 7.8pt; font-weight: 700; color: #0f172a; margin-top: 2px;">Kepala SMA Negeri 1 Gianyar</div>
         <div class="sign-space"></div>
-        <div class="sign-name">I Wayan Sudra Astra, S.Pd., M.Pd</div>
-        <div class="sign-nip">NIP. 196811201994121001</div>
+        <div class="sign-name">${sgv('KEPSEK').nama}</div>
+        <div class="sign-nip">${formatNipCetak(sgv('KEPSEK').nip)}</div>
       </div>
     </div>
 

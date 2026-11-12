@@ -794,6 +794,69 @@ async function handleSimpanGuruBaru(e) {
 }
 window.handleSimpanGuruBaru = handleSimpanGuruBaru;
 
+// --- Kelola Penandatangan Dokumen ---
+async function openModalPenandatangan() {
+  const modal = document.getElementById('modalPenandatangan');
+  if (modal) modal.classList.add('active');
+  const box = document.getElementById('penandatanganContainer');
+  if (!box) return;
+  box.innerHTML = '<div style="text-align:center; padding:20px; color: var(--text-muted);">Memuat...</div>';
+  try {
+    const res = await fetch('/api/penandatangan');
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+    box.innerHTML = data.data.map(r => `
+      <div style="border:1px solid var(--border, #e2e8f0); border-radius:10px; padding:10px 12px; background:#fff;">
+        <div style="display:grid; grid-template-columns: 1.2fr 1.4fr 1fr auto; gap:8px; align-items:end;">
+          <div><label class="form-label" style="font-size:0.72rem;">Jabatan</label>
+            <input type="text" class="form-input" id="sgJabatan_${r.kode}" value="${escapeHtml(r.jabatan)}"></div>
+          <div><label class="form-label" style="font-size:0.72rem;">Nama Lengkap &amp; Gelar</label>
+            <input type="text" class="form-input" id="sgNama_${r.kode}" value="${escapeHtml(r.nama)}"></div>
+          <div><label class="form-label" style="font-size:0.72rem;">NIP</label>
+            <input type="text" class="form-input" id="sgNip_${r.kode}" value="${escapeHtml(r.nip || '')}" placeholder="kosongkan jika tidak ada"></div>
+          <button type="button" class="btn btn-success btn-sm" onclick="simpanPenandatangan('${r.kode}', this)"><i class="ti ti-device-floppy"></i> Simpan</button>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    box.innerHTML = '<div style="color:#b91c1c; padding:12px;">Gagal memuat: ' + escapeHtml(err.message) + '</div>';
+  }
+}
+window.openModalPenandatangan = openModalPenandatangan;
+
+function closeModalPenandatangan() {
+  const modal = document.getElementById('modalPenandatangan');
+  if (modal) modal.classList.remove('active');
+}
+window.closeModalPenandatangan = closeModalPenandatangan;
+
+async function simpanPenandatangan(kode, btn) {
+  const payload = {
+    jabatan: document.getElementById('sgJabatan_' + kode).value.trim(),
+    nama: document.getElementById('sgNama_' + kode).value.trim(),
+    nip: document.getElementById('sgNip_' + kode).value.trim()
+  };
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch('/api/penandatangan/' + kode, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (typeof showNotification === 'function') showNotification('Penandatangan berhasil disimpan.');
+      else alert('Tersimpan.');
+    } else {
+      alert(data.message || 'Gagal menyimpan.');
+    }
+  } catch (err) {
+    alert('Kesalahan jaringan: ' + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+window.simpanPenandatangan = simpanPenandatangan;
+
 function openModalDaftarGuru() {
   const modal = document.getElementById('modalKelolaGuru');
   if (modal) modal.classList.add('active');

@@ -1,3 +1,4 @@
+const { getPenandatanganMap, formatNipCetak } = require('../db');
 // ==========================================================================
 // Generator Dokumen Resmi Laporan Kegiatan Siswa A4 Print-Ready
 // SMA NEGERI 1 GIANYAR (DOSMAN)
@@ -56,10 +57,11 @@ function renderCetakLpj({ proposal, qrDataUrl, hostUrl }) {
   // Pejabat Penandatangan Resmi SMAN 1 Gianyar
   const guruNama = proposal.pemohon_nama || 'Ni Wayan Setiawati, S.Pd';
   const guruNip = proposal.pemohon_nip ? (proposal.pemohon_nip.startsWith('PPPK') || proposal.pemohon_nip.startsWith('NIP') ? proposal.pemohon_nip : `NIP. ${proposal.pemohon_nip}`) : '-';
-  const bendaharaNama = 'I Gusti Ayu Reina Cahyanti';
-  const bendaharaNip = 'NIP. 19880415 201101 2 008';
-  const kepsekNama = 'I Wayan Sudra Astra, S.Pd., M.Pd';
-  const kepsekNip = 'NIP. 19681231 199203 1 012';
+  const SG = getPenandatanganMap();
+  const bendaharaNama = (SG.BENDAHARA || {}).nama || '-';
+  const bendaharaNip = formatNipCetak((SG.BENDAHARA || {}).nip);
+  const kepsekNama = (SG.KEPSEK || {}).nama || '-';
+  const kepsekNip = formatNipCetak((SG.KEPSEK || {}).nip);
 
   // =========================================================================
   // HALAMAN TERPISAH: FOTO DOKUMENTASI KEGIATAN (2-4 FOTO PER LEMBAR)

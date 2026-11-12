@@ -129,6 +129,31 @@ function initDatabase() {
   const tableInfo = db.prepare(`PRAGMA table_info(pengajuan_kegiatan)`).all();
   const colNames = tableInfo.map(c => c.name);
 
+  // Tabel pengaturan penandatangan dokumen (dikelola Analis SDM / Kepsek lewat UI)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS pengaturan_penandatangan (
+      kode TEXT PRIMARY KEY,
+      urutan INTEGER DEFAULT 0,
+      jabatan TEXT NOT NULL,
+      nama TEXT NOT NULL,
+      nip TEXT DEFAULT '',
+      updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+    );
+  `);
+  const seedPenandatangan = db.prepare('INSERT OR IGNORE INTO pengaturan_penandatangan (kode, urutan, jabatan, nama, nip) VALUES (?, ?, ?, ?, ?)');
+  [
+    ['KEPSEK', 1, 'Kepala SMA Negeri 1 Gianyar', 'I Wayan Sudra Astra, S.Pd., M.Pd.', '19710415 199703 1 007'],
+    ['ANALIS_SDM', 2, 'Analis SDM Aparatur Ahli Muda', 'I Gusti Ngurah Nyoman Okta Ariawan, S.STP', '19921003 201507 1 001'],
+    ['BENDAHARA', 3, 'Bendahara Sekolah', 'I Gusti Ayu Reina Cahyanti', '19880415 201101 2 008'],
+    ['BENDAHARA_PUNGUTAN', 4, 'Bendahara Dana Pungutan Masyarakat', 'I Dewa Ayu Istri Megaswari', ''],
+    ['BENDAHARA_PEMBANTU', 5, 'Bendahara Pembantu Dana Pungutan Masyarakat', 'I Nyoman Suwaradana', '19721010 200903 1 003'],
+    ['KETUA_KOMITE', 6, 'Ketua Komite', 'Ir. Pande Nyoman Yuliana', ''],
+    ['WAKA_KESISWAAN', 7, 'Wakasek Kesiswaan', 'I Putu Darma Putra, S.Pd', 'PPPK. 19880930 202221 1 001'],
+    ['WAKA_KURIKULUM', 8, 'Wakasek Kurikulum', 'I Gusti Nyoman Susanta, S.Pd', '19670627 199002 1 001'],
+    ['WAKA_SARPRAS', 9, 'Wakasek Sarana & Prasarana', 'I Wayan Sumartika, S.Pd., M.Pd', '19950502 201903 1 005'],
+    ['WAKA_HUMAS', 10, 'Wakasek Humas', 'Drs. I Ketut Reta, M.Pd', '19680623 199303 1 008']
+  ].forEach(r => seedPenandatangan.run(...r));
+
   if (!colNames.includes('bidang_kegiatan')) {
     db.prepare("ALTER TABLE pengajuan_kegiatan ADD COLUMN bidang_kegiatan TEXT DEFAULT 'KESISWAAN'").run();
   }
@@ -965,6 +990,34 @@ function generateNomorSurat() {
   const countRow = db.prepare('SELECT COUNT(*) as count FROM pengajuan_kegiatan').get();
   const nextNum = (countRow.count + 1).toString().padStart(3, '0');
   return `RAB/${currentYear}/${nextNum}`;
+}
+
+function getPenandatanganList() {
+  return db.prepare('SELECT kode, urutan, jabatan, nama, nip FROM pengaturan_penandatangan ORDER BY urutan').all().map(r => ({ ...r }));
+}
+
+function getPenandatanganMap() {
+  const map = {};
+  getPenandatanganList().forEach(r => { map[r.kode] = r; });
+  return map;
+}
+
+// Format NIP untuk cetak: tambahkan awalan "NIP. " kecuali sudah berawalan huruf (mis. "PPPK.")
+function formatNipCetak(nip) {
+  const v = String(nip || '').trim();
+  if (!v) return '';
+  return /^[A-Za-z]/.test(v) ? v : 'NIP. ' + v;
+}
+
+function updatePenandatangan(kode, { jabatan, nama, nip }, user) {
+  const row = db.prepare('SELECT * FROM pengaturan_penandatangan WHERE kode = ?').get(kode);
+  if (!row) throw new Error('Kode penandatangan tidak dikenal.');
+  const nJabatan = String(jabatan || '').trim();
+  const nNama = String(nama || '').trim();
+  if (!nJabatan || !nNama) throw new Error('Jabatan dan nama wajib diisi.');
+  db.prepare("UPDATE pengaturan_penandatangan SET jabatan = ?, nama = ?, nip = ?, updated_at = datetime('now', 'localtime') WHERE kode = ?")
+    .run(nJabatan, nNama, String(nip || '').trim(), kode);
+  return { kode, jabatan: nJabatan, nama: nNama, nip: String(nip || '').trim() };
 }
 
 function createPengajuan({ user_id, pos_anggaran_id, nama_kegiatan, latar_belakang, tanggal_mulai, tanggal_selesai, items, bidang_kegiatan }) {
@@ -1925,6 +1978,10 @@ function deletePosAnggaran(id, user) {
 module.exports = {
   db,
   initDatabase,
+  getPenandatanganList,
+  getPenandatanganMap,
+  formatNipCetak,
+  updatePenandatangan,
   logSystemActivity,
   getAllSystemAuditLogs,
   getPosAnggaranList,

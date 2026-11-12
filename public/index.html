@@ -261,6 +261,9 @@
             <button type="button" class="btn btn-outline-secondary btn-sm" id="btnKelolaAkunGuru" onclick="openModalDaftarGuru()">
               <i class="ti ti-id-badge-2"></i> Kelola &amp; Reset Sandi Guru
             </button>
+            <button type="button" class="btn btn-outline-warning btn-sm" id="btnKelolaPenandatangan" onclick="openModalPenandatangan()">
+              <i class="ti ti-signature"></i> Kelola Penandatangan
+            </button>
             <button type="button" class="btn btn-outline-primary btn-sm" id="btnHeroAuditLog" onclick="switchView('auditlog')">
               <i class="ti ti-shield-lock"></i> Pantau Log Sistem
             </button>
@@ -2365,6 +2368,27 @@
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end;">
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeModalDaftarGuru()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Kelola Penandatangan Dokumen (Khusus Analisis SDM & Kepsek) -->
+  <div class="modal-overlay" id="modalPenandatangan">
+    <div class="modal-box" style="max-width: 760px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="ti ti-signature" style="color: #d97706; margin-right: 6px;"></i> Kelola Penandatangan Dokumen
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon-only btn-sm" onclick="closeModalPenandatangan()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height: 68vh; overflow-y: auto;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Ubah jabatan, nama, dan NIP pejabat jika terjadi pergantian. Perubahan langsung berlaku pada semua dokumen cetak (LPJ, Laporan Keuangan, Disposisi, RKAS). NIP boleh diawali "PPPK." bila bukan PNS; jika hanya angka, otomatis dicetak dengan awalan "NIP.".
+        </div>
+        <div id="penandatanganContainer" style="display: flex; flex-direction: column; gap: 10px;"></div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModalPenandatangan()">Tutup</button>
       </div>
     </div>
   </div>

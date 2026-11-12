@@ -1,3 +1,4 @@
+const { getPenandatanganMap, formatNipCetak } = require('../db');
 // ==========================================================================
 // Generator Lembar Disposisi & Pengesahan RAB Resmi (A4 Print-Ready)
 // SMA NEGERI 1 GIANYAR (DOSMAN)
@@ -12,6 +13,8 @@ function formatRupiah(val) {
 }
 
 function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
+  const SG = getPenandatanganMap();
+  const sgv = (k) => SG[k] || { nama: '-', nip: '' };
   const totalAngka = proposal.total_dana_disetujui || proposal.total_dana_diajukan || 0;
   const totalKalimat = terbilang(totalAngka);
 
@@ -567,8 +570,8 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
         <div class="sig-box">
           <div class="sig-role">Penelaah Anggaran (Bendahara),</div>
           <div style="margin-top: 48px;">
-            <div class="sig-name">I Gusti Ayu Reina Cahyanti</div>
-            <div class="sig-nip">NIP. 198203152008012015</div>
+            <div class="sig-name">${sgv('BENDAHARA').nama}</div>
+            <div class="sig-nip">${formatNipCetak(sgv('BENDAHARA').nip)}</div>
           </div>
         </div>
 
@@ -580,8 +583,8 @@ function renderCetakDisposisi({ proposal, qrDataUrl, hostUrl }) {
             <strong>Kepala SMA Negeri 1 Gianyar</strong>
           </div>
           <div style="margin-top: 50px;">
-            <div class="sig-name">I Wayan Sudra Astra, S.Pd., M.Pd</div>
-            <div class="sig-nip">Pembina Utama Muda / NIP. 196811201994121001</div>
+            <div class="sig-name">${sgv('KEPSEK').nama}</div>
+            <div class="sig-nip">${formatNipCetak(sgv('KEPSEK').nip)}</div>
           </div>
         </div>
       </div>

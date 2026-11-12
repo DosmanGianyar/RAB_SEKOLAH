@@ -1,3 +1,4 @@
+const { getPenandatanganMap, formatNipCetak } = require('../db');
 // ==========================================================================
 // Generator Bundel Cetak Resmi LPJ Kegiatan Siswa (A4 Print-Ready)
 // Sesuai Standar Resmi SMA Negeri 1 Gianyar & Pergub Bali No. 80 Th 2018
@@ -87,24 +88,21 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
   const tahunAnggaran = proposal.tahun_ajaran ? proposal.tahun_ajaran.split('/')[0] : '2026';
 
   // Pejabat & Penandatangan Standar SMAN 1 Gianyar
-  const kepsekNama = 'I Wayan Sudra Astra, S.Pd., M.Pd.';
-  const kepsekNip = '19710415 199703 1 007';
-  const analisSdmNama = 'I Gusti Ngurah Nyoman Okta Ariawan S.STP';
-  const analisSdmNip = '19921003 201507 1 001';
-  const bendaharaNama = 'I Dewa Ayu Istri Megaswari';
-  const bendaharaPembantuNama = 'I Nyoman Suwaradana';
-  const bendaharaPembantuNip = '19721010 200903 1 003';
-  const ketuaKomiteNama = 'Ir. Pande Nyoman Yuliana';
-  const WAKASEK_MAP = {
-    KESISWAAN: { jabatan: 'Wakasek Kesiswaan', nama: 'I Putu Darma Putra, S.Pd', nip: 'PPPK. 19880930 202221 1 001' },
-    KURIKULUM: { jabatan: 'Wakasek Kurikulum', nama: 'I Gusti Nyoman Susanta, S.Pd', nip: 'NIP. 19670627 199002 1 001' },
-    SARPRAS: { jabatan: 'Wakasek Sarana & Prasarana', nama: 'I Wayan Sumartika, S.Pd., M.Pd', nip: 'NIP. 19950502 201903 1 005' },
-    HUMAS: { jabatan: 'Wakasek Humas', nama: 'Drs. I Ketut Reta, M.Pd', nip: 'NIP. 19680623 199303 1 008' }
-  };
+  const SG = getPenandatanganMap();
+  const sg = (k) => SG[k] || { jabatan: '', nama: '-', nip: '' };
+  const kepsekNama = sg('KEPSEK').nama;
+  const kepsekNip = formatNipCetak(sg('KEPSEK').nip);
+  const analisSdmNama = sg('ANALIS_SDM').nama;
+  const analisSdmNip = formatNipCetak(sg('ANALIS_SDM').nip);
+  const bendaharaNama = sg('BENDAHARA_PUNGUTAN').nama;
+  const bendaharaNip = formatNipCetak(sg('BENDAHARA_PUNGUTAN').nip);
+  const bendaharaPembantuNama = sg('BENDAHARA_PEMBANTU').nama;
+  const bendaharaPembantuNip = formatNipCetak(sg('BENDAHARA_PEMBANTU').nip);
+  const ketuaKomiteNama = sg('KETUA_KOMITE').nama;
   const bidangKey = String(proposal.bidang_kegiatan || 'KESISWAAN').toUpperCase();
-  const wakasek = WAKASEK_MAP[bidangKey] || WAKASEK_MAP.KESISWAAN;
+  const wakasek = sg('WAKA_' + (['KESISWAAN', 'KURIKULUM', 'SARPRAS', 'HUMAS'].includes(bidangKey) ? bidangKey : 'KESISWAAN'));
   const wakasekNama = wakasek.nama;
-  const wakasekNip = wakasek.nip;
+  const wakasekNip = formatNipCetak(wakasek.nip);
   const wakasekJabatan = wakasek.jabatan;
 
   // Guru / Pembina
@@ -953,14 +951,14 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
               Kepala Sekolah SMA Negeri 1 Gianyar
               <div class="sig-space-kwitansi"></div>
               <div class="sig-name">${kepsekNama}</div>
-              <div class="sig-nip">NIP. ${kepsekNip}</div>
+              <div class="sig-nip">${kepsekNip}</div>
             </div>
             <div class="sig-col-right">
               Analis SDM Aparatur Ahli Muda<br>
               SMA Negeri 1 Gianyar
               <div class="sig-space-kwitansi"></div>
               <div class="sig-name">${analisSdmNama}</div>
-              <div class="sig-nip">NIP. ${analisSdmNip}</div>
+              <div class="sig-nip">${analisSdmNip}</div>
             </div>
           </div>
 
@@ -971,14 +969,14 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
               SMA Negeri 1 Gianyar
               <div class="sig-space-kwitansi"></div>
               <div class="sig-name">${bendaharaNama}</div>
-              <div class="sig-nip">&nbsp;</div>
+              <div class="sig-nip">${bendaharaNip || '&nbsp;'}</div>
             </div>
             <div class="sig-col-right">
               Lunas dibayar oleh :<br>
               Bendahara Pemb. Dana Pungutan Masyarakat
               <div class="sig-space-kwitansi"></div>
               <div class="sig-name">${bendaharaPembantuNama}</div>
-              <div class="sig-nip">NIP. ${bendaharaPembantuNip}</div>
+              <div class="sig-nip">${bendaharaPembantuNip}</div>
             </div>
           </div>
 
@@ -1094,14 +1092,14 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
             Kepala SMA Negeri 1 Gianyar,
             <div class="sig-space-kwitansi"></div>
             <div class="sig-name">${kepsekNama}</div>
-            <div class="sig-nip">NIP. ${kepsekNip}</div>
+            <div class="sig-nip">${kepsekNip}</div>
           </div>
           <div class="sig-col-right">
             Mengetahui,<br>
             Analis SDM Aparatur Ahli Muda
             <div class="sig-space-kwitansi"></div>
             <div class="sig-name">${analisSdmNama}</div>
-            <div class="sig-nip">NIP. ${analisSdmNip}</div>
+            <div class="sig-nip">${analisSdmNip}</div>
           </div>
         </div>
       </div>

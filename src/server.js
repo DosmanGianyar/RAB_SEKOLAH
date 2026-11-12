@@ -255,6 +255,30 @@ app.get('/api/users/stats', requireAuth, (req, res) => {
   }
 });
 
+const { getPenandatanganList, updatePenandatangan } = require('./db');
+
+// Daftar Penandatangan Dokumen (dibaca semua user login)
+app.get('/api/penandatangan', requireAuth, (req, res) => {
+  try {
+    res.json({ success: true, data: getPenandatanganList() });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Ubah Penandatangan Dokumen (Khusus Analisis SDM & Kepsek & Admin)
+app.put('/api/penandatangan/:kode', requireAuth, (req, res) => {
+  try {
+    if (!['ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Hanya Analisis SDM dan Kepala Sekolah yang berwenang mengubah penandatangan.' });
+    }
+    const data = updatePenandatangan(req.params.kode, req.body || {}, req.user);
+    res.json({ success: true, data, message: 'Penandatangan berhasil diperbarui.' });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // Daftar Akun Guru (Khusus Analisis SDM & Kepsek & Admin)
 app.get('/api/users/guru', requireAuth, (req, res) => {
   try {
