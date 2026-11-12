@@ -253,7 +253,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LPJ_${escapeHtml(proposal.nomor_surat_ajuan || '').split('/').join('_')}_BUNDEL_LENGKAP</title>
+  <title>LAPORAN_KEUANGAN_${escapeHtml(proposal.nomor_surat_ajuan || '').split('/').join('_')}</title>
   <style>
     /* -------------------------------------------------------------
        PENGATURAN KERTAS & PRINT-READY A4 PORTRAIT
@@ -808,7 +808,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
     <div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="background: #ef4444; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.8px;">MODE DEMO</span>
-        <div style="font-weight: 800; font-size: 1rem; color: #0f172a;">Pratinjau Bundel Dokumen LPJ Resmi (Standar Cetak A4)</div>
+        <div style="font-weight: 800; font-size: 1rem; color: #0f172a;">Pratinjau Laporan Pertanggungjawaban Keuangan (Standar Cetak A4)</div>
       </div>
       <div style="font-size: 0.8rem; color: #dc2626; font-weight: 600; margin-top: 2px;">Dokumen simulasi uji coba internal SMA Negeri 1 Gianyar (Belum berlaku definitif)</div>
     </div>
@@ -822,7 +822,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
           <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
           <rect x="6" y="14" width="12" height="8"></rect>
         </svg>
-        Cetak Bundel LPJ (PDF)
+        Cetak Laporan Keuangan (PDF)
       </button>
     </div>
   </div>
@@ -830,14 +830,14 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
   <div class="sheet-wrapper">
 
     <!-- ============================================================= -->
-    <!-- HALAMAN 1: COVER RESMI KEGIATAN SISWA                         -->
+    <!-- HALAMAN 1: COVER RESMI LAPORAN KEUANGAN                      -->
     <!-- ============================================================= -->
     <div class="sheet page-break">
       <div class="cover-frame">
         <div class="cover-top-box">
-          <div class="cover-heading-1">LAPORAN</div>
-          <div class="cover-heading-2">PELAKSANAAN KEGIATAN</div>
-          <div class="cover-heading-1" style="font-size: 16pt;">BULAN ${bulanLaporan}</div>
+          <div class="cover-heading-1">LAPORAN PERTANGGUNGJAWABAN</div>
+          <div class="cover-heading-2">KEUANGAN &amp; REALISASI BELANJA</div>
+          <div class="cover-heading-1" style="font-size: 15pt;">BULAN ${bulanLaporan}</div>
           <div style="height: 16px;"></div>
           <div class="cover-heading-kegiatan">
             ${escapeHtml(proposal.nama_kegiatan)}
@@ -1102,145 +1102,6 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
     </div>
 
     <!-- ============================================================= -->
-    <!-- HALAMAN 3B: RESUME HASIL PELAKSANAAN & EVALUASI KEGIATAN      -->
-    <!-- ============================================================= -->
-    <div class="sheet page-break">
-      <!-- KOP Resmi SMAN 1 Gianyar Beraksara Bali -->
-      ${renderKopSurat({ mode: 'portrait' })}
-
-      <!-- Boxed Title Resume -->
-      <div class="lpj-boxed-title" style="margin-top: 6px; margin-bottom: 6px; font-size: 12pt;">
-        RESUME HASIL PELAKSANAAN &amp; EVALUASI KEGIATAN
-      </div>
-      <div style="text-align: center; font-size: 8.5pt; color: #475569; margin-bottom: 12px; font-style: italic;">
-        Laporan Ketercapaian Indikator Sasaran, Realisasi Anggaran, dan Evaluasi Pelaksanaan
-      </div>
-
-      <!-- 1. Metadata Kegiatan & Sasaran -->
-      <table class="lpj-meta-grid" style="margin-bottom: 12px; background: #fafafa; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 4px;">
-        <tr>
-          <td class="m-lbl" style="width: 140px;">Nama Kegiatan</td>
-          <td class="m-col">:</td>
-          <td class="m-val font-bold">${escapeHtml(proposal.nama_kegiatan)}</td>
-        </tr>
-        <tr>
-          <td class="m-lbl">Tujuan Kegiatan</td>
-          <td class="m-col">:</td>
-          <td class="m-val">${escapeHtml(lpj.tujuan_kegiatan || proposal.latar_belakang || '-')}</td>
-        </tr>
-        <tr>
-          <td class="m-lbl">Tempat Pelaksanaan</td>
-          <td class="m-col">:</td>
-          <td class="m-val">${escapeHtml(lpj.tempat_pelaksanaan || 'SMA Negeri 1 Gianyar')}</td>
-        </tr>
-        <tr>
-          <td class="m-lbl">Waktu / Jadwal</td>
-          <td class="m-col">:</td>
-          <td class="m-val">${tglMulai} s/d ${tglSelesai}</td>
-        </tr>
-        <tr>
-          <td class="m-lbl">Sasaran / Peserta</td>
-          <td class="m-col">:</td>
-          <td class="m-val">${escapeHtml(lpj.jumlah_peserta || 'Siswa & Pembina Delegasi')}</td>
-        </tr>
-        <tr>
-          <td class="m-lbl">Guru Pembina / Pelaksana</td>
-          <td class="m-col">:</td>
-          <td class="m-val">${escapeHtml(guruNama)} (${guruNip})</td>
-        </tr>
-      </table>
-
-      <!-- 2. Kotak Ringkasan Realisasi Keuangan (Card Resume Finansial) -->
-      <div style="margin-bottom: 12px;">
-        <div style="font-weight: 800; font-size: 9pt; text-transform: uppercase; margin-bottom: 6px; color: #1e293b; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
-          I. REKAPITULASI REALISASI ANGGARAN &amp; KEUANGAN
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 6px;">
-          <div style="border: 1.5px solid #cbd5e1; border-radius: 4px; padding: 6px 8px; background: #f8fafc; text-align: center;">
-            <div style="font-size: 7.5pt; color: #64748b; font-weight: 700; text-transform: uppercase;">Dana Kas Diterima</div>
-            <div style="font-size: 10.5pt; font-weight: 800; color: #0284c7; margin-top: 2px;">${formatRupiah(danaCair)}</div>
-          </div>
-          <div style="border: 1.5px solid #cbd5e1; border-radius: 4px; padding: 6px 8px; background: #f8fafc; text-align: center;">
-            <div style="font-size: 7.5pt; color: #64748b; font-weight: 700; text-transform: uppercase;">Total Belanja Riil (Nota)</div>
-            <div style="font-size: 10.5pt; font-weight: 800; color: #047857; margin-top: 2px;">${formatRupiah(belanjaRiil)}</div>
-          </div>
-          <div style="border: 1.5px solid #cbd5e1; border-radius: 4px; padding: 6px 8px; background: ${sisaPengembalian > 0 ? '#fef3c7' : '#f0fdf4'}; text-align: center;">
-            <div style="font-size: 7.5pt; color: #64748b; font-weight: 700; text-transform: uppercase;">Sisa Kas Disetor Kembali</div>
-            <div style="font-size: 10.5pt; font-weight: 800; color: ${sisaPengembalian > 0 ? '#b45309' : '#15803d'}; margin-top: 2px;">${formatRupiah(sisaPengembalian)}</div>
-          </div>
-        </div>
-        <div style="font-size: 8pt; color: #475569; font-style: italic; background: #f1f5f9; padding: 4px 8px; border-radius: 4px;">
-          Terbilang: <strong>${terbilangRupiah}</strong>. ${sisaPengembalian > 0 ? `Sisa kas sebesar ${formatRupiah(sisaPengembalian)} telah disetorkan kembali ke Bendahara Pengeluaran Sekolah.` : 'Seluruh kas yang diterima telah terealisasi 100% dan didukung dengan bukti nota belanja sah.'}
-        </div>
-      </div>
-
-      <!-- 3. Narasi Resume Capaian & Evaluasi -->
-      <div style="margin-bottom: 12px;">
-        <div style="font-weight: 800; font-size: 9pt; text-transform: uppercase; margin-bottom: 6px; color: #1e293b; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
-          II. RESUME KETERCAPAIAN HASIL &amp; EVALUASI PELAKSANAAN
-        </div>
-        
-        <div style="margin-bottom: 7px;">
-          <div style="font-weight: 700; font-size: 8.5pt; color: #0f172a; margin-bottom: 2px;">A. Ringkasan Capaian &amp; Hasil Kegiatan:</div>
-          <div style="font-size: 8.3pt; line-height: 1.4; text-align: justify; padding: 6px 8px; background: #fafafa; border: 1px solid #e2e8f0; border-radius: 4px;">
-            ${escapeHtml(lpj.resume_hasil || lpj.catatan_lpj || 'Seluruh rangkaian kegiatan telah terlaksana dengan sangat baik, tertib, dan sukses sesuai rencana anggaran biaya. Peserta dan kontingen berhasil mengikuti seluruh tahapan kegiatan dengan dedikasi tinggi serta memberikan kontribusi positif bagi citra dan prestasi sekolah.')}
-          </div>
-        </div>
-
-        <div style="margin-bottom: 7px;">
-          <div style="font-weight: 700; font-size: 8.5pt; color: #0f172a; margin-bottom: 2px;">B. Kendala / Hambatan yang Dihadapi:</div>
-          <div style="font-size: 8.3pt; line-height: 1.4; text-align: justify; padding: 6px 8px; background: #fafafa; border: 1px solid #e2e8f0; border-radius: 4px;">
-            ${escapeHtml(lpj.kendala || 'Secara umum tidak terdapat kendala teknis yang signifikan selama pelaksanaan kegiatan. Seluruh kebutuhan akomodasi, transportasi, logistik, dan perlengkapan dapat terakomodasi secara optimal.')}
-          </div>
-        </div>
-
-        <div style="margin-bottom: 8px;">
-          <div style="font-weight: 700; font-size: 8.5pt; color: #0f172a; margin-bottom: 2px;">C. Solusi, Rekomendasi &amp; Tindak Lanjut:</div>
-          <div style="font-size: 8.3pt; line-height: 1.4; text-align: justify; padding: 6px 8px; background: #fafafa; border: 1px solid #e2e8f0; border-radius: 4px;">
-            ${escapeHtml(lpj.solusi_tindak_lanjut || 'Dianjurkan untuk terus mempertahankan pembinaan berkala serta memperkuat koordinasi awal dengan pihak panitia pelaksana agar kesiapan delegasi sekolah dapat lebih maksimal pada kegiatan serupa di masa mendatang.')}
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. Lembar Pengesahan Resume (Matriks 4 Tanda Tangan) -->
-      <div class="lpj-sig-matrix" style="margin-top: 10px;">
-        <div class="sig-row-2col" style="margin-bottom: 20px;">
-          <div class="sig-col">
-            Waka. Kesiswaan,
-            <div class="sig-space-kwitansi"></div>
-            <div class="sig-name">${wakasekNama}</div>
-            <div class="sig-nip">${wakasekNip}</div>
-          </div>
-          <div class="sig-col-right">
-            Gianyar, ${tglCetak}<br>
-            Pelaksana Kegiatan / Pembina,
-            <div class="sig-space-kwitansi"></div>
-            <div class="sig-name">${escapeHtml(guruNama)}</div>
-            <div class="sig-nip">${guruNip}</div>
-          </div>
-        </div>
-
-        <div class="sig-row-2col" style="margin-bottom: 0;">
-          <div class="sig-col">
-            Kepala SMA Negeri 1 Gianyar,
-            <div class="sig-space-kwitansi"></div>
-            <div class="sig-name">${kepsekNama}</div>
-            <div class="sig-nip">NIP. ${kepsekNip}</div>
-          </div>
-          <div class="sig-col-right">
-            Mengetahui,<br>
-            Analis SDM Aparatur Ahli Muda
-            <div class="sig-space-kwitansi"></div>
-            <div class="sig-name">${analisSdmNama}</div>
-            <div class="sig-nip">NIP. ${analisSdmNip}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="page-footer-note">Laporan Resume &amp; Evaluasi Pelaksanaan — SMA Negeri 1 Gianyar</div>
-    </div>
-
-    <!-- ============================================================= -->
     <!-- HALAMAN 4: LAMPIRAN BUKTI TRANSFER KAS OLEH BENDAHARA         -->
     <!-- ============================================================= -->
     <div class="sheet page-break">
@@ -1291,77 +1152,6 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
 
       <div class="page-footer-note">Sistem Informasi Anggaran SI-ARTHA — SMA Negeri 1 Gianyar</div>
     </div>
-
-    <!-- ============================================================= -->
-    <!-- HALAMAN 5: LAMPIRAN BERKAS DAFTAR HADIR (PDF/SCAN)            -->
-    <!-- ============================================================= -->
-    ${lpj.file_daftar_hadir_url ? `
-      ${lpj.file_daftar_hadir_url.toLowerCase().endsWith('.pdf') ? `
-        <div id="daftarHadirPdfContainer" class="pdf-multipage-container" data-pdf-url="${lpj.file_daftar_hadir_url}" data-title="LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN" data-sub="Presensi Kehadiran Siswa, Guru Pembina, dan Panitia Pelaksana Kegiatan" data-footer="Dokumen Presensi Fisik — SMA Negeri 1 Gianyar">
-          <div class="sheet page-break" id="daftarHadirPdfLoading">
-            <div class="lampiran-header">
-              <div class="lampiran-title">LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN</div>
-              <div class="lampiran-sub">Presensi Kehadiran Siswa, Guru Pembina, dan Panitia Pelaksana Kegiatan</div>
-            </div>
-            <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; color: #475569;">
-              <div style="font-size: 2rem; margin-bottom: 12px;">⏳</div>
-              <div style="font-weight: 700; font-size: 1.1rem; color: #1e293b; margin-bottom: 6px;">Mengonversi Berkas PDF Daftar Hadir ke Lembar Cetak...</div>
-              <div style="font-size: 0.85rem; color: #64748b;">Setiap halaman berkas presensi sedang diproses otomatis menjadi halaman cetak berkualitas tinggi.</div>
-            </div>
-            <div class="page-footer-note">Dokumen Presensi Fisik — SMA Negeri 1 Gianyar</div>
-          </div>
-        </div>
-      ` : `
-        <div class="sheet page-break">
-          <div class="lampiran-header">
-            <div class="lampiran-title">LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN</div>
-            <div class="lampiran-sub">Presensi Kehadiran Siswa, Guru Pembina, dan Panitia Pelaksana Kegiatan</div>
-          </div>
-          <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <img src="${lpj.file_daftar_hadir_url}" alt="Daftar Hadir Fisik" style="max-height: 215mm; max-width: 100%; object-fit: contain;">
-          </div>
-          <div class="page-footer-note">Dokumen Presensi Fisik — SMA Negeri 1 Gianyar</div>
-        </div>
-      `}
-    ` : `
-      <div class="sheet page-break">
-        <div class="lampiran-header">
-          <div class="lampiran-title">LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN</div>
-          <div class="lampiran-sub">Presensi Kehadiran Siswa, Guru Pembina, dan Panitia Pelaksana Kegiatan</div>
-        </div>
-        <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: #64748b;">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; display: inline-block;">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
-          <div style="font-weight: 700; font-size: 1.1rem; color: #334155; margin-bottom: 6px;">Berkas Daftar Hadir Terlampir</div>
-          <p style="font-size: 0.88rem; max-width: 480px; margin: 0 auto;">
-            Belum ada berkas PDF daftar hadir yang diunggah. Guru pembina dapat melampirkan berkas scan tanda tangan daftar hadir saat mengisi formulir LPJ.
-          </p>
-        </div>
-        <div class="page-footer-note">Dokumen Presensi Fisik — SMA Negeri 1 Gianyar</div>
-      </div>
-    `}
-
-    <!-- ============================================================= -->
-    <!-- HALAMAN 6+: LAMPIRAN FOTO DOKUMENTASI KEGIATAN                -->
-    <!-- ============================================================= -->
-    ${fotoPagesHtml || `
-      <div class="sheet page-break">
-        <div class="lampiran-header">
-          <div class="lampiran-title">DOKUMENTASI FOTO PELAKSANAAN KEGIATAN</div>
-          <div class="lampiran-sub">${escapeHtml(proposal.nama_kegiatan)}</div>
-        </div>
-        <div class="transfer-doc-wrap" style="padding: 80px 20px;">
-          <div style="font-weight: 700; color: #475569; font-size: 1.1rem; margin-bottom: 6px;">Belum Ada Foto Dokumentasi</div>
-          <p style="font-size: 0.88rem; color: #64748b;">Foto-foto dokumentasi kegiatan yang diunggah pada modul LPJ akan tampil secara otomatis di halaman ini.</p>
-        </div>
-        <div class="page-footer-note">Dokumentasi Pelaksanaan — SMA Negeri 1 Gianyar</div>
-      </div>
-    `}
 
     <!-- ============================================================= -->
     <!-- HALAMAN AKHIR: LAMPIRAN NOTA BELANJA FISIK                    -->

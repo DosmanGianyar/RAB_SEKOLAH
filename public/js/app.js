@@ -2628,17 +2628,17 @@ function renderProposalsList(proposals) {
       `;
       if (p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
         printActionBtn += `
-          <a href="/cetak-lpj/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; margin-left:4px;" title="Cetak Laporan Pertanggungjawaban (LPJ)">
-            <i class="ti ti-file-certificate"></i> LPJ
+          <a href="/cetak-lpj/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; margin-left:4px;" title="Cetak Laporan Kegiatan &amp; Dokumentasi">
+            <i class="ti ti-file-certificate"></i> Lap. Kegiatan
           </a>
-          <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Bundel Lengkap LPJ (Cover, Kwitansi, LPJ, Slip, Daftar Hadir, Foto, Nota)">
-            <i class="ti ti-printer"></i> Bundel LPJ
+          <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Laporan Keuangan (Kwitansi Komite, Rincian Belanja, Slip, Nota Fisik)">
+            <i class="ti ti-printer"></i> Lap. Keuangan
           </a>
         `;
       } else if (p.status === 'DICAIRKAN') {
         printActionBtn += `
-          <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Bundel Berkas Kwitansi Komite &amp; Pencairan Kas">
-            <i class="ti ti-printer"></i> Kwitansi / Bundel
+          <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Berkas Kwitansi Komite &amp; Pencairan Kas">
+            <i class="ti ti-printer"></i> Lap. Keuangan
           </a>
         `;
       }
@@ -2975,21 +2975,21 @@ async function openProposalDetail(id) {
         btnCetakLpj.className = 'btn btn-outline-success btn-sm';
         btnCetakLpj.href = `/cetak-lpj/${p.id}`;
         btnCetakLpj.target = '_blank';
-        btnCetakLpj.innerHTML = '<i class="ti ti-printer"></i> Cetak LPJ Saja';
+        btnCetakLpj.innerHTML = '<i class="ti ti-printer"></i> Cetak Lap. Kegiatan';
         footer.appendChild(btnCetakLpj);
 
         const btnCetakBundel = document.createElement('a');
         btnCetakBundel.className = 'btn btn-primary btn-sm';
         btnCetakBundel.href = `/cetak-lpj-bundel/${p.id}`;
         btnCetakBundel.target = '_blank';
-        btnCetakBundel.innerHTML = '<i class="ti ti-book"></i> Cetak Bundel Lengkap LPJ';
+        btnCetakBundel.innerHTML = '<i class="ti ti-book"></i> Cetak Lap. Keuangan';
         footer.appendChild(btnCetakBundel);
       } else if (p.status === 'DICAIRKAN') {
         const btnCetakBundel = document.createElement('a');
         btnCetakBundel.className = 'btn btn-outline-primary btn-sm';
         btnCetakBundel.href = `/cetak-lpj-bundel/${p.id}`;
         btnCetakBundel.target = '_blank';
-        btnCetakBundel.innerHTML = '<i class="ti ti-book"></i> Pratinjau Kwitansi / Bundel';
+        btnCetakBundel.innerHTML = '<i class="ti ti-book"></i> Cetak Lap. Keuangan';
         footer.appendChild(btnCetakBundel);
       }
     }
@@ -4771,10 +4771,10 @@ async function submitLpjFromEditor(event) {
             <p>${data.message}</p>
             <div style="margin-top: 15px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
               <a href="/cetak-lpj/${id}" target="_blank" class="btn btn-outline-success" style="font-size: 0.82rem; padding: 6px 12px; text-decoration: none;">
-                🖨️ Cetak Lembar LPJ Saja
+                🖨️ Cetak Lap. Kegiatan
               </a>
               <a href="/cetak-lpj-bundel/${id}" target="_blank" class="btn btn-primary" style="font-size: 0.82rem; padding: 6px 12px; text-decoration: none;">
-                📑 Cetak Bundel Lengkap LPJ
+                📑 Cetak Lap. Keuangan
               </a>
             </div>
           `,
@@ -5203,7 +5203,7 @@ function renderLpjView() {
     }
 
     actionsHtml += `
-        <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn btn-secondary btn-xs" title="Cetak Bundel Lengkap LPJ Resmi (Cover, Kwitansi, LPJ, Lampiran)">
+        <a href="/cetak-lpj-bundel/${p.id}" target="_blank" class="btn btn-secondary btn-xs" title="Cetak Laporan Keuangan Resmi (Cover, Kwitansi, LPJ, Lampiran Nota)">
           <i class="ti ti-printer"></i>
         </a>
       </div>

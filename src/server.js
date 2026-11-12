@@ -1035,23 +1035,19 @@ app.get('/cetak/:id', async (req, res) => {
   }
 });
 
-// 3b. Render Lembar Cetak LPJ Lengkap Resmi (A4 Print-Ready)
+// 3b. Render Lembar Cetak Laporan Kegiatan Resmi (A4 Print-Ready)
 app.get('/cetak-lpj/:id', async (req, res) => {
   try {
     const cookies = parseCookies(req);
     const user = cookies.session_token ? getUserBySessionToken(cookies.session_token) : null;
-    if (!user) {
-      return res.status(401).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Sesi Berakhir: Silakan login terlebih dahulu untuk mencetak LPJ.</h2>');
-    }
-
     const proposal = getPengajuanById(Number(req.params.id));
     if (!proposal) {
-      return res.status(404).send('Proposal kegiatan tidak ditemukan.');
+      return res.status(404).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Proposal kegiatan tidak ditemukan.</h2>');
     }
 
-    // Proteksi: Guru hanya mencetak LPJ miliknya sendiri
-    if (user.role === 'GURU' && proposal.user_id !== user.id) {
-      return res.status(403).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Akses Ditolak: Anda hanya berhak mencetak LPJ kegiatan Anda sendiri.</h2>');
+    // Proteksi: Jika guru login dan mencoba membuka LPJ milik orang lain
+    if (user && user.role === 'GURU' && proposal.user_id !== user.id) {
+      return res.status(403).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Akses Ditolak: Anda hanya berhak mencetak Laporan Kegiatan Anda sendiri.</h2>');
     }
 
     const host = req.get('host');
