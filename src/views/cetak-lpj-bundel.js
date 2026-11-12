@@ -13,6 +13,11 @@ function formatRupiah(val) {
   return 'Rp ' + num.toLocaleString('id-ID');
 }
 
+function formatRupiahKwitansi(val) {
+  const num = Number(val) || 0;
+  return 'Rp ' + num.toLocaleString('id-ID') + ',00';
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -66,8 +71,8 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
         ? items.reduce((acc, it) => acc + (it.subtotal_disetujui !== null ? Number(it.subtotal_disetujui) : Number(it.subtotal_ajuan || 0)), 0)
         : danaCair);
 
-  const terbilangRupiah = terbilang(belanjaRiil) + ' Rupiah';
-  const terbilangDanaCair = terbilang(danaCair) + ' Rupiah';
+  const terbilangRupiah = terbilang(belanjaRiil);
+  const terbilangDanaCair = terbilang(danaCair);
 
   // Tanggal cetak & pelaksanaan
   const tglCetak = formatDateIndo(proposal.tanggal_pencairan || new Date());
@@ -448,7 +453,8 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
       padding: 5px 16px;
       font-size: 13pt;
       font-weight: 800;
-      background: #f8fafc;
+      font-style: italic;
+      background: #e2e8f0;
       letter-spacing: 0.5px;
     }
 
@@ -840,7 +846,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
           <tr>
             <td class="col-lbl">Kode. Rekening</td>
             <td class="col-col">:</td>
-            <td class="col-val">${escapeHtml(proposal.kode_rekening_pos || '03.03')}</td>
+            <td class="col-val"></td>
           </tr>
           <tr>
             <td class="col-lbl">Sudah terima dari</td>
@@ -866,7 +872,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
             <td class="col-col" style="padding-top: 10px;">:</td>
             <td class="col-val" style="padding-top: 6px;">
               <div class="kwitansi-nominal-box">
-                ${formatRupiah(danaCair)}
+                ${formatRupiahKwitansi(danaCair)}
               </div>
             </td>
           </tr>
@@ -874,13 +880,16 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
 
         <!-- Matriks 6 Tanda Tangan Kwitansi Resmi -->
         <div class="kwitansi-sig-matrix">
-          <!-- Baris 1: Gianyar + Yang Menerima (Kanan) -->
-          <div style="text-align: right; margin-bottom: 12px; padding-right: 20px;">
-            Gianyar, ${tglCetak}<br>
-            Yang Menerima,
-            <div class="sig-space-kwitansi"></div>
-            <div class="sig-name">${escapeHtml(guruNama)}</div>
-            <div class="sig-nip">${guruNip}</div>
+          <!-- Baris 1: Gianyar + Yang Menerima (Sejajar Lurus Kolom Kanan) -->
+          <div class="sig-row-2col" style="margin-bottom: 18px;">
+            <div class="sig-col"></div>
+            <div class="sig-col-right">
+              Gianyar, ${tglCetak}<br>
+              Yang Menerima,
+              <div class="sig-space-kwitansi"></div>
+              <div class="sig-name">${escapeHtml(guruNama)}</div>
+              <div class="sig-nip">${guruNip}</div>
+            </div>
           </div>
 
           <!-- Baris 2: Kepala Sekolah & Analis SDM -->
