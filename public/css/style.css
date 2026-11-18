@@ -137,9 +137,14 @@ i.ti {
   line-height: 1;
 }
 
-html, body {
+html {
+  height: auto;
+}
+
+body {
   overflow-x: clip;
   width: 100%;
+  height: auto;
 }
 
 body {
@@ -6765,7 +6770,7 @@ body > .aksi-dd-menu { z-index: 2147483000; }
 }
 
 @media (max-width: 640px) {
-  .demo-ribbon {
+  .demo-corner-ribbon {
     display: none !important;
   }
 }
