@@ -1753,8 +1753,7 @@ function updateBuktiTransfer({ proposal_id, user_id, file_bukti_transfer_url, no
   db.prepare(`
     UPDATE pengajuan_kegiatan
     SET file_bukti_transfer_url = ?,
-        nomor_kode_kwitansi = COALESCE(?, nomor_kode_kwitansi),
-        updated_at = CURRENT_TIMESTAMP
+        nomor_kode_kwitansi = COALESCE(?, nomor_kode_kwitansi)
     WHERE id = ?
   `).run(file_bukti_transfer_url, nomor_kode_kwitansi || null, proposal_id);
 
@@ -1861,8 +1860,7 @@ function submitLpjByGuru({
   if (file_bukti_transfer_url) {
     db.prepare(`
       UPDATE pengajuan_kegiatan
-      SET file_bukti_transfer_url = ?,
-          updated_at = CURRENT_TIMESTAMP
+      SET file_bukti_transfer_url = ?
       WHERE id = ?
     `).run(file_bukti_transfer_url, pengajuan_id);
   }
