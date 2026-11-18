@@ -1360,14 +1360,28 @@ function renderCetakLaporanModular({ proposal }) {
       margin-bottom: 3px;
     }
 
+    .narasi-body,
+    .narasi-body * {
+      font-family: "Times New Roman", Times, serif !important;
+      font-size: 10pt !important;
+      line-height: 1.45 !important;
+      color: #000000 !important;
+      background-color: transparent !important;
+    }
+
     .narasi-body {
-      font-size: 10pt;
-      line-height: 1.45;
       text-align: justify;
     }
 
-    .narasi-body p {
-      margin: 0 0 5px 0;
+    .narasi-body p,
+    .narasi-body ul,
+    .narasi-body ol {
+      margin: 0 0 5px 0 !important;
+    }
+
+    .narasi-body ul,
+    .narasi-body ol {
+      padding-left: 20px !important;
     }
 
     .formal-table {
