@@ -6747,3 +6747,21 @@ body > .aksi-dd-menu { z-index: 2147483000; }
     gap: 3px;
   }
 }
+
+/* ==========================================================================
+   BUTTON OUTLINE SECONDARY & MODAL FOOTER POLISH
+   ========================================================================== */
+.btn-outline-secondary {
+  background: #ffffff;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.btn-outline-secondary:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}

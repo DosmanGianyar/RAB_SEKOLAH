@@ -7115,32 +7115,58 @@ window.handleRestoreProposal = handleRestoreProposal;
 // ==========================================================================
 let activePindahProposal = null;
 
-function openModalPindahPos(p) {
+function renderTargetPosOptions(filterText = '') {
+  const sel = document.getElementById('selectTargetPosAnggaran');
+  if (!sel || !activePindahProposal) return;
+  const p = activePindahProposal;
+  const prevVal = sel.value;
+  const kw = (filterText || '').trim().toLowerCase();
+  const terms = kw ? kw.split(/\s+/).filter(Boolean) : [];
+
+  sel.innerHTML = '<option value="">-- Pilih Pos RKAS Tujuan --</option>';
+
+  const nominalNeeded = Number(p.total_dana_disetujui) || Number(p.total_dana_diajukan) || 0;
+  const sourceList = Array.isArray(currentPosList) ? currentPosList : [];
+  sourceList
+    .filter(pos => pos.id !== p.pos_anggaran_id)
+    .filter(pos => {
+      if (terms.length === 0) return true;
+      const hay = [pos.nama_pos, pos.kode_rekening, pos.nama_kelompok, pos.program_induk].filter(Boolean).join(' ').toLowerCase();
+      return terms.every(t => hay.includes(t));
+    })
+    .forEach(pos => {
+      const sisa = Number(pos.sisa_pagu) || 0;
+      const disabled = sisa < nominalNeeded ? 'disabled' : '';
+      const note = sisa < nominalNeeded ? ' (Sisa Pagu Kurang)' : ` (Sisa: ${formatRupiah(sisa)})`;
+      const kode = pos.kode_rekening ? `[${pos.kode_rekening}] ` : '';
+      const opt = document.createElement('option');
+      opt.value = pos.id;
+      opt.disabled = !!disabled;
+      opt.textContent = `${kode}${pos.nama_pos}${note}`;
+      if (prevVal && String(pos.id) === String(prevVal)) opt.selected = true;
+      sel.appendChild(opt);
+    });
+}
+window.renderTargetPosOptions = renderTargetPosOptions;
+
+async function openModalPindahPos(p) {
   activePindahProposal = p;
   const modal = document.getElementById('modalPindahPos');
   if (!modal) return;
+
+  if (!Array.isArray(currentPosList) || currentPosList.length === 0) {
+    try { await loadPosAnggaran(); } catch (_) {}
+  }
 
   document.getElementById('pindahPosProposalId').value = p.id;
   document.getElementById('pindahPosNamaKegiatan').textContent = p.nama_kegiatan;
   document.getElementById('pindahPosNamaPosLama').textContent = p.nama_pos;
   document.getElementById('pindahPosNominalDisplay').textContent = formatRupiah(p.total_dana_disetujui || p.total_dana_diajukan);
   document.getElementById('inputAlasanPindahPos').value = '';
+  const filterInput = document.getElementById('inputFilterTargetPos');
+  if (filterInput) filterInput.value = '';
 
-  const sel = document.getElementById('selectTargetPosAnggaran');
-  sel.innerHTML = '<option value="">-- Pilih Pos RKAS Tujuan --</option>';
-
-  const nominalNeeded = Number(p.total_dana_disetujui) || Number(p.total_dana_diajukan) || 0;
-  if (Array.isArray(allPosAnggaran)) {
-    allPosAnggaran
-      .filter(pos => pos.id !== p.pos_anggaran_id)
-      .forEach(pos => {
-        const sisa = Number(pos.sisa_pagu) || 0;
-        const disabled = sisa < nominalNeeded ? 'disabled' : '';
-        const note = sisa < nominalNeeded ? ' (Sisa Pagu Kurang)' : ` (Sisa: ${formatRupiah(sisa)})`;
-        sel.innerHTML += `<option value="${pos.id}" ${disabled}>${escapeHtml(pos.nama_pos)}${note}</option>`;
-      });
-  }
-
+  renderTargetPosOptions('');
   modal.classList.add('active');
 }
 window.openModalPindahPos = openModalPindahPos;
@@ -7197,28 +7223,38 @@ window.handlePindahPosSubmit = handlePindahPosSubmit;
 // Prompt Ubah Bidang Kegiatan
 async function promptUbahBidang(p) {
   if (typeof Swal !== 'undefined') {
-    const { value: bidangBaru } = await Swal.fire({
-      title: 'Ubah Bidang Penanggung Jawab',
+    const currentBidang = p.bidang_kegiatan || 'KESISWAAN';
+    const { value: bidangBaru, isConfirmed } = await Swal.fire({
+      title: '<span style="font-size:1.15rem; font-weight:800; color:#0f172a;">Ubah Bidang Penanggung Jawab</span>',
       html: `
-        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">
-          Pilih bidang untuk usulan <strong>"${escapeHtml(p.nama_kegiatan)}"</strong>. Pejabat Wakasek penandatangan pada Laporan Keuangan akan otomatis menyesuaikan.
-        </p>
+        <div style="text-align:left; padding: 4px 2px;">
+          <p style="font-size:0.84rem; color:#475569; margin-bottom:14px; line-height:1.45;">
+            Pilih bidang untuk usulan <strong>"${escapeHtml(p.nama_kegiatan)}"</strong>. Pejabat Wakasek penandatangan pada Laporan Keuangan akan otomatis menyesuaikan.
+          </p>
+          <label for="swalSelectBidang" style="display:block; font-size:0.78rem; font-weight:700; color:#334155; margin-bottom:6px;">
+            Bidang / Penanggung Jawab (Wakasek)
+          </label>
+          <select id="swalSelectBidang" class="form-select" style="width:100%; font-weight:600; font-size:0.9rem; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:8px; color:#0f172a; background:#ffffff;">
+            <option value="KESISWAAN" ${currentBidang === 'KESISWAAN' ? 'selected' : ''}>🎓 Kesiswaan (Wakasek Kesiswaan)</option>
+            <option value="KURIKULUM" ${currentBidang === 'KURIKULUM' ? 'selected' : ''}>📚 Kurikulum (Wakasek Kurikulum)</option>
+            <option value="SARPRAS" ${currentBidang === 'SARPRAS' ? 'selected' : ''}>🏢 Sarana &amp; Prasarana (Wakasek Sarpras)</option>
+            <option value="HUMAS" ${currentBidang === 'HUMAS' ? 'selected' : ''}>🤝 Hubungan Masyarakat (Wakasek Humas)</option>
+          </select>
+        </div>
       `,
-      input: 'select',
-      inputOptions: {
-        'KESISWAAN': '🎓 Kesiswaan (Wakasek Kesiswaan)',
-        'KURIKULUM': '📚 Kurikulum (Wakasek Kurikulum)',
-        'SARPRAS': '🏢 Sarana & Prasarana (Wakasek Sarpras)',
-        'HUMAS': '🤝 Hubungan Masyarakat (Wakasek Humas)'
-      },
-      inputValue: p.bidang_kegiatan || 'KESISWAAN',
       showCancelButton: true,
-      confirmButtonText: 'Simpan Bidang',
+      confirmButtonText: '<i class="ti ti-check"></i> Simpan Bidang',
       cancelButtonText: 'Batal',
-      confirmButtonColor: '#059669'
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#64748b',
+      focusConfirm: false,
+      preConfirm: () => {
+        const el = document.getElementById('swalSelectBidang');
+        return el ? el.value : null;
+      }
     });
 
-    if (!bidangBaru || bidangBaru === p.bidang_kegiatan) return;
+    if (!isConfirmed || !bidangBaru || bidangBaru === p.bidang_kegiatan) return;
 
     try {
       const res = await fetch(`/api/pengajuan/${p.id}/bidang`, {
