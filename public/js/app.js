@@ -5314,6 +5314,27 @@ async function navigateToLpjEditor(proposalId) {
       }
     });
 
+    // Atur tombol aksi Editor berdasarkan peran (Guru vs Bendahara/Pejabat)
+    const isBendaharaEditor = currentUser && currentUser.role !== 'GURU';
+    ['btnEditorDraftLpjTop', 'btnEditorDraftLpjBottom'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = isBendaharaEditor ? 'none' : 'inline-flex';
+    });
+    ['btnEditorSubmitLpjTop', 'btnEditorSubmitLpjBottom'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.innerHTML = isBendaharaEditor
+          ? '<i class="ti ti-device-floppy"></i> Simpan Perubahan'
+          : '<i class="ti ti-send"></i> Simpan &amp; Serahkan ke Bendahara';
+      }
+    });
+    ['btnEditorRevisiLpjTop', 'btnEditorRevisiLpjBottom'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = (isBendaharaEditor && p.status === 'MENUNGGU_VERIFIKASI_LPJ') ? 'inline-flex' : 'none';
+      }
+    });
+
     // Tampilkan Referensi Rincian Item RAB Disetujui (Tabel Ringkas)
     const refBox = document.getElementById('editorLpjApprovedItemsRefBox');
     const refList = document.getElementById('editorLpjApprovedItemsList');
@@ -6431,13 +6452,85 @@ async function executeSaveLpj({ isDraft = false } = {}) {
     draftBtns.forEach(b => {
       b.innerHTML = '<i class="ti ti-file-pencil"></i> Simpan Draft';
     });
+    const isBendaharaEditor = currentUser && currentUser.role !== 'GURU';
     const sendBtns = [
       document.getElementById('btnEditorSubmitLpjBottom'),
       document.getElementById('btnEditorSubmitLpjTop')
     ].filter(Boolean);
     sendBtns.forEach(b => {
-      b.innerHTML = '<i class="ti ti-check"></i> Simpan & Serahkan ke Bendahara';
+      b.innerHTML = isBendaharaEditor
+        ? '<i class="ti ti-device-floppy"></i> Simpan Perubahan'
+        : '<i class="ti ti-check"></i> Simpan & Serahkan ke Bendahara';
     });
+  }
+}
+
+async function promptRevisiLpjFromEditor() {
+  const proposalId = document.getElementById('editorLpjProposalId')?.value;
+  if (!proposalId) return;
+
+  if (typeof Swal === 'undefined') {
+    const note = prompt('Masukkan deskripsi bagian yang harus direvisi oleh Guru:');
+    if (!note || !note.trim()) return;
+    await submitRevisiLpjFromEditor(proposalId, note.trim());
+    return;
+  }
+
+  const { value: catatan, isConfirmed } = await Swal.fire({
+    title: '<span style="font-size:1.12rem; font-weight:800; color:#0f172a;">Serahkan ke Guru untuk Revisi</span>',
+    html: `
+      <div style="text-align:left;">
+        <p style="font-size:0.84rem; color:#475569; margin-bottom:10px; line-height:1.45;">
+          Tuliskan deskripsi bagian laporan atau bukti nota yang perlu diperbaiki oleh Guru pengusul.
+        </p>
+        <textarea id="swalRevisiLpjCatatan" class="form-textarea" rows="4" placeholder="Cth: Mohon lengkapi foto nota toko dan perbaiki nominal pada rincian belanja..." style="width:100%; font-size:0.86rem; padding:10px; border:1.5px solid #cbd5e1; border-radius:8px;"></textarea>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '<i class="ti ti-arrow-back-up"></i> Kirim Permintaan Revisi',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#d97706',
+    cancelButtonColor: '#64748b',
+    focusConfirm: false,
+    preConfirm: () => {
+      const val = (document.getElementById('swalRevisiLpjCatatan')?.value || '').trim();
+      if (!val) {
+        Swal.showValidationMessage('Harap isi deskripsi hal yang harus direvisi.');
+        return false;
+      }
+      return val;
+    }
+  });
+
+  if (isConfirmed && catatan) {
+    await submitRevisiLpjFromEditor(proposalId, catatan);
+  }
+}
+window.promptRevisiLpjFromEditor = promptRevisiLpjFromEditor;
+
+async function submitRevisiLpjFromEditor(proposalId, catatan) {
+  try {
+    const res = await fetch(`/api/pengajuan/${proposalId}/lpj/verifikasi`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tindakan: 'REVISI', catatan_verifikasi: catatan })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Gagal mengembalikan laporan untuk revisi.');
+    }
+    if (typeof showNotification === 'function') {
+      showNotification(data.message || 'Laporan berhasil dikembalikan ke Guru untuk direvisi.');
+    }
+    await loadProposals();
+    await loadSummary();
+    goBackFromLpjEditor();
+  } catch (err) {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({ icon: 'error', title: 'Gagal Mengirim Revisi', text: err.message, confirmButtonColor: '#059669' });
+    } else {
+      alert(err.message);
+    }
   }
 }
 

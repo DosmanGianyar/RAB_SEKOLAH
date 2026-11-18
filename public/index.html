@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
   <link rel="stylesheet" href="/libs/summernote/summernote-lite.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=3.0.2">
+  <link rel="stylesheet" href="/css/style.css?v=3.0.3">
 </head>
 <body>
 
@@ -1089,6 +1089,9 @@
           <button type="button" class="btn btn-secondary btn-sm" onclick="saveLpjAsDraft(event)" id="btnEditorDraftLpjTop" title="Simpan sebagai draft sementara (belum diteruskan ke Bendahara)">
             <i class="ti ti-device-floppy"></i> Simpan Draft
           </button>
+          <button type="button" class="btn btn-warning btn-sm" onclick="promptRevisiLpjFromEditor()" id="btnEditorRevisiLpjTop" style="display: none; background: #d97706; border-color: #d97706; color: #fff;" title="Kembalikan laporan ke Guru untuk diperbaiki">
+            <i class="ti ti-arrow-back-up"></i> Serahkan ke Guru untuk Revisi
+          </button>
           <button type="button" class="btn btn-primary btn-sm" onclick="submitLpjFromEditor(event)" id="btnEditorSubmitLpjTop">
             <i class="ti ti-send"></i> Simpan &amp; Serahkan ke Bendahara
           </button>
@@ -1558,6 +1561,9 @@
               </a>
               <button type="button" class="btn btn-secondary btn-sm" onclick="saveLpjAsDraft(event)" id="btnEditorDraftLpjBottom" title="Simpan sebagai draft sementara (belum diserahkan ke Bendahara)">
                 <i class="ti ti-device-floppy"></i> Simpan Draft
+              </button>
+              <button type="button" class="btn btn-warning btn-sm" onclick="promptRevisiLpjFromEditor()" id="btnEditorRevisiLpjBottom" style="display: none; background: #d97706; border-color: #d97706; color: #fff;" title="Kembalikan laporan ke Guru untuk diperbaiki">
+                <i class="ti ti-arrow-back-up"></i> Serahkan ke Guru untuk Revisi
               </button>
               <button type="submit" class="btn btn-primary btn-sm" id="btnEditorSubmitLpjBottom">
                 <i class="ti ti-send"></i> Simpan &amp; Serahkan ke Bendahara
@@ -2751,6 +2757,6 @@
   <script src="/libs/chartjs/chart.umd.min.js"></script>
   <script src="/libs/summernote/jquery.min.js"></script>
   <script src="/libs/summernote/summernote-lite.min.js"></script>
-  <script src="/js/app.js?v=3.0.2"></script>
+  <script src="/js/app.js?v=3.0.3"></script>
 </body>
 </html>
