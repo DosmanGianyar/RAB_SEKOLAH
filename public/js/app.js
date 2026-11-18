@@ -2341,7 +2341,189 @@ function populatePosDropdown(filterText = '') {
     });
     select.appendChild(optgroup);
   });
+
+  syncRkasComboboxFromSelect();
 }
+
+let rkasActiveIndex = -1;
+
+function getFilteredRkasList(filterText) {
+  const kw = (filterText || '').trim().toLowerCase();
+  if (!kw) return currentPosList;
+  const terms = kw.split(/\s+/).filter(Boolean);
+  return currentPosList.filter(p => {
+    const hay = [
+      p.nama_pos,
+      p.kode_rekening,
+      p.nama_kelompok,
+      p.kode_kelompok,
+      p.program_induk,
+      p.snp
+    ].filter(Boolean).join(' ').toLowerCase();
+    return terms.every(t => hay.includes(t));
+  });
+}
+
+function renderRkasDropdown(filterText = '') {
+  const listEl = document.getElementById('rkasDropdownList');
+  const select = document.getElementById('selectPosAnggaran');
+  if (!listEl) return;
+
+  const list = getFilteredRkasList(filterText);
+  const selectedVal = select ? Number(select.value) : 0;
+  rkasActiveIndex = -1;
+
+  if (list.length === 0) {
+    listEl.innerHTML = `<div class="rkas-empty-state">Tidak ada Pos Anggaran RKAS yang cocok dengan kata "<strong>${escapeHtml(filterText)}</strong>".</div>`;
+    return;
+  }
+
+  const groups = new Map();
+  list.forEach(pos => {
+    const gKey = pos.no_kelompok || 999;
+    if (!groups.has(gKey)) {
+      const gKode = pos.kode_kelompok ? `[${pos.kode_kelompok}] ` : '';
+      const gNama = pos.nama_kelompok || pos.program_induk || 'Kelompok Umum';
+      groups.set(gKey, { label: `${gKode}${gNama}`, items: [] });
+    }
+    groups.get(gKey).items.push(pos);
+  });
+
+  let html = '';
+  groups.forEach(grp => {
+    html += `<div class="rkas-group-label">${escapeHtml(grp.label)}</div>`;
+    grp.items.forEach(pos => {
+      const kodePrefix = pos.kode_rekening ? `<span class="rkas-kode-tag">${escapeHtml(pos.kode_rekening)}</span> ` : '';
+      const isSelected = selectedVal && selectedVal === pos.id;
+      html += `
+        <button type="button" class="rkas-option-item ${isSelected ? 'is-selected' : ''}" data-pos-id="${pos.id}" onclick="selectRkasOption(${pos.id})">
+          <div class="rkas-option-main">${kodePrefix}${escapeHtml(pos.nama_pos)}</div>
+          <div class="rkas-option-meta">Sisa Pagu: <strong>${formatRupiah(pos.sisa_pagu)}</strong></div>
+        </button>
+      `;
+    });
+  });
+
+  listEl.innerHTML = html;
+}
+
+function openRkasDropdown() {
+  const listEl = document.getElementById('rkasDropdownList');
+  const input = document.getElementById('inputSearchPosAnggaran');
+  if (!listEl || !input) return;
+  const select = document.getElementById('selectPosAnggaran');
+  // Jika sudah ada item terpilih dan input masih menampilkan teks pilihan lengkap, tampilkan semua opsi saat fokus
+  const selPos = select && select.value ? currentPosList.find(p => p.id === Number(select.value)) : null;
+  const query = selPos && input.value.includes(selPos.nama_pos) ? '' : input.value;
+  renderRkasDropdown(query);
+  listEl.style.display = 'block';
+}
+window.openRkasDropdown = openRkasDropdown;
+
+function closeRkasDropdown() {
+  const listEl = document.getElementById('rkasDropdownList');
+  if (listEl) listEl.style.display = 'none';
+}
+window.closeRkasDropdown = closeRkasDropdown;
+
+function filterRkasCombobox(val) {
+  const listEl = document.getElementById('rkasDropdownList');
+  const clearBtn = document.getElementById('btnClearRkasSearch');
+  if (clearBtn) clearBtn.style.display = val ? 'flex' : 'none';
+  renderRkasDropdown(val);
+  if (listEl) listEl.style.display = 'block';
+}
+window.filterRkasCombobox = filterRkasCombobox;
+
+function selectRkasOption(posId) {
+  const select = document.getElementById('selectPosAnggaran');
+  const input = document.getElementById('inputSearchPosAnggaran');
+  const clearBtn = document.getElementById('btnClearRkasSearch');
+  const pos = currentPosList.find(p => p.id === Number(posId));
+  if (!select || !pos) return;
+
+  select.value = String(pos.id);
+  const kodePrefix = pos.kode_rekening ? `[${pos.kode_rekening}] ` : '';
+  if (input) input.value = `${kodePrefix}${pos.nama_pos} (Sisa: ${formatRupiah(pos.sisa_pagu)})`;
+  if (clearBtn) clearBtn.style.display = 'flex';
+  closeRkasDropdown();
+  handlePosSelected();
+}
+window.selectRkasOption = selectRkasOption;
+
+function clearRkasSelection() {
+  const select = document.getElementById('selectPosAnggaran');
+  const input = document.getElementById('inputSearchPosAnggaran');
+  const clearBtn = document.getElementById('btnClearRkasSearch');
+  if (select) select.value = '';
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  if (clearBtn) clearBtn.style.display = 'none';
+  handlePosSelected();
+  renderRkasDropdown('');
+  const listEl = document.getElementById('rkasDropdownList');
+  if (listEl) listEl.style.display = 'block';
+}
+window.clearRkasSelection = clearRkasSelection;
+
+function syncRkasComboboxFromSelect() {
+  const select = document.getElementById('selectPosAnggaran');
+  const input = document.getElementById('inputSearchPosAnggaran');
+  const clearBtn = document.getElementById('btnClearRkasSearch');
+  if (!select || !input) return;
+  const posId = Number(select.value);
+  const pos = posId ? currentPosList.find(p => p.id === posId) : null;
+  if (pos) {
+    const kodePrefix = pos.kode_rekening ? `[${pos.kode_rekening}] ` : '';
+    input.value = `${kodePrefix}${pos.nama_pos} (Sisa: ${formatRupiah(pos.sisa_pagu)})`;
+    if (clearBtn) clearBtn.style.display = 'flex';
+  } else {
+    input.value = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+}
+window.syncRkasComboboxFromSelect = syncRkasComboboxFromSelect;
+
+function handleRkasSearchKeydown(e) {
+  const listEl = document.getElementById('rkasDropdownList');
+  if (!listEl) return;
+  const items = Array.from(listEl.querySelectorAll('.rkas-option-item'));
+  if (e.key === 'Escape') {
+    closeRkasDropdown();
+    return;
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (listEl.style.display === 'none') openRkasDropdown();
+    if (items.length === 0) return;
+    rkasActiveIndex = (rkasActiveIndex + 1) % items.length;
+    items.forEach((el, idx) => el.classList.toggle('is-active', idx === rkasActiveIndex));
+    items[rkasActiveIndex].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (items.length === 0) return;
+    rkasActiveIndex = rkasActiveIndex <= 0 ? items.length - 1 : rkasActiveIndex - 1;
+    items.forEach((el, idx) => el.classList.toggle('is-active', idx === rkasActiveIndex));
+    items[rkasActiveIndex].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter' && listEl.style.display !== 'none') {
+    if (items.length > 0) {
+      e.preventDefault();
+      const target = rkasActiveIndex >= 0 ? items[rkasActiveIndex] : items[0];
+      const pid = Number(target.getAttribute('data-pos-id'));
+      if (pid) selectRkasOption(pid);
+    }
+  }
+}
+window.handleRkasSearchKeydown = handleRkasSearchKeydown;
+
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('rkasComboboxWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    closeRkasDropdown();
+  }
+});
 
 function handleFilterPosDropdown(keyword) {
   populatePosDropdown(keyword);
@@ -2848,6 +3030,7 @@ function restoreProposalDraft(force = false) {
   const selPos = document.getElementById('selectPosAnggaran');
   if (selPos && draft.pos_anggaran_id) {
     selPos.value = String(draft.pos_anggaran_id);
+    syncRkasComboboxFromSelect();
   }
   const elNama = document.getElementById('inputNamaKegiatan');
   if (elNama && draft.nama_kegiatan !== undefined) elNama.value = draft.nama_kegiatan;

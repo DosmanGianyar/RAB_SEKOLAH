@@ -6605,3 +6605,145 @@ body > .aksi-dd-menu { z-index: 2147483000; }
     font-size: 0.78rem;
   }
 }
+
+/* ==========================================================================
+   SEARCHABLE RKAS COMBOBOX
+   ========================================================================== */
+.rkas-combobox-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.rkas-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.rkas-search-icon {
+  position: absolute;
+  left: 12px;
+  color: #64748b;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.rkas-search-input {
+  padding-left: 36px !important;
+  padding-right: 34px !important;
+}
+
+.rkas-clear-btn {
+  position: absolute;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rkas-clear-btn:hover {
+  background: #cbd5e1;
+}
+
+.rkas-dropdown-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+  z-index: 1200;
+  padding: 6px;
+}
+
+.rkas-group-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 5px 10px;
+  border-radius: 6px;
+  margin: 6px 0 4px 0;
+}
+
+.rkas-group-label:first-child {
+  margin-top: 0;
+}
+
+.rkas-option-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.12s ease;
+}
+
+.rkas-option-item:hover,
+.rkas-option-item.is-active {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.rkas-option-item.is-selected {
+  background: #d1fae5;
+  border-color: #10b981;
+}
+
+.rkas-option-main {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f172a;
+  flex: 1;
+}
+
+.rkas-kode-tag {
+  font-family: monospace;
+  font-size: 0.76rem;
+  background: #e2e8f0;
+  color: #1e293b;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.rkas-option-meta {
+  font-size: 0.76rem;
+  color: #047857;
+  white-space: nowrap;
+}
+
+.rkas-empty-state {
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 0.84rem;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .rkas-option-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+}

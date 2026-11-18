@@ -760,10 +760,27 @@
             <div class="rab-form-info-stack">
               <div class="form-group">
                 <label class="form-label">Pilih Pos Anggaran yang Dibebani (RKAS 2026) *</label>
-                <select class="form-select" id="selectPosAnggaran" required onchange="handlePosSelected()">
-                  <option value="">-- Pilih Pos Anggaran RKAS --</option>
-                  <!-- Populated via JS -->
-                </select>
+                <div class="rkas-combobox-wrap" id="rkasComboboxWrap">
+                  <div class="rkas-input-box">
+                    <i class="ti ti-search rkas-search-icon"></i>
+                    <input
+                      type="text"
+                      class="form-input rkas-search-input"
+                      id="inputSearchPosAnggaran"
+                      placeholder="-- Ketik kata kunci atau klik untuk pilih Pos Anggaran RKAS --"
+                      autocomplete="off"
+                      onfocus="openRkasDropdown()"
+                      oninput="filterRkasCombobox(this.value)"
+                      onkeydown="handleRkasSearchKeydown(event)"
+                    >
+                    <button type="button" class="rkas-clear-btn" id="btnClearRkasSearch" onclick="clearRkasSelection()" title="Hapus pilihan" style="display: none;">✕</button>
+                  </div>
+                  <div class="rkas-dropdown-list" id="rkasDropdownList" style="display: none;"></div>
+                  <select class="form-select" id="selectPosAnggaran" style="display: none;" onchange="handlePosSelected()">
+                    <option value="">-- Pilih Pos Anggaran RKAS --</option>
+                    <!-- Populated via JS -->
+                  </select>
+                </div>
               </div>
 
               <div class="form-group">
