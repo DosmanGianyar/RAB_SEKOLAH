@@ -5366,19 +5366,25 @@ async function navigateToLpjEditor(proposalId) {
     selectedEditorBuktiTransferFile = null;
     clearEditorBuktiTransfer();
 
-    // Setup kartu upload bukti transfer susulan khusus Bendahara & Admin
+    // Setup kartu upload bukti transfer susulan khusus Bendahara & Admin / saat komponen transfer aktif
     const cardTransferBendahara = document.getElementById('editorLpjBendaharaTransferCard');
     if (cardTransferBendahara) {
-      const isBendaharaOrAdmin = currentUser && (['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role));
-      cardTransferBendahara.style.display = isBendaharaOrAdmin ? 'block' : 'none';
-      const wrapTransfer = document.getElementById('editorLpjBuktiTransferPreviewWrap');
-      const nameTransfer = document.getElementById('editorLpjBuktiTransferFileName');
+      const wrapTransfer = document.getElementById('editorLpjTransferPreviewWrap');
+      const nameTransfer = document.getElementById('editorLpjTransferFileName');
+      const linkTransfer = document.getElementById('editorLpjTransferViewLink');
+      const badgeTransfer = document.getElementById('editorLpjTransferStatusBadge');
       if (p.file_bukti_transfer_url) {
+        if (badgeTransfer) badgeTransfer.textContent = 'Sudah Ada Bukti';
         if (wrapTransfer && nameTransfer) {
           wrapTransfer.style.display = 'flex';
-          nameTransfer.innerHTML = `<a href="${p.file_bukti_transfer_url}" target="_blank" style="color:inherit; text-decoration:underline;">${p.file_bukti_transfer_url.split('/').pop()}</a> <span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:0.7rem; margin-left:6px;">Tersimpan</span>`;
+          nameTransfer.innerHTML = `${escapeHtml(p.file_bukti_transfer_url.split('/').pop())} <span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:0.7rem; margin-left:6px;">Tersimpan</span>`;
+        }
+        if (linkTransfer) {
+          linkTransfer.href = p.file_bukti_transfer_url;
+          linkTransfer.style.display = 'inline-flex';
         }
       } else {
+        if (badgeTransfer) badgeTransfer.textContent = 'Belum Ada Bukti';
         if (wrapTransfer) wrapTransfer.style.display = 'none';
       }
     }
@@ -6018,12 +6024,21 @@ function handleEditorBuktiTransferSelect(event) {
   }
   selectedEditorBuktiTransferFile = file;
 
-  const wrap = document.getElementById('editorLpjBuktiTransferPreviewWrap');
-  const nameSpan = document.getElementById('editorLpjBuktiTransferFileName');
+  const wrap = document.getElementById('editorLpjTransferPreviewWrap');
+  const nameSpan = document.getElementById('editorLpjTransferFileName');
+  const linkEl = document.getElementById('editorLpjTransferViewLink');
+  const badgeEl = document.getElementById('editorLpjTransferStatusBadge');
 
   if (wrap && nameSpan) {
     wrap.style.display = 'flex';
     nameSpan.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+  }
+  if (linkEl) {
+    linkEl.href = URL.createObjectURL(file);
+    linkEl.style.display = 'inline-flex';
+  }
+  if (badgeEl) {
+    badgeEl.textContent = 'Siap Disimpan';
   }
 }
 
@@ -6034,9 +6049,13 @@ function clearEditorBuktiTransfer(event) {
   const input = document.getElementById('editorLpjBuktiTransferInput');
   if (input) input.value = '';
 
-  const wrap = document.getElementById('editorLpjBuktiTransferPreviewWrap');
+  const wrap = document.getElementById('editorLpjTransferPreviewWrap');
   if (wrap) {
     wrap.style.display = 'none';
+  }
+  const badgeEl = document.getElementById('editorLpjTransferStatusBadge');
+  if (badgeEl) {
+    badgeEl.textContent = 'Belum Ada Bukti';
   }
 }
 
