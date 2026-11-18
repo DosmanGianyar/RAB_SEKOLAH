@@ -6774,3 +6774,29 @@ body > .aksi-dd-menu { z-index: 2147483000; }
     display: none !important;
   }
 }
+
+/* ==========================================================================
+   ANDROID / MOBILE GPU TILE FIX (Mencegah Layar Putih Saat Scroll di HP)
+   ========================================================================== */
+@media (max-width: 900px) {
+  .rkas-table-card .table-responsive,
+  .draggable-table-container {
+    max-height: none !important;
+    overflow-y: visible !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rkas-table thead,
+  .rkas-table thead th,
+  .rkas-table tfoot,
+  .rkas-table tfoot td {
+    position: static !important;
+    box-shadow: none !important;
+  }
+
+  .modal-overlay {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
