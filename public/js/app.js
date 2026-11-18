@@ -3321,9 +3321,9 @@ function renderProposalsList(proposals) {
     if (p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
       const sdmOk = !!Number(p.disetujui_analis_sdm);
       const kepsekOk = !!Number(p.disetujui_kepsek);
-      if (sdmOk && !kepsekOk) statusLabel = 'Menunggu Kepsek (1/2 SDM ✓)';
-      else if (!sdmOk && kepsekOk) statusLabel = 'Menunggu Analisis SDM (1/2 Kepsek ✓)';
-      else statusLabel = 'Menunggu Analisis SDM & Kepsek (0/2)';
+      if (sdmOk && !kepsekOk) statusLabel = 'Menunggu Persetujuan Kepsek';
+      else if (!sdmOk && kepsekOk) statusLabel = 'Menunggu Persetujuan Analis SDM';
+      else statusLabel = 'Menunggu Persetujuan Atasan';
     }
     if (p.status === 'DISETUJUI') statusLabel = 'Disetujui (Siap Dicairkan)';
     if (p.status === 'PERLU_REVISI') statusLabel = 'Perlu Revisi';
@@ -3552,8 +3552,16 @@ async function openProposalDetail(id) {
       }
       document.getElementById('detailTotalBiaya').textContent = formatRupiah(p.total_dana_disetujui || p.total_dana_diajukan);
 
+      let detailStatusText = p.status.replace(/_/g, ' ');
+      if (p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
+        const sdmOk = !!Number(p.disetujui_analis_sdm);
+        const kepsekOk = !!Number(p.disetujui_kepsek);
+        if (sdmOk && !kepsekOk) detailStatusText = 'Menunggu Persetujuan Kepsek';
+        else if (!sdmOk && kepsekOk) detailStatusText = 'Menunggu Persetujuan Analis SDM';
+        else detailStatusText = 'Menunggu Persetujuan Atasan';
+      }
       document.getElementById('detailStatusBadge').innerHTML = `
-        <span class="status-pill ${p.status}">${p.status.replace(/_/g, ' ')}</span>
+        <span class="status-pill ${p.status}">${detailStatusText}</span>
       `;
 
       // Banner Info Realisasi Pencairan Kas (Fase 4)
