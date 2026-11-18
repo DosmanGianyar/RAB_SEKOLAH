@@ -615,9 +615,9 @@ function setupEventListeners() {
     });
   }
 
-  // Close modals on overlay click
+  // Close modals on overlay click (kecuali modal dengan data-static-backdrop="true")
   window.addEventListener('click', (e) => {
-    if (e.target.classList.contains('modal-overlay')) {
+    if (e.target.classList.contains('modal-overlay') && e.target.dataset.staticBackdrop !== 'true') {
       e.target.classList.remove('active');
     }
   });
