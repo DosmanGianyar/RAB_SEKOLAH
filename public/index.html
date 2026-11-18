@@ -1168,11 +1168,13 @@
                 Format berkas yang diterima: Gambar (.jpg, .png) atau Dokumen PDF (Maksimal 15MB)
               </div>
             </div>
-            <div id="editorLpjTransferPreviewWrap" style="display: none; align-items: center; gap: 8px; margin-top: 8px; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #bfdbfe;">
+            <div id="editorLpjTransferPreviewWrap" style="display: none; align-items: center; gap: 8px; margin-top: 8px; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #bfdbfe; flex-wrap: wrap;">
               <span style="font-size: 1.2rem; color: #2563eb;">📄</span>
-              <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; font-weight: 600;" id="editorLpjTransferFileName">bukti-transfer.pdf</div>
-              <a href="#" target="_blank" id="editorLpjTransferViewLink" class="btn btn-outline-primary btn-xs" style="text-decoration:none;">Lihat Berkas</a>
-              <button type="button" class="btn btn-secondary btn-xs" onclick="clearEditorBuktiTransfer(event)">Hapus / Ganti</button>
+              <div style="flex: 1; min-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; font-weight: 600;" id="editorLpjTransferFileName">bukti-transfer.pdf</div>
+              <button type="button" id="editorLpjTransferViewLink" class="btn btn-outline-primary btn-xs" onclick="previewEditorBuktiTransfer()">
+                <i class="ti ti-eye"></i> Lihat Bukti Transfer
+              </button>
+              <button type="button" id="editorLpjTransferClearBtn" class="btn btn-secondary btn-xs" onclick="clearEditorBuktiTransfer(event)">Hapus Pilihan</button>
             </div>
           </div>
 
