@@ -3344,6 +3344,9 @@ function renderProposalsList(proposals) {
       `;
     } else if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
       roleActionBtn = `
+        <button class="btn btn-outline-secondary btn-sm" onclick="event.stopPropagation(); openProposalDetail(${p.id})" title="Buka Detail Usulan, Pindah Pos RKAS, atau Ubah Bidang">
+          <i class="ti ti-eye"></i> Detail &amp; Atur Pos
+        </button>
         <button class="btn btn-warning btn-sm" style="background: #d97706; border-color: #d97706; color: #fff;" onclick="event.stopPropagation(); openReviewModal(${p.id})">
           <i class="ti ti-edit"></i> Telaah & Koreksi
         </button>
