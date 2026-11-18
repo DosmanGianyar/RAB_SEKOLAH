@@ -819,9 +819,17 @@ app.post('/api/pengajuan/:id/kepsek-decision', requireAuth, (req, res) => {
     });
 
     const roleName = req.user.role === 'ANALISIS_SDM' ? 'Analisis SDM' : 'Kepala Sekolah';
-    const msg = tindakan === 'APPROVE'
-      ? `Usulan anggaran "${updated.nama_kegiatan}" telah DISETUJUI & DISAHKAN oleh ${req.user.nama_lengkap} (${roleName}).`
-      : `Proposal dikembalikan oleh ${req.user.nama_lengkap} (${roleName}) untuk revisi.`;
+    let msg;
+    if (tindakan === 'APPROVE') {
+      if (updated.status === 'DISETUJUI') {
+        msg = `Usulan anggaran "${updated.nama_kegiatan}" telah DISETUJUI & DISAHKAN (2/2: Analisis SDM & Kepala Sekolah).`;
+      } else {
+        const menungguPihak = updated.disetujui_analis_sdm ? 'Kepala Sekolah' : 'Analisis SDM';
+        msg = `Persetujuan ${roleName} (1/2) tercatat. Usulan masih menunggu persetujuan ${menungguPihak} sebelum dapat dicairkan.`;
+      }
+    } else {
+      msg = `Proposal dikembalikan oleh ${req.user.nama_lengkap} (${roleName}) untuk revisi.`;
+    }
 
     res.json({ success: true, data: updated, message: msg });
   } catch (err) {

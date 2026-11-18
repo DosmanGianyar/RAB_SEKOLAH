@@ -3318,7 +3318,13 @@ function renderProposalsList(proposals) {
 
     let statusLabel = p.status.replace(/_/g, ' ');
     if (p.status === 'MENUNGGU_REVIEW') statusLabel = 'Menunggu Review Bendahara';
-    if (p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') statusLabel = 'Menunggu Persetujuan Kepsek';
+    if (p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
+      const sdmOk = !!Number(p.disetujui_analis_sdm);
+      const kepsekOk = !!Number(p.disetujui_kepsek);
+      if (sdmOk && !kepsekOk) statusLabel = 'Menunggu Kepsek (1/2 SDM ✓)';
+      else if (!sdmOk && kepsekOk) statusLabel = 'Menunggu Analisis SDM (1/2 Kepsek ✓)';
+      else statusLabel = 'Menunggu Analisis SDM & Kepsek (0/2)';
+    }
     if (p.status === 'DISETUJUI') statusLabel = 'Disetujui (Siap Dicairkan)';
     if (p.status === 'PERLU_REVISI') statusLabel = 'Perlu Revisi';
     if (p.status === 'DICAIRKAN') {
@@ -3352,11 +3358,26 @@ function renderProposalsList(proposals) {
         </button>
       `;
     } else if (isKepsek && p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
-      roleActionBtn = `
-        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openKepsekModal(${p.id})">
-          <i class="ti ti-shield-check"></i> Beri Otorisasi Final
-        </button>
-      `;
+      const sdmOk = !!Number(p.disetujui_analis_sdm);
+      const kepsekOk = !!Number(p.disetujui_kepsek);
+      const alreadyApprovedByMe =
+        (currentUser.role === 'ANALISIS_SDM' && sdmOk) ||
+        (currentUser.role === 'KEPALA_SEKOLAH' && kepsekOk);
+
+      if (alreadyApprovedByMe) {
+        const waitWho = currentUser.role === 'ANALISIS_SDM' ? 'Kepala Sekolah' : 'Analisis SDM';
+        roleActionBtn = `
+          <span class="badge" style="background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; font-size: 0.72rem; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+            <i class="ti ti-check"></i> Anda Setuju (Menunggu ${waitWho})
+          </span>
+        `;
+      } else {
+        roleActionBtn = `
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openKepsekModal(${p.id})">
+            <i class="ti ti-shield-check"></i> Beri Otorisasi (${(sdmOk ? 1 : 0) + (kepsekOk ? 1 : 0)}/2)
+          </button>
+        `;
+      }
     } else if (isBendahara && p.status === 'DISETUJUI') {
       roleActionBtn = `
         <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCairkanModal(${p.id})">
@@ -3705,14 +3726,29 @@ async function openProposalDetail(id) {
         };
         footer.appendChild(btnReview);
       } else if (isKepsek && p.status === 'MENUNGGU_PERSETUJUAN_KEPSEK') {
-        const btnKepsek = document.createElement('button');
-        btnKepsek.className = 'btn btn-primary btn-sm';
-        btnKepsek.innerHTML = '<i class="ti ti-shield-check"></i> Berikan Otorisasi Pengesahan';
-        btnKepsek.onclick = () => {
-          closeDetailModal();
-          openKepsekModal(p.id);
-        };
-        footer.appendChild(btnKepsek);
+        const sdmOk = !!Number(p.disetujui_analis_sdm);
+        const kepsekOk = !!Number(p.disetujui_kepsek);
+        const alreadyApprovedByMe =
+          (currentUser.role === 'ANALISIS_SDM' && sdmOk) ||
+          (currentUser.role === 'KEPALA_SEKOLAH' && kepsekOk);
+
+        if (alreadyApprovedByMe) {
+          const waitWho = currentUser.role === 'ANALISIS_SDM' ? 'Kepala Sekolah' : 'Analisis SDM';
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.style.cssText = 'background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; font-size:0.76rem; padding:6px 10px; border-radius:8px; font-weight:700;';
+          badge.innerHTML = `<i class="ti ti-check"></i> Anda Sudah Menyetujui (Menunggu ${waitWho})`;
+          footer.appendChild(badge);
+        } else {
+          const btnKepsek = document.createElement('button');
+          btnKepsek.className = 'btn btn-primary btn-sm';
+          btnKepsek.innerHTML = `<i class="ti ti-shield-check"></i> Berikan Otorisasi (${(sdmOk ? 1 : 0) + (kepsekOk ? 1 : 0)}/2)`;
+          btnKepsek.onclick = () => {
+            closeDetailModal();
+            openKepsekModal(p.id);
+          };
+          footer.appendChild(btnKepsek);
+        }
       } else if (isBendahara && p.status === 'DISETUJUI') {
         const btnCairkan = document.createElement('button');
         btnCairkan.className = 'btn btn-primary btn-sm';

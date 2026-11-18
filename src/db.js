@@ -237,6 +237,12 @@ function initDatabase() {
   if (!colNames.includes('nomor_kode_kwitansi')) {
     db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN nomor_kode_kwitansi TEXT`).run();
   }
+  if (!colNames.includes('disetujui_analis_sdm')) {
+    db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN disetujui_analis_sdm INTEGER DEFAULT 0`).run();
+  }
+  if (!colNames.includes('disetujui_kepsek')) {
+    db.prepare(`ALTER TABLE pengajuan_kegiatan ADD COLUMN disetujui_kepsek INTEGER DEFAULT 0`).run();
+  }
 
   // Migrasi aman untuk kolom Template LPJ Lengkap pada lpj_pertanggungjawaban
   const lpjTableInfo = db.prepare(`PRAGMA table_info(lpj_pertanggungjawaban)`).all();
@@ -1479,7 +1485,7 @@ function reviewProposalByBendahara({ proposal_id, user_id, items_koreksi, catata
 
   if (totalDisetujui >= 1000000) {
     statusBaru = 'MENUNGGU_PERSETUJUAN_KEPSEK';
-    auditAktivitas = `${reviewerName} menelaah rincian belanja (Total Disetujui: Rp ${totalDisetujui.toLocaleString('id-ID')}). Karena nominal >= Rp 1.000.000, diteruskan ke Kepala Sekolah untuk otorisasi final.`;
+    auditAktivitas = `${reviewerName} menelaah rincian belanja (Total Disetujui: Rp ${totalDisetujui.toLocaleString('id-ID')}). Karena nominal >= Rp 1.000.000, diteruskan untuk persetujuan Analisis SDM & Kepala Sekolah.`;
   } else {
     statusBaru = 'DISETUJUI';
     auditAktivitas = `${reviewerName} menyetujui langsung usulan belanja sebesar Rp ${totalDisetujui.toLocaleString('id-ID')} (Jalur Cepat: Di bawah Rp 1.000.000).`;
@@ -1489,7 +1495,9 @@ function reviewProposalByBendahara({ proposal_id, user_id, items_koreksi, catata
     UPDATE pengajuan_kegiatan
     SET total_dana_disetujui = ?,
         status = ?,
-        catatan_bendahara = ?
+        catatan_bendahara = ?,
+        disetujui_analis_sdm = 0,
+        disetujui_kepsek = 0
     WHERE id = ?
   `).run(totalDisetujui, statusBaru, catatan_bendahara || '', proposal_id);
 
@@ -1520,9 +1528,11 @@ function decisionProposalByKepsek({ proposal_id, user_id, tindakan, catatan_keps
     db.prepare(`
       UPDATE pengajuan_kegiatan
       SET status = 'PERLU_REVISI',
-          catatan_bendahara = COALESCE(catatan_bendahara || ' | ', '') || 'Catatan Kepsek: ' || ?
+          disetujui_analis_sdm = 0,
+          disetujui_kepsek = 0,
+          catatan_bendahara = COALESCE(catatan_bendahara || ' | ', '') || 'Catatan Pimpinan: ' || ?
       WHERE id = ?
-    `).run(catatan_kepsek || 'Ditolak/Perlu Revisi oleh Kepala Sekolah', proposal_id);
+    `).run(catatan_kepsek || 'Ditolak/Perlu Revisi oleh Pimpinan', proposal_id);
 
     // Lepaskan pagu tercadangkan
     db.prepare(`
@@ -1538,18 +1548,48 @@ function decisionProposalByKepsek({ proposal_id, user_id, tindakan, catatan_keps
       aktivitas: `${kepsekName} mengembalikan proposal untuk revisi: "${catatan_kepsek || '-'}"`
     });
   } else {
-    // APPROVE
+    // APPROVE: Pengajuan >= Rp 1.000.000 wajib disetujui KEDUA akun (Analisis SDM & Kepala Sekolah)
+    const role = user ? user.role : '';
+    let nextAnalisSdm = Number(proposal.disetujui_analis_sdm) ? 1 : 0;
+    let nextKepsek = Number(proposal.disetujui_kepsek) ? 1 : 0;
+
+    if (role === 'ANALISIS_SDM') {
+      if (nextAnalisSdm) {
+        throw new Error('Akun Analisis SDM sudah menyetujui usulan ini. Menunggu persetujuan Kepala Sekolah.');
+      }
+      nextAnalisSdm = 1;
+    } else if (role === 'KEPALA_SEKOLAH') {
+      if (nextKepsek) {
+        throw new Error('Akun Kepala Sekolah sudah menyetujui usulan ini. Menunggu persetujuan Analisis SDM.');
+      }
+      nextKepsek = 1;
+    } else if (role === 'ADMIN') {
+      nextAnalisSdm = 1;
+      nextKepsek = 1;
+    } else {
+      throw new Error('Akses Ditolak: Hanya Analisis SDM dan Kepala Sekolah yang berhak menyetujui.');
+    }
+
+    const fullyApproved = nextAnalisSdm === 1 && nextKepsek === 1;
+    const targetStatus = fullyApproved ? 'DISETUJUI' : 'MENUNGGU_PERSETUJUAN_KEPSEK';
+
     db.prepare(`
       UPDATE pengajuan_kegiatan
-      SET status = 'DISETUJUI'
+      SET disetujui_analis_sdm = ?,
+          disetujui_kepsek = ?,
+          status = ?
       WHERE id = ?
-    `).run(proposal_id);
+    `).run(nextAnalisSdm, nextKepsek, targetStatus, proposal_id);
+
+    const aktivitasMsg = fullyApproved
+      ? `${kepsekName} memberikan OTORISASI FINAL (2/2: Analisis SDM & Kepala Sekolah lengkap menyetujui) sebesar Rp ${proposal.total_dana_disetujui.toLocaleString('id-ID')}`
+      : `${kepsekName} menyetujui usulan (1/2 otorisasi selesai). Menunggu persetujuan ${nextAnalisSdm ? 'Kepala Sekolah' : 'Analisis SDM'}.`;
 
     logSystemActivity({
       pengajuan_id: proposal_id,
       user_id,
       tipe_aksi: 'USULAN',
-      aktivitas: `${kepsekName} memberikan OTORISASI FINAL & MENGESAHKAN anggaran sebesar Rp ${proposal.total_dana_disetujui.toLocaleString('id-ID')}`
+      aktivitas: aktivitasMsg
     });
   }
 
