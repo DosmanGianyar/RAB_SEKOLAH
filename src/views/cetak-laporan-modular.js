@@ -86,8 +86,9 @@ function escapeHtml(str) {
 function sanitizeRichHtml(str) {
   if (!str) return '';
   let s = String(str);
-  s = s.replace(/<\s*(script|iframe|object|embed|style|link|meta)[^>]*>[\s\S]*?<\/\s*\1\s*>/gi, '');
-  s = s.replace(/<\s*(script|iframe|object|embed|link|meta)[^>]*\/?>/gi, '');
+  s = s.replace(/<!--[\s\S]*?-->/g, '');
+  s = s.replace(/<\s*(script|iframe|object|embed|style|link|meta|source-footnote)[^>]*>[\s\S]*?<\/\s*\1\s*>/gi, '');
+  s = s.replace(/<\s*(script|iframe|object|embed|link|meta|source-footnote)[^>]*\/?>/gi, '');
   s = s.replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
   s = s.replace(/javascript\s*:/gi, '');
   return s;
@@ -585,7 +586,7 @@ function renderCetakLaporanModular({ proposal }) {
           </tfoot>
         </table>
 
-        ${lpj.catatan_lpj ? `<div style="margin-top: 8px; font-size: 9pt;"><strong>Catatan:</strong> ${escapeHtml(lpj.catatan_lpj)}</div>` : ''}
+        ${lpj.catatan_lpj ? `<div class="narasi-body" style="margin-top: 8px; font-size: 9pt;"><strong>Catatan:</strong> ${sanitizeRichHtml(lpj.catatan_lpj)}</div>` : ''}
 
         <div class="sig-row-2col" style="margin-top: 22px; margin-bottom: 16px;">
           <div class="sig-col">
