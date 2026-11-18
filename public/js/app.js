@@ -5480,16 +5480,16 @@ async function navigateToLpjEditor(proposalId) {
     if (elTplSelect) elTplSelect.value = detectedTemplate;
 
     const elJasaNoKode = document.getElementById('editorJasaNoKode');
-    if (elJasaNoKode) elJasaNoKode.value = lpjData.jasa_no_kode || '';
+    if (elJasaNoKode) elJasaNoKode.value = lpjData.jasa_no_kode || p.nomor_kode_kwitansi || '';
     const elJasaRek = document.getElementById('editorJasaKodeRekening');
-    if (elJasaRek) elJasaRek.value = lpjData.jasa_kode_rekening || '';
+    if (elJasaRek) elJasaRek.value = lpjData.jasa_kode_rekening || p.kode_rekening_pos || p.kode_rekening || '';
     const elJasaNom = document.getElementById('editorJasaNominal');
     if (elJasaNom) {
       const nomVal = lpjData.total_belanja_riil || p.total_dana_disetujui || 0;
       elJasaNom.value = nomVal ? Number(nomVal).toLocaleString('id-ID') : '';
     }
     const elJasaPen = document.getElementById('editorJasaPenerima');
-    if (elJasaPen) elJasaPen.value = lpjData.jasa_penerima_nama || '';
+    if (elJasaPen) elJasaPen.value = lpjData.jasa_penerima_nama || p.pemohon_nama || '';
     const elJasaPemb = document.getElementById('editorJasaUntukPembayaran');
     if (elJasaPemb) {
       elJasaPemb.value = lpjData.jasa_untuk_pembayaran || `Dibayar Belanja Barang dan Jasa ${p.nama_kegiatan} Pada Dana Komite SMAN 1 Gianyar`;
