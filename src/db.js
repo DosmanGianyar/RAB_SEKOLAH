@@ -265,6 +265,33 @@ function initDatabase() {
   if (!lpjColNames.includes('tanggal_laporan')) {
     db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN tanggal_laporan TEXT`).run();
   }
+  if (!lpjColNames.includes('template_laporan')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN template_laporan TEXT DEFAULT 'KEGIATAN'`).run();
+  }
+  if (!lpjColNames.includes('jasa_no_kode')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN jasa_no_kode TEXT`).run();
+  }
+  if (!lpjColNames.includes('jasa_kode_rekening')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN jasa_kode_rekening TEXT`).run();
+  }
+  if (!lpjColNames.includes('jasa_untuk_pembayaran')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN jasa_untuk_pembayaran TEXT`).run();
+  }
+  if (!lpjColNames.includes('jasa_penerima_nama')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN jasa_penerima_nama TEXT`).run();
+  }
+  if (!lpjColNames.includes('jasa_teks_perjanjian')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN jasa_teks_perjanjian TEXT`).run();
+  }
+  if (!lpjColNames.includes('jasa_file_perjanjian_url')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN jasa_file_perjanjian_url TEXT`).run();
+  }
+  if (!lpjColNames.includes('barang_meta')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN barang_meta TEXT`).run();
+  }
+  if (!lpjColNames.includes('komponen_laporan')) {
+    db.prepare(`ALTER TABLE lpj_pertanggungjawaban ADD COLUMN komponen_laporan TEXT`).run();
+  }
 
   // Migrasi kolom password pada users jika belum ada
   const userTableInfo = db.prepare(`PRAGMA table_info(users)`).all();
@@ -1765,7 +1792,16 @@ function submitLpjByGuru({
   foto_dokumentasi = [],
   tanggal_laporan = null,
   is_draft = false,
-  file_bukti_transfer_url = null
+  file_bukti_transfer_url = null,
+  template_laporan = 'KEGIATAN',
+  jasa_no_kode = '',
+  jasa_kode_rekening = '',
+  jasa_untuk_pembayaran = '',
+  jasa_penerima_nama = '',
+  jasa_teks_perjanjian = '',
+  jasa_file_perjanjian_url = null,
+  barang_meta = null,
+  komponen_laporan = null
 }) {
   const proposal = getPengajuanById(pengajuan_id);
   if (!proposal) {
@@ -1791,20 +1827,30 @@ function submitLpjByGuru({
     `).run(file_bukti_transfer_url, pengajuan_id);
   }
 
-  // Hitung total belanja riil: dari rincian nota atau langsung dari form input
+  // Hitung total belanja riil: jika ada nota_items dengan nominal > 0, gunakan penjumlahan nota_items (kecuali pengadaan eksplisit); jika tidak, pakai total_belanja_riil
   let belanjaRiil = 0;
   if (Array.isArray(nota_items) && nota_items.length > 0) {
-    belanjaRiil = nota_items.reduce((acc, it) => acc + (Math.max(0, Number(it.nominal) || 0)), 0);
+    const sumNota = nota_items.reduce((acc, it) => acc + (Math.max(0, Number(it.nominal) || 0)), 0);
+    belanjaRiil = (template_laporan === 'KEGIATAN' || sumNota > 0) && !(Number(total_belanja_riil) > 0 && template_laporan !== 'KEGIATAN')
+      ? sumNota
+      : Math.max(0, Number(total_belanja_riil) || 0);
   } else {
     belanjaRiil = Math.max(0, Number(total_belanja_riil) || 0);
   }
+
+  const finalBarangMeta = barang_meta
+    ? (typeof barang_meta === 'string' ? barang_meta : JSON.stringify(barang_meta))
+    : null;
+  const finalKomponenLaporan = komponen_laporan
+    ? (typeof komponen_laporan === 'string' ? komponen_laporan : JSON.stringify(komponen_laporan))
+    : null;
 
   const danaCair = proposal.total_dana_disetujui;
   const sisaPengembalian = Math.max(0, danaCair - belanjaRiil);
 
   // Periksa apakah LPJ sebelumnya sudah pernah dibuat
   const existingLpj = db.prepare(`
-    SELECT id, file_nota_url, tanggal_laporan FROM lpj_pertanggungjawaban WHERE pengajuan_id = ?
+    SELECT id, file_nota_url, tanggal_laporan, jasa_file_perjanjian_url, barang_meta, komponen_laporan FROM lpj_pertanggungjawaban WHERE pengajuan_id = ?
   `).get(pengajuan_id);
 
   // Cari file URL utama (dari file_nota_url, atau nota item pertama yang memiliki file, atau data lama)
@@ -1814,7 +1860,10 @@ function submitLpjByGuru({
     if (itemWithFile) primaryFileUrl = itemWithFile.file_url;
   }
   const finalFileUrl = primaryFileUrl || (existingLpj ? existingLpj.file_nota_url : null);
-  const finalTanggalLaporan = tanggalLaporan || (existingLpj ? existingLpj.tanggal_laporan : null) || new Date().toISOString().split('T')[0];
+  const finalTanggalLaporan = tanggal_laporan || (existingLpj ? existingLpj.tanggal_laporan : null) || new Date().toISOString().split('T')[0];
+  const finalPerjanjianUrl = jasa_file_perjanjian_url || (existingLpj ? existingLpj.jasa_file_perjanjian_url : null);
+  const savedBarangMeta = finalBarangMeta !== null ? finalBarangMeta : (existingLpj ? existingLpj.barang_meta : null);
+  const savedKomponenLaporan = finalKomponenLaporan !== null ? finalKomponenLaporan : (existingLpj ? existingLpj.komponen_laporan : null);
   const targetStatusLpj = is_draft ? 'DRAFT' : 'MENUNGGU_VERIFIKASI';
 
   let lpjId = null;
@@ -1836,6 +1885,15 @@ function submitLpjByGuru({
           solusi_tindak_lanjut = ?,
           tanggal_laporan = ?,
           status_lpj = ?,
+          template_laporan = ?,
+          jasa_no_kode = ?,
+          jasa_kode_rekening = ?,
+          jasa_untuk_pembayaran = ?,
+          jasa_penerima_nama = ?,
+          jasa_teks_perjanjian = ?,
+          jasa_file_perjanjian_url = ?,
+          barang_meta = ?,
+          komponen_laporan = ?,
           created_at = datetime('now', 'localtime')
       WHERE id = ?
     `).run(
@@ -1843,6 +1901,9 @@ function submitLpjByGuru({
       tujuan_kegiatan || '', tempat_pelaksanaan || '', jumlah_peserta || '',
       resume_hasil || '', kendala || '', solusi_tindak_lanjut || '',
       finalTanggalLaporan, targetStatusLpj,
+      template_laporan || 'KEGIATAN', jasa_no_kode || '', jasa_kode_rekening || '',
+      jasa_untuk_pembayaran || '', jasa_penerima_nama || '', jasa_teks_perjanjian || '',
+      finalPerjanjianUrl, savedBarangMeta, savedKomponenLaporan,
       lpjId
     );
   } else {
@@ -1850,13 +1911,18 @@ function submitLpjByGuru({
       INSERT INTO lpj_pertanggungjawaban (
         pengajuan_id, total_dana_cair, total_belanja_riil, sisa_pengembalian_dana,
         file_nota_url, file_daftar_hadir_url, catatan_lpj, tujuan_kegiatan, tempat_pelaksanaan, jumlah_peserta,
-        resume_hasil, kendala, solusi_tindak_lanjut, tanggal_laporan, status_lpj
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        resume_hasil, kendala, solusi_tindak_lanjut, tanggal_laporan, status_lpj,
+        template_laporan, jasa_no_kode, jasa_kode_rekening, jasa_untuk_pembayaran,
+        jasa_penerima_nama, jasa_teks_perjanjian, jasa_file_perjanjian_url, barang_meta, komponen_laporan
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       pengajuan_id, danaCair, belanjaRiil, sisaPengembalian, finalFileUrl, file_daftar_hadir_url || null, catatan_lpj || '',
       tujuan_kegiatan || '', tempat_pelaksanaan || '', jumlah_peserta || '',
       resume_hasil || '', kendala || '', solusi_tindak_lanjut || '',
-      finalTanggalLaporan, targetStatusLpj
+      finalTanggalLaporan, targetStatusLpj,
+      template_laporan || 'KEGIATAN', jasa_no_kode || '', jasa_kode_rekening || '',
+      jasa_untuk_pembayaran || '', jasa_penerima_nama || '', jasa_teks_perjanjian || '',
+      finalPerjanjianUrl, savedBarangMeta, savedKomponenLaporan
     );
     lpjId = insertLpjRes.lastInsertRowid;
   }

@@ -43,6 +43,9 @@ const {
 const { renderCetakDisposisi } = require('./views/cetak-disposisi');
 const { renderCetakLpj } = require('./views/cetak-lpj');
 const { renderCetakLpjBundel } = require('./views/cetak-lpj-bundel');
+const { renderCetakPengadaanJasa } = require('./views/cetak-pengadaan-jasa');
+const { renderCetakPengadaanBarang } = require('./views/cetak-pengadaan-barang');
+const { renderCetakLaporanModular } = require('./views/cetak-laporan-modular');
 const { renderCetakRkas } = require('./views/cetak-rkas');
 const { renderVerifikasiPublik } = require('./views/verifikasi-publik');
 
@@ -1167,49 +1170,13 @@ app.get('/api/export/lpj/excel', requireAuth, (req, res) => {
   }
 });
 
-// 3. Render Lembar Disposisi & Pengesahan RAB Resmi (A4 Print-Ready)
+// 3. Render Lembar Disposisi & Pengesahan RAB Resmi (Dinonaktifkan sementara sesuai permintaan)
 app.get('/cetak/:id', async (req, res) => {
-  try {
-    const cookies = parseCookies(req);
-    const user = cookies.session_token ? getUserBySessionToken(cookies.session_token) : null;
-    if (!user) {
-      return res.status(401).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Sesi Berakhir: Silakan login terlebih dahulu untuk mencetak lembar disposisi.</h2>');
-    }
-
-    const proposal = getPengajuanById(Number(req.params.id));
-    if (!proposal) {
-      return res.status(404).send('Proposal tidak ditemukan.');
-    }
-
-    // Proteksi Cetak: Guru dilarang mencetak disposisi guru lain
-    if (user.role === 'GURU' && proposal.user_id !== user.id) {
-      return res.status(403).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Akses Ditolak: Anda hanya berhak mencetak lembar disposisi usulan kegiatan Anda sendiri.</h2>');
-    }
-
-    const host = req.get('host');
-    const protocol = req.protocol;
-    const verifyUrl = `${protocol}://${host}/verifikasi/${proposal.kode_verifikasi_qr}`;
-
-    const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
-      width: 240,
-      margin: 1,
-      color: { dark: '#0f172a', light: '#ffffff' }
-    });
-
-    const html = renderCetakDisposisi({
-      proposal,
-      qrDataUrl,
-      hostUrl: `${protocol}://${host}`
-    });
-
-    res.send(html);
-  } catch (err) {
-    res.status(500).send('Terjadi kesalahan saat membuat lembar disposisi: ' + err.message);
-  }
+  return res.status(404).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#64748b;">Halaman Lembar Disposisi sedang dinonaktifkan sementara.</h2>');
 });
 
-// 3b. Render Lembar Cetak Laporan Kegiatan Resmi (A4 Print-Ready)
-app.get('/cetak-lpj/:id', async (req, res) => {
+// 3b & 3c. Render Bundel Laporan Gabungan Kegiatan & Keuangan (A4 Print-Ready)
+async function handleRenderCetakLpjGabungan(req, res) {
   try {
     const { user, proposal, needLogin } = resolvePrintProposal(req);
     if (needLogin) return res.status(401).send(LOGIN_REQUIRED_HTML);
@@ -1217,14 +1184,14 @@ app.get('/cetak-lpj/:id', async (req, res) => {
       return res.status(404).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Proposal kegiatan tidak ditemukan.</h2>');
     }
 
-    // Proteksi: Jika guru login dan mencoba membuka LPJ milik orang lain
     if (user && user.role === 'GURU' && proposal.user_id !== user.id) {
       return res.status(403).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Akses Ditolak: Anda hanya berhak mencetak Laporan Kegiatan Anda sendiri.</h2>');
     }
 
     const host = req.get('host');
     const protocol = req.protocol;
-    const verifyUrl = `${protocol}://${host}/verifikasi/${proposal.kode_verifikasi_qr}`;
+    const hostUrl = `${protocol}://${host}`;
+    const verifyUrl = `${hostUrl}/verifikasi/${proposal.kode_verifikasi_qr}`;
 
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
       width: 240,
@@ -1232,43 +1199,18 @@ app.get('/cetak-lpj/:id', async (req, res) => {
       color: { dark: '#064e3b', light: '#ffffff' }
     });
 
-    const html = renderCetakLpj({
-      proposal,
-      qrDataUrl,
-      hostUrl: `${protocol}://${host}`
-    });
-
-    res.send(html);
-  } catch (err) {
-    res.status(500).send('Terjadi kesalahan saat membuat dokumen cetak LPJ: ' + err.message);
-  }
-});
-
-// 3c. Render Bundel Cetak Lengkap LPJ Kegiatan Siswa (A4 Print-Ready)
-app.get('/cetak-lpj-bundel/:id', async (req, res) => {
-  try {
-    const { user, proposal, needLogin } = resolvePrintProposal(req);
-    if (needLogin) return res.status(401).send(LOGIN_REQUIRED_HTML);
-    if (!proposal) {
-      return res.status(404).send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:#e11d48;">Proposal kegiatan tidak ditemukan.</h2>');
-    }
-
-    const host = req.get('host');
-    const protocol = req.protocol;
-    const hostUrl = `${protocol}://${host}`;
-
-    const html = renderCetakLpjBundel({
-      proposal,
-      hostUrl
-    });
+    const html = renderCetakLaporanModular({ proposal });
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   } catch (err) {
-    console.error('Error rendering bundel cetak LPJ:', err);
-    res.status(500).send('Terjadi kesalahan saat membuat dokumen bundel cetak LPJ: ' + err.message);
+    console.error('Error rendering cetak laporan gabungan LPJ:', err);
+    res.status(500).send('Terjadi kesalahan saat membuat dokumen cetak LPJ: ' + err.message);
   }
-});
+}
+
+app.get('/cetak-lpj/:id', handleRenderCetakLpjGabungan);
+app.get('/cetak-lpj-bundel/:id', handleRenderCetakLpjGabungan);
 
 // 4. Portal Publik Verifikasi Keabsahan Dokumen Digital (Scan QR Code)
 app.get('/verifikasi/:token', (req, res) => {
@@ -1305,7 +1247,15 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
       kendala,
       solusi_tindak_lanjut,
       tanggal_laporan,
-      is_draft
+      is_draft,
+      template_laporan,
+      jasa_no_kode,
+      jasa_kode_rekening,
+      jasa_untuk_pembayaran,
+      jasa_penerima_nama,
+      jasa_teks_perjanjian,
+      barang_meta,
+      komponen_laporan
     } = req.body;
 
     // Petakan semua berkas yang terunggah berdasarkan nama field
@@ -1316,6 +1266,7 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
         if (f.fieldname === 'file_bukti_transfer') sub = 'transfer';
         else if (f.fieldname === 'file_daftar_hadir') sub = 'daftar_hadir';
         else if (f.fieldname.startsWith('foto_kegiatan')) sub = 'foto';
+        else if (f.fieldname === 'file_perjanjian') sub = 'nota';
         fileMap[f.fieldname] = `/uploads/${sub}/${f.filename}`;
       });
     }
@@ -1325,6 +1276,9 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
 
     // Berkas Daftar Hadir (PDF/Scan)
     const fileDaftarHadirUrl = fileMap['file_daftar_hadir'] || req.body.existing_daftar_hadir_url || null;
+
+    // Berkas Surat Perjanjian Kerja Sama (Pengadaan Jasa)
+    const filePerjanjianUrl = fileMap['file_perjanjian'] || req.body.existing_perjanjian_url || null;
 
     // 1. Parsing data item nota jika dikirim dalam bentuk JSON repeater
     let parsedNotaItems = [];
@@ -1395,7 +1349,16 @@ app.post('/api/pengajuan/:id/lpj', requireAuth, uploadNota.any(), (req, res) => 
       foto_dokumentasi: parsedFotoItems,
       tanggal_laporan,
       is_draft: isDraft,
-      file_bukti_transfer_url: fileBuktiTransferUrl
+      file_bukti_transfer_url: fileBuktiTransferUrl,
+      template_laporan: template_laporan || 'KEGIATAN',
+      jasa_no_kode,
+      jasa_kode_rekening,
+      jasa_untuk_pembayaran,
+      jasa_penerima_nama,
+      jasa_teks_perjanjian,
+      jasa_file_perjanjian_url: filePerjanjianUrl,
+      barang_meta,
+      komponen_laporan
     });
 
     res.json({

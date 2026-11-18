@@ -29,6 +29,16 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+function sanitizeRichHtml(str) {
+  if (!str) return '';
+  let s = String(str);
+  s = s.replace(/<\s*(script|iframe|object|embed|style|link|meta)[^>]*>[\s\S]*?<\/\s*\1\s*>/gi, '');
+  s = s.replace(/<\s*(script|iframe|object|embed|link|meta)[^>]*\/?>/gi, '');
+  s = s.replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  s = s.replace(/javascript\s*:/gi, '');
+  return s;
+}
+
 function formatDateIndo(dateStr) {
   if (!dateStr) return '-';
   try {
@@ -56,7 +66,7 @@ function getMonthNameIndo(dateStr) {
   }
 }
 
-function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
+function renderCetakLpjBundel({ proposal, qrDataUrl = '', hostUrl = '' }) {
   const lpj = proposal.lpj || {};
   const items = Array.isArray(proposal.items) ? proposal.items : [];
   const notaItems = Array.isArray(lpj.nota_items) ? lpj.nota_items : [];
@@ -186,6 +196,42 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
             `).join('')}
           </div>
           <div class="page-footer-note">Laporan Pertanggungjawaban Resmi — SMA Negeri 1 Gianyar</div>
+        </div>
+      `;
+    }
+  }
+
+  // Lampiran Daftar Hadir / Presensi Kegiatan (PDF multi-page atau gambar)
+  let daftarHadirPagesHtml = '';
+  if (lpj.file_daftar_hadir_url) {
+    if (lpj.file_daftar_hadir_url.toLowerCase().endsWith('.pdf')) {
+      daftarHadirPagesHtml = `
+        <div class="pdf-multipage-container" data-pdf-url="${lpj.file_daftar_hadir_url}" data-title="LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN" data-sub="${escapeHtml(proposal.nama_kegiatan)} • Presensi Siswa &amp; Pembina" data-footer="Lampiran Daftar Hadir Resmi — SMA Negeri 1 Gianyar">
+          <div class="sheet page-break">
+            <div class="lampiran-header">
+              <div class="lampiran-title">LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN</div>
+              <div class="lampiran-sub">${escapeHtml(proposal.nama_kegiatan)} • Presensi Siswa &amp; Pembina</div>
+            </div>
+            <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; color: #475569;">
+              <div style="font-size: 2rem; margin-bottom: 12px;">⏳</div>
+              <div style="font-weight: 700; font-size: 1.1rem; color: #1e293b; margin-bottom: 6px;">Memproses Berkas Daftar Hadir PDF...</div>
+              <div style="font-size: 0.85rem; color: #64748b;">Setiap halaman berkas presensi sedang dikonversi otomatis menjadi lembar siap cetak.</div>
+            </div>
+            <div class="page-footer-note">Lampiran Daftar Hadir Resmi — SMA Negeri 1 Gianyar</div>
+          </div>
+        </div>
+      `;
+    } else {
+      daftarHadirPagesHtml = `
+        <div class="sheet page-break">
+          <div class="lampiran-header">
+            <div class="lampiran-title">LAMPIRAN DAFTAR HADIR KEGIATAN &amp; PEMBINAAN</div>
+            <div class="lampiran-sub">${escapeHtml(proposal.nama_kegiatan)} • Presensi Siswa &amp; Pembina</div>
+          </div>
+          <div class="transfer-doc-wrap" style="min-height: 200mm; display: flex; align-items: center; justify-content: center; padding: 4mm;">
+            <img src="${lpj.file_daftar_hadir_url}" alt="Daftar Hadir Fisik" style="max-width: 100%; max-height: 220mm; object-fit: contain;">
+          </div>
+          <div class="page-footer-note">Lampiran Daftar Hadir Resmi — SMA Negeri 1 Gianyar</div>
         </div>
       `;
     }
@@ -820,6 +866,130 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
         min-height: 270mm !important;
       }
     }
+
+    /* Styling Khusus Lembar Narasi Pelaksanaan Kegiatan (Halaman 2) */
+    .narasi-title-box {
+      text-align: center;
+      margin: 8px 0 14px;
+    }
+    .narasi-title-main {
+      font-size: 13pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      text-decoration: underline;
+      color: #000;
+    }
+    .narasi-title-sub {
+      font-size: 9.5pt;
+      color: #334155;
+      margin-top: 2px;
+    }
+    .narasi-meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+      font-size: 9.5pt;
+    }
+    .narasi-meta-table td {
+      padding: 3px 4px;
+      vertical-align: top;
+    }
+    .narasi-meta-table td.label {
+      width: 185px;
+      font-weight: 600;
+    }
+    .narasi-meta-table td.colon {
+      width: 12px;
+      text-align: center;
+    }
+    .narasi-meta-table td.value {
+      font-weight: 700;
+    }
+    .narasi-section {
+      margin-bottom: 12px;
+    }
+    .narasi-section-title {
+      font-size: 10pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      background: #f1f5f9;
+      padding: 4px 10px;
+      border-left: 4px solid #0f172a;
+      margin-bottom: 6px;
+    }
+    .narasi-section-body {
+      font-size: 9.5pt;
+      text-align: justify;
+      padding-left: 6px;
+      margin-bottom: 6px;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+    .narasi-finance-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 6px 0 8px;
+    }
+    .narasi-finance-card {
+      border: 1px solid #94a3b8;
+      border-radius: 4px;
+      padding: 6px 10px;
+      text-align: center;
+    }
+    .narasi-finance-card.highlight {
+      border-color: #059669;
+      background: #ecfdf5;
+    }
+    .narasi-finance-label {
+      font-size: 7.8pt;
+      color: #475569;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .narasi-finance-val {
+      font-size: 10.5pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 2px;
+    }
+    .narasi-sig-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: 18px;
+      text-align: center;
+      font-size: 9pt;
+      page-break-inside: avoid;
+    }
+    .narasi-sig-space {
+      height: 56px;
+    }
+    .narasi-sig-name {
+      font-weight: 700;
+      text-decoration: underline;
+    }
+    .narasi-sig-nip {
+      font-size: 8.2pt;
+    }
+    .narasi-qr-box {
+      margin-top: 14px;
+      padding-top: 8px;
+      border-top: 1px dashed #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 8pt;
+      color: #475569;
+      page-break-inside: avoid;
+    }
+    .narasi-qr-img {
+      width: 52px;
+      height: 52px;
+      border: 1px solid #e2e8f0;
+      padding: 2px;
+    }
   </style>
 </head>
 <body>
@@ -830,7 +1000,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
     <div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="background: #ef4444; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.8px;">MODE DEMO</span>
-        <div style="font-weight: 800; font-size: 1rem; color: #0f172a;">Pratinjau Laporan Pertanggungjawaban Keuangan (Standar Cetak A4)</div>
+        <div style="font-weight: 800; font-size: 1rem; color: #0f172a;">Pratinjau Bundel Laporan Kegiatan &amp; Keuangan (Standar Cetak A4)</div>
       </div>
       <div style="font-size: 0.8rem; color: #dc2626; font-weight: 600; margin-top: 2px;">Dokumen simulasi uji coba internal SMA Negeri 1 Gianyar (Belum berlaku definitif)</div>
     </div>
@@ -844,7 +1014,7 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
           <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
           <rect x="6" y="14" width="12" height="8"></rect>
         </svg>
-        Cetak Laporan Keuangan (PDF)
+        Cetak Laporan Lengkap (PDF)
       </button>
     </div>
   </div>
@@ -852,13 +1022,13 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
   <div class="sheet-wrapper">
 
     <!-- ============================================================= -->
-    <!-- HALAMAN 1: COVER RESMI LAPORAN KEUANGAN                      -->
+    <!-- HALAMAN 1: COVER RESMI LAPORAN PERTANGGUNGJAWABAN (LPJ)       -->
     <!-- ============================================================= -->
     <div class="sheet page-break">
       <div class="cover-frame">
         <div class="cover-top-box">
           <div class="cover-heading-1">LAPORAN PERTANGGUNGJAWABAN</div>
-          <div class="cover-heading-2">KEUANGAN &amp; REALISASI BELANJA</div>
+          <div class="cover-heading-2">KEGIATAN &amp; KEUANGAN</div>
           <div class="cover-heading-1" style="font-size: 15pt;">BULAN ${bulanLaporan}</div>
           <div style="height: 16px;"></div>
           <div class="cover-heading-kegiatan">
@@ -878,7 +1048,129 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
     </div>
 
     <!-- ============================================================= -->
-    <!-- HALAMAN 2: KWITANSI RESMI PEMBAYARAN KAS KOMITE               -->
+    <!-- HALAMAN 2: LEMBAR NARASI PELAKSANAAN KEGIATAN & EVALUASI      -->
+    <!-- ============================================================= -->
+    <div class="sheet page-break">
+      ${renderKopSurat({ mode: 'portrait' })}
+
+      <div class="narasi-title-box">
+        <div class="narasi-title-main">LAPORAN PELAKSANAAN KEGIATAN</div>
+        <div class="narasi-title-sub">Nomor Berkas Usulan: ${escapeHtml(proposal.nomor_surat_ajuan)}</div>
+      </div>
+
+      <table class="narasi-meta-table">
+        <tr>
+          <td class="label">Nama Kegiatan</td>
+          <td class="colon">:</td>
+          <td class="value">${escapeHtml(proposal.nama_kegiatan)}</td>
+        </tr>
+        <tr>
+          <td class="label">Penanggung Jawab / Pemohon</td>
+          <td class="colon">:</td>
+          <td class="value">${escapeHtml(guruNama)} (${escapeHtml(proposal.pemohon_unit || 'Guru Pembina')})</td>
+        </tr>
+        <tr>
+          <td class="label">NIP Penanggung Jawab</td>
+          <td class="colon">:</td>
+          <td class="value">${escapeHtml(guruNip)}</td>
+        </tr>
+        <tr>
+          <td class="label">Pos Anggaran RKAS</td>
+          <td class="colon">:</td>
+          <td class="value">${escapeHtml(proposal.pos_nama || proposal.nama_pos || '-')}</td>
+        </tr>
+        <tr>
+          <td class="label">Waktu Pelaksanaan</td>
+          <td class="colon">:</td>
+          <td class="value">${tglMulai} s/d ${tglSelesai}</td>
+        </tr>
+        <tr>
+          <td class="label">Tempat &amp; Sasaran Peserta</td>
+          <td class="colon">:</td>
+          <td class="value">${escapeHtml(lpj.tempat_pelaksanaan || 'Lingkungan SMAN 1 Gianyar')} • ${escapeHtml(lpj.jumlah_peserta || '-')}</td>
+        </tr>
+      </table>
+
+      <div class="narasi-section">
+        <div class="narasi-section-title">I. DESKRIPSI &amp; LATAR BELAKANG PELAKSANAAN</div>
+        <div class="narasi-section-body"><strong>A. Dasar &amp; Latar Belakang:</strong>
+<div class="rich-html-content">${sanitizeRichHtml(proposal.latar_belakang || 'Kegiatan dilaksanakan berdasarkan program kerja sekolah dan RKAS tahun anggaran berjalan.')}</div></div>
+        <div class="narasi-section-body"><strong>B. Tujuan Kegiatan:</strong>
+<div class="rich-html-content">${sanitizeRichHtml(lpj.tujuan_kegiatan || 'Mendukung ketercapaian program peningkatan mutu pembelajaran dan aktivitas kesiswaan sekolah.')}</div></div>
+      </div>
+
+      <div class="narasi-section">
+        <div class="narasi-section-title">II. RESUME HASIL PELAKSANAAN &amp; EVALUASI</div>
+        <div class="narasi-section-body"><strong>A. Ringkasan Ketercapaian Hasil:</strong>
+<div class="rich-html-content">${sanitizeRichHtml(lpj.resume_hasil || lpj.catatan_lpj || 'Seluruh rangkaian kegiatan telah terlaksana dengan baik, tertib, dan sesuai target indikator output yang direncanakan.')}</div></div>
+        ${lpj.kendala ? `
+          <div class="narasi-section-body"><strong>B. Kendala / Hambatan yang Dihadapi:</strong>
+<div class="rich-html-content">${sanitizeRichHtml(lpj.kendala)}</div></div>
+        ` : ''}
+        ${lpj.solusi_tindak_lanjut ? `
+          <div class="narasi-section-body"><strong>C. Solusi &amp; Tindak Lanjut:</strong>
+<div class="rich-html-content">${sanitizeRichHtml(lpj.solusi_tindak_lanjut)}</div></div>
+        ` : ''}
+      </div>
+
+      <div class="narasi-section">
+        <div class="narasi-section-title">III. RINGKASAN REKAPITULASI DANA KAS</div>
+        <div class="narasi-finance-grid">
+          <div class="narasi-finance-card">
+            <div class="narasi-finance-label">Dana Kas Diterima</div>
+            <div class="narasi-finance-val">${formatRupiah(danaCair)}</div>
+          </div>
+          <div class="narasi-finance-card">
+            <div class="narasi-finance-label">Total Belanja Riil</div>
+            <div class="narasi-finance-val">${formatRupiah(belanjaRiil)}</div>
+          </div>
+          <div class="narasi-finance-card highlight">
+            <div class="narasi-finance-label">Sisa Kas Disetor</div>
+            <div class="narasi-finance-val">${formatRupiah(sisaPengembalian)}</div>
+          </div>
+        </div>
+        <div style="font-size: 8.5pt; color: #475569; font-style: italic;">
+          Terbilang: <strong>${escapeHtml(terbilangRupiah)} Rupiah</strong>.
+          ${sisaPengembalian > 0 ? `Sisa dana kas disetor kembali ke bendahara sekolah sebesar <strong>${formatRupiah(sisaPengembalian)}</strong>.` : 'Seluruh dana kas terealisasi tuntas sesuai bukti nota sah.'}
+        </div>
+      </div>
+
+      <div class="narasi-sig-grid">
+        <div>
+          <div>Pelaksana Kegiatan / Pemohon,<br>${kotaSurat}, ${tglCetak}</div>
+          <div class="narasi-sig-space"></div>
+          <div class="narasi-sig-name">${escapeHtml(guruNama)}</div>
+          <div class="narasi-sig-nip">${escapeHtml(guruNip)}</div>
+        </div>
+        <div>
+          <div>Telah Diverifikasi &amp; Rekonsiliasi Kas:<br>Bendahara Sekolah,</div>
+          <div class="narasi-sig-space"></div>
+          <div class="narasi-sig-name">${escapeHtml(bendaharaNama)}</div>
+          <div class="narasi-sig-nip">${escapeHtml(bendaharaNip)}</div>
+        </div>
+        <div>
+          <div>Mengesahkan,<br>Kepala SMA Negeri 1 Gianyar</div>
+          <div class="narasi-sig-space"></div>
+          <div class="narasi-sig-name">${escapeHtml(kepsekNama)}</div>
+          <div class="narasi-sig-nip">${escapeHtml(kepsekNip)}</div>
+        </div>
+      </div>
+
+      ${qrDataUrl ? `
+        <div class="narasi-qr-box">
+          <img src="${qrDataUrl}" alt="QR Verifikasi" class="narasi-qr-img">
+          <div>
+            <strong>Dokumen Sah E-RAB Sekolah (SMAN 1 Gianyar).</strong><br>
+            Verifikasi keaslian dokumen melalui scan QR Code atau portal: <code>${hostUrl}/verifikasi/${proposal.kode_verifikasi_qr}</code>
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="page-footer-note">Laporan Pelaksanaan Kegiatan — SMA Negeri 1 Gianyar</div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- HALAMAN 3: KWITANSI RESMI PEMBAYARAN KAS KOMITE               -->
     <!-- ============================================================= -->
     <div class="sheet page-break">
       <div class="kwitansi-box-wrapper">
@@ -1171,10 +1463,10 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
     </div>
 
     <!-- ============================================================= -->
-    <!-- HALAMAN AKHIR: LAMPIRAN NOTA BELANJA FISIK                    -->
+    <!-- HALAMAN 6+: LAMPIRAN NOTA BELANJA FISIK                       -->
     <!-- ============================================================= -->
     ${allNotaPagesHtml || `
-      <div class="sheet">
+      <div class="sheet ${(daftarHadirPagesHtml || fotoPagesHtml) ? 'page-break' : ''}">
         <div class="lampiran-header">
           <div class="lampiran-title">LAMPIRAN BUKTI NOTA &amp; KUITANSI BELANJA</div>
           <div class="lampiran-sub">${escapeHtml(proposal.nama_kegiatan)}</div>
@@ -1186,6 +1478,16 @@ function renderCetakLpjBundel({ proposal, hostUrl = '' }) {
         <div class="page-footer-note">Pertanggungjawaban Keuangan Resmi — SMA Negeri 1 Gianyar</div>
       </div>
     `}
+
+    <!-- ============================================================= -->
+    <!-- LAMPIRAN DAFTAR HADIR KEGIATAN & PEMBINAAN                    -->
+    <!-- ============================================================= -->
+    ${daftarHadirPagesHtml}
+
+    <!-- ============================================================= -->
+    <!-- LAMPIRAN DOKUMENTASI FOTO PELAKSANAAN KEGIATAN                -->
+    <!-- ============================================================= -->
+    ${fotoPagesHtml}
 
   </div>
 

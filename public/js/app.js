@@ -385,10 +385,90 @@ window.handleDeleteProposal = handleDeleteProposal;
 window.handleDeletePosAnggaran = handleDeletePosAnggaran;
 window.confirmDeleteWithSecurityCheckbox = confirmDeleteWithSecurityCheckbox;
 
+// --- Rich Text Editor (Summernote Lite dengan Mode HTML <>) ---
+function sanitizeRichHtml(html) {
+  if (!html) return '';
+  let str = String(html);
+  // Hapus tag berbahaya & event handler inline
+  str = str.replace(/<\s*(script|iframe|object|embed|style|link|meta)[^>]*>[\s\S]*?<\/\s*\1\s*>/gi, '');
+  str = str.replace(/<\s*(script|iframe|object|embed|link|meta)[^>]*\/?>/gi, '');
+  str = str.replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  str = str.replace(/javascript\s*:/gi, '');
+  return str;
+}
+
+function initRichTextEditors() {
+  if (typeof window.$ === 'undefined' || typeof window.$.fn.summernote !== 'function') return;
+  document.querySelectorAll('textarea.rich-text-editor').forEach(el => {
+    const $el = window.$(el);
+    if ($el.next('.note-editor').length) return;
+    const minHeight = Number(el.getAttribute('rows')) >= 3 ? 135 : 95;
+    $el.summernote({
+      placeholder: el.getAttribute('placeholder') || 'Tulis teks atau sisipkan HTML (<>)...',
+      tabsize: 2,
+      minHeight,
+      dialogsInBody: true,
+      toolbar: [
+        ['style', ['style']],
+        ['font', ['bold', 'italic', 'underline', 'strikethrough', 'superscript', 'subscript', 'clear']],
+        ['fontname', ['fontname', 'fontsize']],
+        ['color', ['color']],
+        ['para', ['ul', 'ol', 'paragraph', 'height']],
+        ['table', ['table']],
+        ['insert', ['link', 'hr']],
+        ['view', ['fullscreen', 'codeview', 'help']]
+      ],
+      callbacks: {
+        onChange: function (contents) {
+          el.value = contents;
+        }
+      }
+    });
+  });
+}
+
+function setRichTextValue(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const html = val || '';
+  el.value = html;
+  if (typeof window.$ !== 'undefined' && typeof window.$.fn.summernote === 'function') {
+    const $el = window.$(el);
+    if ($el.next('.note-editor').length) {
+      $el.summernote('code', html);
+    }
+  }
+}
+
+function getRichTextValue(id) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  let val = el.value || '';
+  if (typeof window.$ !== 'undefined' && typeof window.$.fn.summernote === 'function') {
+    const $el = window.$(el);
+    if ($el.next('.note-editor').length) {
+      val = $el.summernote('code') || '';
+    }
+  }
+  const stripped = val.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  if (!stripped && !/<(img|table|hr|ul|ol|li)/i.test(val)) {
+    return '';
+  }
+  el.value = val;
+  return val.trim();
+}
+
+function syncAllRichTextEditors() {
+  document.querySelectorAll('textarea.rich-text-editor').forEach(el => {
+    if (el.id) getRichTextValue(el.id);
+  });
+}
+
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   enableDragToScroll();
+  initRichTextEditors();
   loadActiveUser();
 
   // Inisialisasi baris belanja pertama pada form RAB
@@ -402,45 +482,77 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Memungkinkan pengguna menggeser tabel horizontal secara bebas dengan klik & drag mouse atau sentuhan jari dari mana saja
+ * Memungkinkan pengguna menggeser SEMUA tabel horizontal secara bebas dengan klik-tahan-geser mouse
+ * maupun sentuhan jari di HP/tablet secara responsif.
  */
 function enableDragToScroll() {
-  const containers = document.querySelectorAll('.table-responsive, .draggable-table-container');
-  containers.forEach(slider => {
-    if (slider._hasDragScrollAttached) return;
-    slider._hasDragScrollAttached = true;
+  if (window._globalTableDragScrollInitialized) return;
+  window._globalTableDragScrollInitialized = true;
 
-    let isDown = false;
-    let startX = 0;
-    let scrollLeft = 0;
+  const SELECTOR = '.table-responsive, .draggable-table-container, .rab-excel-wrapper, .lpj-fixed-wrap, [data-drag-scroll]';
+  let activeSlider = null;
+  let startX = 0;
+  let startScrollLeft = 0;
+  let hasDragged = false;
 
-    slider.addEventListener('mousedown', (e) => {
-      // Jangan menginterupsi klik tombol aksi, link, input, atau select
-      if (e.target.closest('button, a, input, select, textarea, .btn, .dropdown, [onclick]')) return;
-      isDown = true;
-      slider.classList.add('is-dragging');
-      startX = e.pageX - slider.offsetLeft;
-      scrollLeft = slider.scrollLeft;
-    });
+  document.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    // Jangan ganggu klik pada tombol, link, dropdown select, atau input yang sedang difokuskan
+    if (e.target.closest('button, a, select, .btn, .aksi-dd, [onclick]')) return;
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl === e.target || activeEl.contains(e.target)) && /^(INPUT|TEXTAREA)$/.test(activeEl.tagName)) {
+      return;
+    }
 
-    slider.addEventListener('mouseleave', () => {
-      isDown = false;
-      slider.classList.remove('is-dragging');
-    });
+    let slider = e.target.closest(SELECTOR);
+    if (!slider) {
+      // Cek juga pembungkus tabel umum dengan overflow-x: auto
+      const tbl = e.target.closest('table');
+      if (tbl && tbl.parentElement && tbl.parentElement.scrollWidth > tbl.parentElement.clientWidth + 4) {
+        slider = tbl.parentElement;
+      }
+    }
+    if (!slider || slider.scrollWidth <= slider.clientWidth + 4) return;
 
-    slider.addEventListener('mouseup', () => {
-      isDown = false;
-      slider.classList.remove('is-dragging');
-    });
-
-    slider.addEventListener('mousemove', (e) => {
-      if (!isDown) return;
-      e.preventDefault();
-      const x = e.pageX - slider.offsetLeft;
-      const walk = (x - startX) * 1.6; // multiplier kecepatan geser mulus
-      slider.scrollLeft = scrollLeft - walk;
-    });
+    activeSlider = slider;
+    hasDragged = false;
+    startX = e.pageX;
+    startScrollLeft = slider.scrollLeft;
+    slider.classList.add('is-dragging');
   });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!activeSlider) return;
+    const dx = e.pageX - startX;
+    if (!hasDragged && Math.abs(dx) > 5) {
+      hasDragged = true;
+    }
+    if (hasDragged) {
+      e.preventDefault();
+      activeSlider.scrollLeft = startScrollLeft - dx * 1.4;
+    }
+  });
+
+  const endDrag = () => {
+    if (!activeSlider) return;
+    activeSlider.classList.remove('is-dragging');
+    if (hasDragged) {
+      // Cegah fokus input / klik tak sengaja setelah selesai menggeser tabel
+      const suppressClick = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+      };
+      activeSlider.addEventListener('click', suppressClick, { capture: true, once: true });
+      setTimeout(() => {
+        if (activeSlider) activeSlider.removeEventListener('click', suppressClick, { capture: true });
+      }, 60);
+    }
+    activeSlider = null;
+    hasDragged = false;
+  };
+
+  document.addEventListener('mouseup', endDrag);
+  window.addEventListener('blur', endDrag);
 }
 window.enableDragToScroll = enableDragToScroll;
 
@@ -511,6 +623,55 @@ function setupEventListeners() {
   });
 }
 
+// --- URL Hash Route Persistence (Tetap di halaman terakhir saat Refresh) ---
+let isRestoringRoute = false;
+function setAppHash(hashVal) {
+  if (isRestoringRoute || !hashVal) return;
+  const target = '#' + String(hashVal).replace(/^#/, '');
+  if (window.location.hash !== target) {
+    history.replaceState(null, '', target);
+  }
+}
+
+function restoreRouteFromHash() {
+  const rawHash = (window.location.hash || '').replace(/^#/, '').trim();
+  if (!rawHash || rawHash === 'home') {
+    switchView('home');
+    return;
+  }
+
+  const parts = rawHash.split('/');
+  const route = parts[0];
+  const sub = parts[1];
+
+  isRestoringRoute = true;
+  try {
+    if (route === 'dashboard') {
+      switchView('dashboard');
+    } else if (route === 'ajukan') {
+      switchView('ajukan');
+      if (sub === 'riwayat') {
+        switchRabSubTab('riwayat');
+      }
+    } else if (route === 'riwayat' || route === 'verifikasi') {
+      switchView(route);
+      if (sub && ['ALL', 'MENUNGGU_REVIEW', 'SIAP_CAIR', 'DICAIRKAN', 'SELESAI'].includes(sub)) {
+        filterProposalTab(sub);
+      }
+    } else if (route === 'laporan') {
+      switchView('laporan');
+    } else if (route === 'auditlog') {
+      switchView('auditlog');
+    } else if (route === 'lpj' && sub && !isNaN(Number(sub))) {
+      navigateToLpjEditor(Number(sub));
+    } else {
+      switchView('home');
+    }
+  } finally {
+    isRestoringRoute = false;
+  }
+}
+
 // --- Sub-Tab Switcher Pengajuan RAB (Form Baru vs Riwayat Proposal) ---
 function switchRabSubTab(tabName) {
   const btnForm = document.getElementById('btnSubnavFormRab');
@@ -524,6 +685,8 @@ function switchRabSubTab(tabName) {
     if (paneForm) paneForm.style.display = 'none';
     if (paneRiwayat) paneRiwayat.style.display = 'block';
     loadProposalsList();
+    const baseRoute = activeViewName === 'verifikasi' ? 'verifikasi' : 'riwayat';
+    setAppHash(`${baseRoute}/${currentProposalFilterTab || 'ALL'}`);
   } else {
     if (btnForm) btnForm.classList.add('active');
     if (btnRiwayat) btnRiwayat.classList.remove('active');
@@ -535,6 +698,8 @@ function switchRabSubTab(tabName) {
     if (selBidang && currentUser && typeof detectDefaultBidang === 'function') {
       selBidang.value = detectDefaultBidang(currentUser.unit_bagian);
     }
+    restoreProposalDraft();
+    setAppHash('ajukan/form');
   }
 }
 window.switchRabSubTab = switchRabSubTab;
@@ -554,6 +719,8 @@ function switchView(viewName) {
   if (viewName === 'home') {
     const vHome = document.getElementById('viewHome');
     if (vHome) vHome.classList.add('active');
+    const navIndex = document.getElementById('navIndexHome');
+    if (navIndex) navIndex.classList.add('active');
     loadSummaryStats();
     if (!currentPosList || currentPosList.length === 0) {
       loadPosAnggaran();
@@ -561,6 +728,7 @@ function switchView(viewName) {
       initOrUpdateHomeCharts();
     }
     updateHomeGreeting();
+    setAppHash('home');
   } else if (viewName === 'dashboard') {
     const vDash = document.getElementById('viewDashboard');
     if (vDash) vDash.classList.add('active');
@@ -570,6 +738,7 @@ function switchView(viewName) {
     if (navH) navH.classList.add('active');
     loadSummaryStats();
     loadPosAnggaran();
+    setAppHash('dashboard');
   } else if (viewName === 'ajukan') {
     const vAjukan = document.getElementById('viewAjukan');
     if (vAjukan) vAjukan.classList.add('active');
@@ -586,9 +755,9 @@ function switchView(viewName) {
     if (tabDesk) tabDesk.classList.add('active');
     const navAjukan = document.getElementById('navAjukan');
     if (navAjukan) navAjukan.classList.add('active');
-    // Beralih ke sub-tab riwayat usulan & fokuskan pada antrean telaah
+    // Beralih ke sub-tab riwayat usulan & tampilkan semua usulan secara default
     switchRabSubTab('riwayat');
-    filterProposalTab('MENUNGGU_REVIEW');
+    filterProposalTab('ALL');
   } else if (viewName === 'verifikasi') {
     const vAjukan = document.getElementById('viewAjukan');
     if (vAjukan) vAjukan.classList.add('active');
@@ -596,9 +765,9 @@ function switchView(viewName) {
     if (tabVerif) tabVerif.classList.add('active');
     const navVerif = document.getElementById('navVerifikasi');
     if (navVerif) navVerif.classList.add('active');
-    // Beralih ke sub-tab riwayat usulan & fokuskan pada antrean telaah
+    // Beralih ke sub-tab riwayat usulan & tampilkan semua usulan secara default
     switchRabSubTab('riwayat');
-    filterProposalTab('MENUNGGU_REVIEW');
+    filterProposalTab('ALL');
   } else if (viewName === 'laporan') {
     const vLap = document.getElementById('viewLaporan');
     if (vLap) vLap.classList.add('active');
@@ -607,6 +776,7 @@ function switchView(viewName) {
     const navLaporan = document.getElementById('navLaporan');
     if (navLaporan) navLaporan.classList.add('active');
     loadProposalsList().then(() => renderLpjView());
+    setAppHash('laporan');
   } else if (viewName === 'formLpj') {
     const viewLpj = document.getElementById('viewFormLpj');
     if (viewLpj) viewLpj.classList.add('active');
@@ -619,6 +789,7 @@ function switchView(viewName) {
     const vAudit = document.getElementById('viewAuditLog');
     if (vAudit) vAudit.classList.add('active');
     loadAuditLogsList();
+    setAppHash('auditlog');
   }
 
   // Scroll to top saat berpindah tampilan
@@ -666,12 +837,10 @@ function showAuthenticatedApp(user) {
   if (appShell) appShell.style.display = 'block';
 
   renderUserHeader(currentUser);
-  switchView('home');
   loadSummaryStats();
-  loadPosAnggaran();
-  if (activeViewName === 'riwayat') {
-    loadProposalsList();
-  }
+  loadPosAnggaran().then(() => {
+    restoreRouteFromHash();
+  });
 }
 
 function updateRolePermissionsUI(user) {
@@ -1296,6 +1465,7 @@ async function handleLogout() {
     console.warn('Logout network error:', err);
   }
 
+  history.replaceState(null, '', window.location.pathname + window.location.search);
   showLoginScreen();
   showNotification('Anda telah berhasil keluar dari akun.');
 }
@@ -2179,70 +2349,111 @@ function handleFilterPosDropdown(keyword) {
 
 // --- 4. FASE 2: DYNAMIC RAB LINE ITEMS & BUDGET VALIDATION ---
 
+const RAB_STANDARD_KATEGORI = [
+  'Perlengkapan',
+  'Konsumsi Snack',
+  'Konsumsi Makan',
+  'Honorarium',
+  'Transportasi',
+  'Administrasi',
+  'Pendaftaran',
+  'Akomodasi',
+  'Sewa',
+  'Dokumentasi'
+];
+
+function handleKategoriChange(selectEl) {
+  const cell = selectEl.closest('td');
+  const wrap = cell.querySelector('.excel-custom-kat-wrap');
+  const customInput = cell.querySelector('.item-kategori-custom');
+  if (selectEl.value === '__CUSTOM__') {
+    selectEl.style.display = 'none';
+    wrap.style.display = 'flex';
+    customInput.required = true;
+    customInput.focus();
+  }
+}
+
+function resetKategoriSelect(btn) {
+  const cell = btn.closest('td');
+  const selectEl = cell.querySelector('.item-kategori');
+  const wrap = cell.querySelector('.excel-custom-kat-wrap');
+  const customInput = cell.querySelector('.item-kategori-custom');
+  customInput.value = '';
+  customInput.required = false;
+  wrap.style.display = 'none';
+  selectEl.value = 'Perlengkapan';
+  selectEl.style.display = '';
+  selectEl.focus();
+}
+
+function getRowKategori(row) {
+  const selectEl = row.querySelector('.item-kategori');
+  if (selectEl && selectEl.value === '__CUSTOM__') {
+    const customInput = row.querySelector('.item-kategori-custom');
+    return customInput ? customInput.value.trim() : '';
+  }
+  return selectEl ? selectEl.value : 'Perlengkapan';
+}
+
 function addItemRow(defaults = {}) {
   const container = document.getElementById('rabItemsContainer');
   const rowCount = container.children.length + 1;
+  const katVal = defaults.kategori || 'Perlengkapan';
+  const isCustomKat = Boolean(defaults.kategori && !RAB_STANDARD_KATEGORI.includes(defaults.kategori));
 
-  const card = document.createElement('div');
-  card.className = 'item-row-card';
-  card.innerHTML = `
-    <div class="item-card-header">
-      <span class="item-index-badge">Item #${rowCount}</span>
-      <button type="button" class="btn-remove-row" onclick="removeItemRow(this)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-        Hapus
+  const row = document.createElement('tr');
+  row.className = 'item-row-card';
+  row.innerHTML = `
+    <td class="excel-cell-no">
+      <span class="item-index-badge">${rowCount}</span>
+    </td>
+    <td>
+      <select class="excel-input item-kategori" onchange="handleKategoriChange(this)" style="${isCustomKat ? 'display:none;' : ''}">
+        <option value="Perlengkapan" ${katVal === 'Perlengkapan' ? 'selected' : ''}>Perlengkapan</option>
+        <option value="Konsumsi Snack" ${katVal === 'Konsumsi Snack' ? 'selected' : ''}>Konsumsi Snack</option>
+        <option value="Konsumsi Makan" ${katVal === 'Konsumsi Makan' ? 'selected' : ''}>Konsumsi Makan</option>
+        <option value="Honorarium" ${katVal === 'Honorarium' ? 'selected' : ''}>Honorarium / Juri / Pemateri</option>
+        <option value="Transportasi" ${katVal === 'Transportasi' ? 'selected' : ''}>Transportasi / Sewa Kendaraan</option>
+        <option value="Administrasi" ${katVal === 'Administrasi' ? 'selected' : ''}>Administrasi &amp; Cetak</option>
+        <option value="Pendaftaran" ${katVal === 'Pendaftaran' ? 'selected' : ''}>Biaya Pendaftaran / Lomba</option>
+        <option value="Akomodasi" ${katVal === 'Akomodasi' ? 'selected' : ''}>Akomodasi / Penginapan</option>
+        <option value="Sewa" ${katVal === 'Sewa' ? 'selected' : ''}>Sewa Tempat / Alat / Sound</option>
+        <option value="Dokumentasi" ${katVal === 'Dokumentasi' ? 'selected' : ''}>Publikasi &amp; Dokumentasi</option>
+        <option value="__CUSTOM__" ${isCustomKat ? 'selected' : ''}>+ Lainnya (Ketik Sendiri)...</option>
+      </select>
+      <div class="excel-custom-kat-wrap" style="display: ${isCustomKat ? 'flex' : 'none'}; align-items: center; gap: 3px;">
+        <input type="text" class="excel-input item-kategori-custom" placeholder="Tulis kategori..." value="${isCustomKat ? katVal : ''}" ${isCustomKat ? 'required' : ''}>
+        <button type="button" class="btn-excel-kat-reset" onclick="resetKategoriSelect(this)" title="Kembali ke daftar kategori">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+    </td>
+    <td>
+      <input type="text" class="excel-input item-deskripsi" placeholder="Cth: Snack Rapat Panitia (20 Orang)" value="${defaults.deskripsi || ''}" required>
+    </td>
+    <td>
+      <input type="number" class="excel-input excel-input-center item-volume" min="1" step="1" value="${defaults.volume || 1}" required oninput="handleRowInput(this)">
+    </td>
+    <td>
+      <input type="text" class="excel-input item-satuan" placeholder="Porsi/Kotak" value="${defaults.satuan || 'Porsi'}" required>
+    </td>
+    <td>
+      <input type="text" inputmode="numeric" class="excel-input excel-input-right item-harga rupiah-input" placeholder="15.000" value="${defaults.harga_satuan ? Number(defaults.harga_satuan).toLocaleString('id-ID') : '0'}" required oninput="formatCurrencyInput(this); handleRowInput(this)">
+    </td>
+    <td class="excel-cell-subtotal">
+      <span class="item-subtotal-display">Rp 0</span>
+    </td>
+    <td class="excel-cell-action">
+      <button type="button" class="btn-excel-remove" onclick="removeItemRow(this)" title="Hapus baris ini">
+        <i class="ti ti-trash"></i>
       </button>
-    </div>
-
-    <div class="item-card-body-grid">
-      <div class="form-group" style="margin-bottom: 0;">
-        <label class="form-label">Kategori Belanja</label>
-        <select class="form-select item-kategori">
-          <option value="Perlengkapan" ${defaults.kategori === 'Perlengkapan' ? 'selected' : ''}>Perlengkapan</option>
-          <option value="Konsumsi" ${defaults.kategori === 'Konsumsi' ? 'selected' : ''}>Konsumsi (Snack/Makan)</option>
-          <option value="Honorarium" ${defaults.kategori === 'Honorarium' ? 'selected' : ''}>Honorarium / Juri / Pemateri</option>
-          <option value="Transportasi" ${defaults.kategori === 'Transportasi' ? 'selected' : ''}>Transportasi / Sewa Kendaraan</option>
-          <option value="Administrasi" ${defaults.kategori === 'Administrasi' ? 'selected' : ''}>Administrasi & Cetak</option>
-        </select>
-      </div>
-
-      <div class="form-group" style="margin-bottom: 0;">
-        <label class="form-label">Deskripsi Item Belanja *</label>
-        <input type="text" class="form-input item-deskripsi" placeholder="Cth: Snack Rapat Panitia (20 Orang)" value="${defaults.deskripsi || ''}" required>
-      </div>
-    </div>
-
-    <div class="item-card-calc-grid">
-      <div class="form-group" style="margin-bottom: 0;">
-        <label class="form-label">Volume</label>
-        <input type="number" class="form-input item-volume" min="1" step="1" value="${defaults.volume || 1}" required oninput="handleRowInput(this)">
-      </div>
-
-      <div class="form-group" style="margin-bottom: 0;">
-        <label class="form-label">Satuan</label>
-        <input type="text" class="form-input item-satuan" placeholder="Porsi/Kotak" value="${defaults.satuan || 'Porsi'}" required>
-      </div>
-
-      <div class="form-group" style="margin-bottom: 0;">
-        <label class="form-label">Harga Satuan (Rp)</label>
-        <input type="text" inputmode="numeric" class="form-input item-harga rupiah-input" placeholder="15.000" value="${defaults.harga_satuan ? Number(defaults.harga_satuan).toLocaleString('id-ID') : '0'}" required oninput="formatCurrencyInput(this); handleRowInput(this)">
-      </div>
-    </div>
-
-    <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
-      <div class="subtotal-display-box">
-        <span class="subtotal-label">Subtotal Item</span>
-        <span class="subtotal-value item-subtotal-display">Rp 0</span>
-      </div>
-    </div>
+    </td>
   `;
 
-  container.appendChild(card);
+  container.appendChild(row);
   updateItemRowIndices();
-  calculateRowSubtotal(card);
+  calculateRowSubtotal(row);
   calculateGrandTotal();
 }
 
@@ -2273,7 +2484,7 @@ function updateItemRowIndices() {
   document.getElementById('itemCountBadge').textContent = `${cards.length} Item`;
   cards.forEach((card, idx) => {
     const badge = card.querySelector('.item-index-badge');
-    if (badge) badge.textContent = `Item #${idx + 1}`;
+    if (badge) badge.textContent = idx + 1;
   });
 }
 
@@ -2378,11 +2589,25 @@ async function handleSubmitProposal(e) {
   const items = [];
 
   for (const card of cards) {
-    const kategori = card.querySelector('.item-kategori').value;
+    const kategori = getRowKategori(card);
     const deskripsi = card.querySelector('.item-deskripsi').value.trim();
     const volume = Number(card.querySelector('.item-volume').value) || 0;
     const satuan = card.querySelector('.item-satuan').value.trim();
     const harga_satuan = parseRupiahInput(card.querySelector('.item-harga').value);
+
+    if (!kategori) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Kategori Kosong',
+          text: 'Harap tulis nama kategori belanja atau pilih dari daftar yang tersedia.',
+          confirmButtonColor: '#059669'
+        });
+      } else {
+        alert('Kategori belanja tidak boleh kosong.');
+      }
+      return;
+    }
 
     if (!deskripsi) {
       if (typeof Swal !== 'undefined') {
@@ -2405,11 +2630,41 @@ async function handleSubmitProposal(e) {
     pos_anggaran_id: Number(posId),
     nama_kegiatan: document.getElementById('inputNamaKegiatan').value.trim(),
     bidang_kegiatan: (document.getElementById('selectBidangKegiatan') || {}).value || 'KESISWAAN',
-    latar_belakang: document.getElementById('inputLatarBelakang').value.trim(),
+    latar_belakang: getRichTextValue('inputLatarBelakang'),
     tanggal_mulai: document.getElementById('inputTglMulai').value,
     tanggal_selesai: document.getElementById('inputTglSelesai').value,
     items
   };
+
+  const totalDiajukan = items.reduce((sum, it) => sum + ((Number(it.volume) || 0) * (Number(it.harga_satuan) || 0)), 0);
+  const posObj = currentPosList.find(p => p.id === Number(posId));
+  const posLabel = posObj ? posObj.nama_pos : 'Pos RKAS Terpilih';
+
+  if (typeof Swal !== 'undefined') {
+    const confirmRes = await Swal.fire({
+      icon: 'question',
+      title: 'Kirim Usulan RAB ke Bendahara?',
+      html: `
+        <div style="text-align: left; font-size: 0.85rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 8px;">
+          <div style="margin-bottom: 6px;"><strong>Kegiatan:</strong> ${escapeHtml(payload.nama_kegiatan)}</div>
+          <div style="margin-bottom: 6px;"><strong>Pos RKAS:</strong> ${escapeHtml(posLabel)}</div>
+          <div style="margin-bottom: 6px;"><strong>Jumlah Rincian:</strong> ${items.length} Item Belanja</div>
+          <div><strong>Total Anggaran:</strong> <span style="color: #059669; font-weight: 800;">${formatRupiah(totalDiajukan)}</span></div>
+        </div>
+        <p style="font-size: 0.78rem; color: #64748b; margin-top: 10px; margin-bottom: 0;">Pastikan rincian kegiatan dan nominal belanja sudah sesuai sebelum diteruskan ke Bendahara.</p>
+      `,
+      showCancelButton: true,
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Kirim ke Bendahara',
+      cancelButtonText: 'Periksa Lagi'
+    });
+    if (!confirmRes.isConfirmed) return;
+  } else {
+    if (!confirm(`Kirim usulan "${payload.nama_kegiatan}" sebesar ${formatRupiah(totalDiajukan)} ke Bendahara?`)) {
+      return;
+    }
+  }
 
   const btnSubmit = document.getElementById('btnSubmitProposal');
   btnSubmit.disabled = true;
@@ -2444,7 +2699,9 @@ async function handleSubmitProposal(e) {
       } else {
         showNotification(`🎉 ${data.message}`);
       }
+      clearProposalDraft(false);
       document.getElementById('formPengajuanRab').reset();
+      setRichTextValue('inputLatarBelakang', '');
       const selBidangAfterReset = document.getElementById('selectBidangKegiatan');
       if (selBidangAfterReset && currentUser && typeof detectDefaultBidang === 'function') {
         selBidangAfterReset.value = detectDefaultBidang(currentUser.unit_bagian);
@@ -2490,6 +2747,170 @@ async function handleSubmitProposal(e) {
     `;
   }
 }
+
+function getProposalDraftKey() {
+  const uid = currentUser && currentUser.id ? currentUser.id : 'guest';
+  return `rab_proposal_draft_${uid}`;
+}
+
+function collectProposalFormDraft() {
+  const container = document.getElementById('rabItemsContainer');
+  const rows = container ? container.querySelectorAll('.item-row-card') : [];
+  const items = [];
+  rows.forEach(row => {
+    items.push({
+      kategori: getRowKategori(row) || 'Perlengkapan',
+      deskripsi: (row.querySelector('.item-deskripsi')?.value || '').trim(),
+      volume: Number(row.querySelector('.item-volume')?.value) || 1,
+      satuan: (row.querySelector('.item-satuan')?.value || 'Porsi').trim(),
+      harga_satuan: parseRupiahInput(row.querySelector('.item-harga')?.value || '0')
+    });
+  });
+
+  return {
+    pos_anggaran_id: (document.getElementById('selectPosAnggaran')?.value || ''),
+    nama_kegiatan: (document.getElementById('inputNamaKegiatan')?.value || ''),
+    bidang_kegiatan: (document.getElementById('selectBidangKegiatan')?.value || 'KESISWAAN'),
+    latar_belakang: getRichTextValue('inputLatarBelakang'),
+    tanggal_mulai: (document.getElementById('inputTglMulai')?.value || ''),
+    tanggal_selesai: (document.getElementById('inputTglSelesai')?.value || ''),
+    items,
+    saved_at: new Date().toISOString()
+  };
+}
+
+function saveProposalDraft() {
+  const draft = collectProposalFormDraft();
+  try {
+    localStorage.setItem(getProposalDraftKey(), JSON.stringify(draft));
+  } catch (err) {
+    console.warn('Gagal menyimpan draft RAB:', err);
+  }
+  updateProposalDraftBanner(draft.saved_at);
+
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      icon: 'success',
+      title: 'Draft Usulan Tersimpan!',
+      text: 'Isian formulir dan tabel rincian belanja sudah disimpan sementara. Anda dapat melanjutkan kapan saja tanpa kehilangan data.',
+      confirmButtonColor: '#059669',
+      timer: 2600,
+      showConfirmButton: true,
+      confirmButtonText: 'OK'
+    });
+  } else {
+    showNotification('✓ Draft usulan RAB berhasil disimpan.');
+  }
+}
+window.saveProposalDraft = saveProposalDraft;
+
+function updateProposalDraftBanner(savedAtIso) {
+  const banner = document.getElementById('rabDraftBanner');
+  const textEl = document.getElementById('rabDraftBannerText');
+  if (!banner) return;
+  if (!savedAtIso) {
+    banner.style.display = 'none';
+    return;
+  }
+  let timeLabel = '';
+  try {
+    timeLabel = new Date(savedAtIso).toLocaleString('id-ID', {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+  } catch (_) {}
+  if (textEl) {
+    textEl.textContent = `Melanjutkan draft usulan RAB tersimpan${timeLabel ? ` (${timeLabel})` : ''}.`;
+  }
+  banner.style.display = 'flex';
+}
+
+let hasRestoredProposalDraft = false;
+function restoreProposalDraft(force = false) {
+  if (hasRestoredProposalDraft && !force) return;
+  let raw = null;
+  try {
+    raw = localStorage.getItem(getProposalDraftKey());
+  } catch (_) {}
+  if (!raw) {
+    updateProposalDraftBanner(null);
+    return;
+  }
+
+  let draft = null;
+  try {
+    draft = JSON.parse(raw);
+  } catch (_) {
+    return;
+  }
+  if (!draft) return;
+
+  hasRestoredProposalDraft = true;
+  const selPos = document.getElementById('selectPosAnggaran');
+  if (selPos && draft.pos_anggaran_id) {
+    selPos.value = String(draft.pos_anggaran_id);
+  }
+  const elNama = document.getElementById('inputNamaKegiatan');
+  if (elNama && draft.nama_kegiatan !== undefined) elNama.value = draft.nama_kegiatan;
+  const elBidang = document.getElementById('selectBidangKegiatan');
+  if (elBidang && draft.bidang_kegiatan) elBidang.value = draft.bidang_kegiatan;
+  if (draft.latar_belakang !== undefined) {
+    setRichTextValue('inputLatarBelakang', draft.latar_belakang);
+  }
+  const elMulai = document.getElementById('inputTglMulai');
+  if (elMulai && draft.tanggal_mulai) elMulai.value = draft.tanggal_mulai;
+  const elSelesai = document.getElementById('inputTglSelesai');
+  if (elSelesai && draft.tanggal_selesai) elSelesai.value = draft.tanggal_selesai;
+
+  const container = document.getElementById('rabItemsContainer');
+  if (container && Array.isArray(draft.items) && draft.items.length > 0) {
+    container.innerHTML = '';
+    draft.items.forEach(it => addItemRow(it));
+  }
+  calculateGrandTotal();
+  updateProposalDraftBanner(draft.saved_at || new Date().toISOString());
+}
+
+async function clearProposalDraft(askConfirm = false) {
+  if (askConfirm) {
+    let confirmed = true;
+    if (typeof Swal !== 'undefined') {
+      const res = await Swal.fire({
+        icon: 'warning',
+        title: 'Hapus Draft Usulan?',
+        text: 'Semua isian draft yang belum dikirim ke Bendahara akan dikosongkan.',
+        showCancelButton: true,
+        confirmButtonColor: '#e11d48',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus Draft',
+        cancelButtonText: 'Batal'
+      });
+      confirmed = res.isConfirmed;
+    } else {
+      confirmed = confirm('Hapus draft usulan RAB ini?');
+    }
+    if (!confirmed) return;
+  }
+
+  try {
+    localStorage.removeItem(getProposalDraftKey());
+  } catch (_) {}
+  hasRestoredProposalDraft = false;
+  updateProposalDraftBanner(null);
+
+  if (askConfirm) {
+    const form = document.getElementById('formPengajuanRab');
+    if (form) form.reset();
+    setRichTextValue('inputLatarBelakang', '');
+    const container = document.getElementById('rabItemsContainer');
+    if (container) {
+      container.innerHTML = '';
+      addItemRow();
+    }
+    calculateGrandTotal();
+    showNotification('Draft usulan RAB telah dihapus.');
+  }
+}
+window.clearProposalDraft = clearProposalDraft;
 
 // --- 5. FASE 2: PROPOSAL HISTORY & DETAIL MODAL ---
 
@@ -2537,10 +2958,15 @@ async function loadProposalsList() {
 }
 
 function filterProposalTab(tabKey) {
-  currentProposalFilterTab = tabKey;
+  currentProposalFilterTab = tabKey || 'ALL';
+  const sel = document.getElementById('selectProposalStatusFilter');
+  if (sel) sel.value = currentProposalFilterTab;
   document.querySelectorAll('.proposal-status-tabs .status-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-filter') === tabKey);
+    btn.classList.toggle('active', btn.getAttribute('data-filter') === currentProposalFilterTab);
   });
+  if (activeViewName === 'riwayat' || activeViewName === 'verifikasi') {
+    setAppHash(`${activeViewName}/${currentProposalFilterTab}`);
+  }
   renderProposalsList(currentProposals);
 }
 window.filterProposalTab = filterProposalTab;
@@ -2553,16 +2979,26 @@ function updateProposalTabCounters(proposals) {
   const countDicairkan = proposals.filter(p => ['DICAIRKAN', 'MENUNGGU_VERIFIKASI_LPJ'].includes(p.status)).length;
   const countSelesai = proposals.filter(p => p.status === 'SELESAI').length;
 
+  const sel = document.getElementById('selectProposalStatusFilter');
+  if (sel) {
+    const labels = {
+      ALL: `Semua Usulan (${countAll})`,
+      MENUNGGU_REVIEW: `Menunggu Review (${countReview})`,
+      SIAP_CAIR: `Menunggu Dicairkan (${countSiapCair})`,
+      DICAIRKAN: `Sudah Dicairkan (${countDicairkan})`,
+      SELESAI: `LPJ Selesai (${countSelesai})`
+    };
+    Array.from(sel.options).forEach(opt => {
+      if (labels[opt.value]) opt.textContent = labels[opt.value];
+    });
+  }
+
   const elAll = document.getElementById('badgeCountAll');
   if (elAll) elAll.textContent = countAll;
   const elReview = document.getElementById('badgeCountReview');
-  if (elReview) {
-    elReview.textContent = countReview;
-  }
+  if (elReview) elReview.textContent = countReview;
   const elSiapCair = document.getElementById('badgeCountSiapCair');
-  if (elSiapCair) {
-    elSiapCair.textContent = countSiapCair;
-  }
+  if (elSiapCair) elSiapCair.textContent = countSiapCair;
   const elDicairkan = document.getElementById('badgeCountDicairkan');
   if (elDicairkan) elDicairkan.textContent = countDicairkan;
   const elSelesai = document.getElementById('badgeCountSelesai');
@@ -2778,22 +3214,12 @@ function renderProposalsList(proposals) {
     }
 
     let printActionBtn = '';
-    if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
+    if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
       printActionBtn = `
-        <a href="/cetak/${p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" title="Cetak Lembar Disposisi &amp; RAB">
-          <i class="ti ti-printer"></i> Disposisi
+        <a href="/cetak-lpj-bundel/${p.akses_token || p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff;" title="Cetak Bundel Lengkap Laporan Kegiatan &amp; Keuangan (LPJ)">
+          <i class="ti ti-printer"></i> Cetak Laporan
         </a>
       `;
-      if (p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
-        printActionBtn += `
-          <a href="/cetak-lpj/${p.akses_token || p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#047857; border-color:#a7f3d0; background:#ecfdf5; margin-left:4px;" title="Cetak Laporan Kegiatan &amp; Dokumentasi">
-            <i class="ti ti-file-certificate"></i> Lap. Kegiatan
-          </a>
-          <a href="/cetak-lpj-bundel/${p.akses_token || p.id}" target="_blank" class="btn-print-action" onclick="event.stopPropagation()" style="color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; margin-left:4px;" title="Cetak Laporan Keuangan (Kwitansi Komite, Rincian Belanja, Slip, Nota Fisik)">
-            <i class="ti ti-printer"></i> Lap. Keuangan
-          </a>
-        `;
-      }
     }
 
     let deleteProposalBtn = '';
@@ -2829,15 +3255,13 @@ function renderProposalsList(proposals) {
     card.className = `proposal-item-card ${statusThemeClass}`;
     card.onclick = () => openProposalDetail(p.id);
     card.innerHTML = `
-      <div class="proposal-top-row">
-        <div>
-          <span class="proposal-number-tag">${p.nomor_surat_ajuan}</span>
-          <h3 class="proposal-title">${p.nama_kegiatan}</h3>
-        </div>
+      <div class="proposal-top-row" style="align-items: center; flex-wrap: wrap;">
+        <span class="proposal-number-tag">${p.nomor_surat_ajuan}</span>
         <span class="status-pill ${p.status}">
           ${statusLabel}
         </span>
       </div>
+      <h3 class="proposal-title" style="margin: 8px 0 10px;">${p.nama_kegiatan}</h3>
 
       <div class="proposal-meta-row">
         <span class="proposal-meta-item">
@@ -2914,7 +3338,11 @@ async function openProposalDetail(id) {
       document.getElementById('detailPemohon').textContent = `${p.pemohon_nama} (${p.pemohon_unit})`;
       document.getElementById('detailPosAnggaran').textContent = `${p.nama_pos} (T.A. ${p.tahun_ajaran})`;
       document.getElementById('detailTanggal').textContent = `${p.tanggal_mulai || '-'} s/d ${p.tanggal_selesai || '-'}`;
-      document.getElementById('detailLatarBelakang').textContent = p.latar_belakang || '-';
+      const detailLbEl = document.getElementById('detailLatarBelakang');
+      if (detailLbEl) {
+        detailLbEl.classList.add('rich-html-content');
+        detailLbEl.innerHTML = sanitizeRichHtml(p.latar_belakang) || '-';
+      }
       document.getElementById('detailTotalBiaya').textContent = formatRupiah(p.total_dana_disetujui || p.total_dana_diajukan);
 
       document.getElementById('detailStatusBadge').innerHTML = `
@@ -3076,15 +3504,7 @@ async function openProposalDetail(id) {
         footer.appendChild(btnUbahBidang);
       }
 
-      // Tombol Cetak Dokumen Resmi untuk status yang sudah disahkan / dicairkan
-      if (p.status === 'DISETUJUI' || p.status === 'DICAIRKAN' || p.status === 'MENUNGGU_VERIFIKASI_LPJ' || p.status === 'SELESAI') {
-        const btnPrint = document.createElement('a');
-        btnPrint.className = 'btn btn-secondary btn-sm';
-        btnPrint.href = `/cetak/${p.id}`;
-        btnPrint.target = '_blank';
-        btnPrint.innerHTML = '<i class="ti ti-printer"></i> Cetak Lembar Disposisi (PDF)';
-        footer.appendChild(btnPrint);
-      }
+      // Tombol Cetak Lembar Disposisi dinonaktifkan sementara sesuai permintaan pengguna
 
       if (isBendahara && (p.status === 'MENUNGGU_REVIEW' || p.status === 'PERLU_REVISI')) {
         const btnReview = document.createElement('button');
@@ -3736,7 +4156,7 @@ function openEditPosModal(id) {
   document.getElementById('inputSatuan').value = item.satuan || 'kegiatan';
   document.getElementById('inputTahunAjaran').value = item.tahun_ajaran;
   document.getElementById('inputPaguAwal').value = item.pagu_awal ? Number(item.pagu_awal).toLocaleString('id-ID') : '0';
-  document.getElementById('inputKeterangan').value = item.keterangan || '';
+  setRichTextValue('inputKeterangan', item.keterangan || '');
 
   document.getElementById('modalPos').classList.add('active');
 }
@@ -3762,7 +4182,7 @@ async function handleSavePosAnggaran(e) {
     satuan: document.getElementById('inputSatuan').value.trim() || 'kegiatan',
     pagu_awal: parseRupiahInput(document.getElementById('inputPaguAwal').value),
     tahun_ajaran: document.getElementById('inputTahunAjaran').value.trim(),
-    keterangan: document.getElementById('inputKeterangan').value.trim()
+    keterangan: getRichTextValue('inputKeterangan')
   };
 
   if (!id) {
@@ -4159,10 +4579,459 @@ function closeSubmitLpjModal() {
   goBackFromLpjEditor();
 }
 
+function toggleLpjFloatingSidebar(show, persist = true) {
+  const sidebar = document.getElementById('lpjFloatingSidebar');
+  const toggleBtn = document.getElementById('lpjFloatingToggleBtn');
+  if (!sidebar || !toggleBtn) return;
+
+  if (show) {
+    sidebar.style.display = 'flex';
+    toggleBtn.style.display = 'none';
+    if (persist && window.innerWidth >= 1180) {
+      try { localStorage.setItem('lpj_float_sidebar_open', '1'); } catch (_) {}
+    }
+  } else {
+    sidebar.style.display = 'none';
+    toggleBtn.style.display = 'inline-flex';
+    if (persist && window.innerWidth >= 1180) {
+      try { localStorage.setItem('lpj_float_sidebar_open', '0'); } catch (_) {}
+    }
+  }
+}
+window.toggleLpjFloatingSidebar = toggleLpjFloatingSidebar;
+
+async function renderLpjFloatingSidebar(activeProposalId) {
+  const listEl = document.getElementById('lpjFloatingSidebarList');
+  const badgeCount = document.getElementById('lpjFloatCountBadge');
+  const toggleCount = document.getElementById('lpjFloatToggleCount');
+  if (!listEl) return;
+
+  // Pada layar kecil (< 1180px), selalu mulai dalam keadaan tersembunyi agar tidak menutupi form/tabel
+  let shouldOpen = false;
+  if (window.innerWidth >= 1180) {
+    let savedPref = null;
+    try { savedPref = localStorage.getItem('lpj_float_sidebar_open'); } catch (_) {}
+    shouldOpen = savedPref !== null ? savedPref === '1' : true;
+  }
+  toggleLpjFloatingSidebar(shouldOpen, false);
+
+  try {
+    if (!currentProposals || currentProposals.length === 0) {
+      const res = await fetch('/api/pengajuan');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        currentProposals = data.data;
+      }
+    }
+  } catch (err) {
+    console.warn('Gagal memuat daftar laporan sidebar:', err);
+  }
+
+  const all = currentProposals || [];
+  const activeIdNum = Number(activeProposalId);
+  const canManageAll = currentUser && ['BENDAHARA', 'ANALISIS_SDM', 'KEPALA_SEKOLAH', 'ADMIN'].includes(currentUser.role);
+
+  const items = all.filter(item => {
+    const canAccess = canManageAll || (currentUser && item.user_id === currentUser.id);
+    if (!canAccess) return false;
+    const isInProgressLpj = ['DICAIRKAN', 'MENUNGGU_VERIFIKASI_LPJ'].includes(item.status);
+    return isInProgressLpj || item.id === activeIdNum;
+  });
+
+  if (badgeCount) badgeCount.textContent = items.length;
+  if (toggleCount) toggleCount.textContent = items.length;
+
+  if (items.length === 0) {
+    listEl.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">Belum ada laporan LPJ lain yang sedang dibuat.</div>';
+    return;
+  }
+
+  listEl.innerHTML = items.map(item => {
+    const isActive = item.id === activeIdNum;
+    let statusBadgeText = 'Siap LPJ';
+    let statusBadgeCls = 'badge-info';
+    if (item.status === 'DICAIRKAN' && item.lpj && item.lpj.status_lpj === 'DRAFT') {
+      statusBadgeText = 'Draft LPJ';
+      statusBadgeCls = 'badge-warning';
+    } else if (item.status === 'MENUNGGU_VERIFIKASI_LPJ') {
+      statusBadgeText = 'Verifikasi';
+      statusBadgeCls = 'badge-warning';
+    } else if (item.status === 'SELESAI') {
+      statusBadgeText = 'Selesai';
+      statusBadgeCls = 'badge-success';
+    }
+
+    const danaCair = formatRupiah(item.total_dana_disetujui || item.total_dana_diajukan || 0);
+    return `
+      <button type="button" class="lpj-float-item ${isActive ? 'active' : ''}" onclick="navigateToLpjEditor(${item.id})" title="${escapeHtml(item.nama_kegiatan)}">
+        <div class="lpj-float-item-top">
+          <span class="lpj-float-item-no">${escapeHtml(item.nomor_surat_ajuan || '-')}</span>
+          <span class="lpj-float-status ${statusBadgeCls}">${statusBadgeText}</span>
+        </div>
+        <div class="lpj-float-item-name">${escapeHtml(item.nama_kegiatan)}</div>
+        <div class="lpj-float-item-meta">
+          <span>${danaCair}</span>
+          ${isActive ? '<span class="lpj-float-active-dot">Sedang Dibuka</span>' : '<span class="lpj-float-open-hint">Buka →</span>'}
+        </div>
+      </button>
+    `;
+  }).join('');
+}
+
+let selectedEditorJasaPerjanjianFile = null;
+let existingEditorJasaPerjanjianUrl = null;
+
+const LPJ_ALL_COMPONENTS = [
+  { key: 'cover', label: 'Cover Resmi Laporan', desc: 'Sampul depan berbingkai resmi + logo sekolah (Wajib di urutan #1)', locked: true },
+  { key: 'narasi', label: 'Narasi Pelaksanaan & Evaluasi', desc: 'Kop Bali, tujuan, tempat, peserta, resume hasil, kendala & solusi' },
+  { key: 'kwitansi', label: 'Kwitansi Resmi Pembayaran', desc: 'Kop Bali, terbilang, nominal & 6 tanda tangan (Wakasek sesuai bidang)' },
+  { key: 'rincian_belanja', label: 'Rincian Realisasi Belanja (LPJ vs RAB)', desc: 'Kop Bali, perbandingan dana cair vs belanja riil & sisa kas' },
+  { key: 'nota_pesanan', label: 'Nota Pesanan Barang', desc: 'Surat pemesanan resmi ke toko/penyedia barang' },
+  { key: 'bast', label: 'Berita Acara Serah Terima (BAST)', desc: 'Kop Bali, serah terima barang Pihak Pertama & Pengurus Barang' },
+  { key: 'daftar_barang', label: 'Daftar Barang / Serah Terima Pekerjaan', desc: 'Kop Bali, tabel rincian volume, harga satuan & kondisi barang' },
+  { key: 'perjanjian', label: 'Surat Perjanjian Kerja Sama / Kontrak', desc: 'Scan PDF atau teks naskah perjanjian kerja sama mitra/jasa' },
+  { key: 'transfer', label: 'Bukti Transfer / Setoran Bank', desc: 'Lampiran slip transfer pencairan atau setoran bank' },
+  { key: 'nota_toko', label: 'Bukti Nota / Faktur Toko Fisik', desc: 'Lampiran foto/scan struk, nota toko, atau bundel kuitansi' },
+  { key: 'daftar_hadir', label: 'Lampiran Daftar Hadir / Presensi', desc: 'Lampiran berkas PDF/scan daftar hadir peserta & panitia' },
+  { key: 'foto', label: 'Dokumentasi Foto Kegiatan', desc: 'Lampiran foto-foto pelaksanaan (2 foto per halaman A4)' }
+];
+
+let lpjModalItems = [];
+
+function getDefaultComponentsForBidang(bidang, templateKey) {
+  const b = String(bidang || '').toUpperCase();
+  if (templateKey === 'PENGADAAN_JASA' || b === 'HUMAS') {
+    return ['cover', 'kwitansi', 'foto', 'perjanjian', 'transfer'];
+  }
+  if (templateKey === 'PENGADAAN_BARANG' || b === 'SARPRAS') {
+    return ['cover', 'kwitansi', 'nota_pesanan', 'bast', 'daftar_barang', 'foto', 'nota_toko', 'transfer'];
+  }
+  return ['cover', 'narasi', 'kwitansi', 'rincian_belanja', 'transfer', 'nota_toko', 'daftar_hadir', 'foto'];
+}
+
+function initLpjModalItems(selectedOrderedKeys) {
+  const validKeys = new Set(LPJ_ALL_COMPONENTS.map(c => c.key));
+  const cleanSelected = ['cover'];
+  (Array.isArray(selectedOrderedKeys) ? selectedOrderedKeys : []).forEach(k => {
+    if (k !== 'cover' && validKeys.has(k) && !cleanSelected.includes(k)) {
+      cleanSelected.push(k);
+    }
+  });
+  const selectedSet = new Set(cleanSelected);
+  const items = cleanSelected.map(k => ({ key: k, checked: true }));
+  LPJ_ALL_COMPONENTS.forEach(c => {
+    if (!selectedSet.has(c.key)) {
+      items.push({ key: c.key, checked: false });
+    }
+  });
+  lpjModalItems = items;
+}
+
+function getSelectedOrderedLpjComponents() {
+  if (!Array.isArray(lpjModalItems) || lpjModalItems.length === 0) {
+    return ['cover', 'narasi', 'kwitansi', 'rincian_belanja', 'transfer', 'nota_toko', 'daftar_hadir', 'foto'];
+  }
+  return lpjModalItems.filter(it => it.checked || it.key === 'cover').map(it => it.key);
+}
+
+function renderKomponenChecklistModal() {
+  const container = document.getElementById('komponenLaporanChecklist');
+  if (!container) return;
+  const metaMap = Object.fromEntries(LPJ_ALL_COMPONENTS.map(c => [c.key, c]));
+
+  container.innerHTML = lpjModalItems.map((it, idx) => {
+    const meta = metaMap[it.key] || { label: it.key, desc: '', locked: false };
+    const isFirstMovable = idx <= 1;
+    const isLast = idx >= lpjModalItems.length - 1;
+    return `
+      <div class="komponen-check-row ${it.checked ? 'is-checked' : ''} ${meta.locked ? 'is-locked' : ''}">
+        <div class="komponen-order-num">#${idx + 1}</div>
+        <label class="komponen-check-label">
+          <input type="checkbox"
+            ${it.checked ? 'checked' : ''}
+            ${meta.locked ? 'disabled' : ''}
+            onchange="toggleLpjComponentCheck('${it.key}', this.checked)">
+          <div class="komponen-check-text">
+            <div class="komponen-check-title">${escapeHtml(meta.label)} ${meta.locked ? '<span class="komponen-lock-badge">Wajib #1</span>' : ''}</div>
+            <div class="komponen-check-desc">${escapeHtml(meta.desc)}</div>
+          </div>
+        </label>
+        <div class="komponen-move-btns">
+          ${meta.locked ? '<span style="font-size:0.7rem;color:#64748b;padding:0 6px;">Terkunci</span>' : `
+            <button type="button" class="btn-move-comp" ${isFirstMovable ? 'disabled' : ''} onclick="moveLpjComponent(${idx}, -1)" title="Geser Naik">↑</button>
+            <button type="button" class="btn-move-comp" ${isLast ? 'disabled' : ''} onclick="moveLpjComponent(${idx}, 1)" title="Geser Turun">↓</button>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleLpjComponentCheck(key, checked) {
+  if (key === 'cover') return;
+  const item = lpjModalItems.find(it => it.key === key);
+  if (item) item.checked = !!checked;
+  renderKomponenChecklistModal();
+}
+window.toggleLpjComponentCheck = toggleLpjComponentCheck;
+
+function moveLpjComponent(idx, dir) {
+  const target = idx + dir;
+  if (idx < 1 || target < 1 || target >= lpjModalItems.length) return;
+  const tmp = lpjModalItems[idx];
+  lpjModalItems[idx] = lpjModalItems[target];
+  lpjModalItems[target] = tmp;
+  renderKomponenChecklistModal();
+}
+window.moveLpjComponent = moveLpjComponent;
+
+function applyLpjPreset(presetKey) {
+  const keys = getDefaultComponentsForBidang('', presetKey);
+  initLpjModalItems(keys);
+  renderKomponenChecklistModal();
+}
+window.applyLpjPreset = applyLpjPreset;
+
+function openModalKomponenLaporan() {
+  renderKomponenChecklistModal();
+  const modal = document.getElementById('modalKomponenLaporan');
+  if (modal) modal.classList.add('active');
+}
+window.openModalKomponenLaporan = openModalKomponenLaporan;
+
+function closeModalKomponenLaporan() {
+  const modal = document.getElementById('modalKomponenLaporan');
+  if (modal) modal.classList.remove('active');
+}
+window.closeModalKomponenLaporan = closeModalKomponenLaporan;
+
+function renderEditorKomponenSummary() {
+  const box = document.getElementById('editorLpjKomponenSummary');
+  if (!box) return;
+  const metaMap = Object.fromEntries(LPJ_ALL_COMPONENTS.map(c => [c.key, c]));
+  const selected = getSelectedOrderedLpjComponents();
+  box.innerHTML = selected.map((k, i) => `
+    <span class="lpj-komp-pill"><strong>${i + 1}.</strong> ${escapeHtml((metaMap[k] && metaMap[k].label) || k)}</span>
+  `).join('');
+}
+
+function applyLpjComponentsSelection() {
+  closeModalKomponenLaporan();
+  renderEditorKomponenSummary();
+  applyLpjComponentsLayout();
+}
+window.applyLpjComponentsSelection = applyLpjComponentsSelection;
+
+function applyLpjComponentsLayout() {
+  const selected = getSelectedOrderedLpjComponents();
+  const active = new Set(selected);
+
+  const hasKwitansi = active.has('kwitansi');
+  const hasPerjanjian = active.has('perjanjian');
+  const hasBarang = active.has('nota_pesanan') || active.has('bast') || active.has('daftar_barang');
+  const hasNarasi = active.has('narasi');
+  const hasNota = active.has('rincian_belanja') || active.has('nota_toko');
+  const hasDaftarHadir = active.has('daftar_hadir');
+  const hasFoto = active.has('foto');
+  const hasTransfer = active.has('transfer');
+
+  const jasaCard = document.getElementById('editorLpjPengadaanJasaCard');
+  if (jasaCard) {
+    jasaCard.style.display = (hasKwitansi || hasPerjanjian) ? 'block' : 'none';
+    const partKwitansi = jasaCard.querySelector('[data-lpj-part="kwitansi"]');
+    if (partKwitansi) partKwitansi.style.display = hasKwitansi ? 'block' : 'none';
+    const partPerjanjian = jasaCard.querySelector('[data-lpj-part="perjanjian"]');
+    if (partPerjanjian) partPerjanjian.style.display = hasPerjanjian ? 'block' : 'none';
+  }
+
+  const barangCard = document.getElementById('editorLpjPengadaanBarangCard');
+  if (barangCard) barangCard.style.display = hasBarang ? 'block' : 'none';
+
+  const narasiCard = document.getElementById('editorLpjNarasiCard');
+  if (narasiCard) narasiCard.style.display = hasNarasi ? 'block' : 'none';
+  const resumeCard = document.getElementById('editorLpjResumeCard');
+  if (resumeCard) resumeCard.style.display = hasNarasi ? 'block' : 'none';
+
+  const notaCard = document.getElementById('editorLpjNotaCard');
+  if (notaCard) notaCard.style.display = hasNota ? 'block' : 'none';
+
+  const daftarHadirCard = document.getElementById('editorLpjDaftarHadirCard');
+  if (daftarHadirCard) daftarHadirCard.style.display = hasDaftarHadir ? 'block' : 'none';
+
+  const fotoCard = document.getElementById('editorLpjFotoCard');
+  if (fotoCard) fotoCard.style.display = hasFoto ? 'block' : 'none';
+
+  const catatanCard = document.getElementById('editorLpjCatatanCard');
+  if (catatanCard) catatanCard.style.display = (hasNarasi || active.has('rincian_belanja')) ? 'block' : 'none';
+
+  const elTem = document.getElementById('editorLpjTempat');
+  const elPes = document.getElementById('editorLpjPeserta');
+  if (elTem) elTem.required = hasNarasi;
+  if (elPes) elPes.required = hasNarasi;
+
+  const cardTransfer = document.getElementById('editorLpjBendaharaTransferCard');
+  if (cardTransfer) {
+    cardTransfer.style.display = hasTransfer ? 'block' : 'none';
+  }
+
+  const tplInput = document.getElementById('editorLpjTemplateSelect');
+  if (tplInput) {
+    if (hasBarang) tplInput.value = 'PENGADAAN_BARANG';
+    else if (hasPerjanjian) tplInput.value = 'PENGADAAN_JASA';
+    else tplInput.value = 'KEGIATAN';
+  }
+}
+window.applyLpjComponentsLayout = applyLpjComponentsLayout;
+
+function toggleLpjTemplateMode(templateKey) {
+  applyLpjPreset(templateKey);
+  renderEditorKomponenSummary();
+  applyLpjComponentsLayout();
+}
+window.toggleLpjTemplateMode = toggleLpjTemplateMode;
+
+function parseQtyFromVolumeText(volStr) {
+  const m = String(volStr || '1').match(/[\d.,]+/);
+  if (!m) return 1;
+  const num = Number(m[0].replace(/\./g, '').replace(',', '.'));
+  return isNaN(num) || num <= 0 ? 1 : num;
+}
+
+function addEditorBarangRow(data = {}) {
+  const tbody = document.getElementById('editorBarangItemsBody');
+  if (!tbody) return;
+  const idx = tbody.children.length + 1;
+  const harga = Number(data.harga_satuan) || 0;
+  const volText = data.volume || '1 Unit';
+  const tr = document.createElement('tr');
+  tr.className = 'editor-barang-row';
+  tr.innerHTML = `
+    <td class="excel-cell-no"><span class="barang-row-no">${idx}</span></td>
+    <td><input type="text" class="excel-input barang-nama" placeholder="Nama barang" value="${escapeHtml(data.nama_barang || '')}"></td>
+    <td><input type="text" class="excel-input barang-spek" placeholder="Spesifikasi teknis" value="${escapeHtml(data.spesifikasi || '')}"></td>
+    <td><input type="text" class="excel-input excel-input-center barang-vol" placeholder="1 Set" value="${escapeHtml(volText)}" oninput="recalculateEditorBarangTotals()"></td>
+    <td><input type="text" inputmode="numeric" class="excel-input excel-input-right rupiah-input barang-harga" placeholder="0" value="${harga ? harga.toLocaleString('id-ID') : ''}" oninput="formatCurrencyInput(this); recalculateEditorBarangTotals()"></td>
+    <td class="excel-cell-subtotal"><span class="barang-subtotal">Rp 0</span></td>
+    <td class="excel-cell-action">
+      <button type="button" class="btn-excel-remove" onclick="removeEditorBarangRow(this)" title="Hapus baris"><i class="ti ti-trash"></i></button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+  recalculateEditorBarangTotals();
+}
+window.addEditorBarangRow = addEditorBarangRow;
+
+function removeEditorBarangRow(btn) {
+  const tbody = document.getElementById('editorBarangItemsBody');
+  if (!tbody || tbody.children.length <= 1) return;
+  btn.closest('tr').remove();
+  tbody.querySelectorAll('.barang-row-no').forEach((el, i) => {
+    el.textContent = i + 1;
+  });
+  recalculateEditorBarangTotals();
+}
+window.removeEditorBarangRow = removeEditorBarangRow;
+
+function recalculateEditorBarangTotals() {
+  const tbody = document.getElementById('editorBarangItemsBody');
+  if (!tbody) return 0;
+  let subtotal = 0;
+  tbody.querySelectorAll('tr.editor-barang-row').forEach(tr => {
+    const qty = parseQtyFromVolumeText(tr.querySelector('.barang-vol')?.value);
+    const harga = parseRupiahInput(tr.querySelector('.barang-harga')?.value || '0');
+    const jml = Math.round(qty * harga);
+    subtotal += jml;
+    const subEl = tr.querySelector('.barang-subtotal');
+    if (subEl) subEl.textContent = formatRupiah(jml);
+  });
+  const ppn = Number(document.getElementById('editorBarangPpnPersen')?.value || 0);
+  const total = subtotal + (ppn > 0 ? Math.round(subtotal * (ppn / 100)) : 0);
+  const disp = document.getElementById('editorBarangTotalDisplay');
+  if (disp) disp.textContent = formatRupiah(total);
+  return total;
+}
+window.recalculateEditorBarangTotals = recalculateEditorBarangTotals;
+
+function collectEditorBarangMeta() {
+  const tbody = document.getElementById('editorBarangItemsBody');
+  const items_barang = [];
+  if (tbody) {
+    tbody.querySelectorAll('tr.editor-barang-row').forEach(tr => {
+      const nama_barang = (tr.querySelector('.barang-nama')?.value || '').trim();
+      const spesifikasi = (tr.querySelector('.barang-spek')?.value || '').trim();
+      const volume = (tr.querySelector('.barang-vol')?.value || '1 Unit').trim();
+      const harga_satuan = parseRupiahInput(tr.querySelector('.barang-harga')?.value || '0');
+      const qty = parseQtyFromVolumeText(volume);
+      if (nama_barang || harga_satuan > 0) {
+        items_barang.push({
+          nama_barang: nama_barang || 'Barang',
+          spesifikasi: spesifikasi || nama_barang || '-',
+          volume,
+          harga_satuan,
+          jumlah: Math.round(qty * harga_satuan)
+        });
+      }
+    });
+  }
+  return {
+    nomor_surat: (document.getElementById('editorBarangNomorSurat')?.value || '').trim(),
+    ppn_persen: Number(document.getElementById('editorBarangPpnPersen')?.value || 0),
+    untuk_pembayaran: (document.getElementById('editorBarangUntukPembayaran')?.value || '').trim(),
+    nama_toko: (document.getElementById('editorBarangNamaToko')?.value || '').trim(),
+    nama_penyedia: (document.getElementById('editorBarangNamaPenyedia')?.value || '').trim(),
+    jabatan_penyedia: (document.getElementById('editorBarangJabatanPenyedia')?.value || '').trim(),
+    alamat_penyedia: (document.getElementById('editorBarangAlamatPenyedia')?.value || '').trim(),
+    pemesan_nama: (document.getElementById('editorBarangPemesanNama')?.value || '').trim(),
+    pemesan_nip: (document.getElementById('editorBarangPemesanNip')?.value || '').trim(),
+    items_barang
+  };
+}
+
+function handleEditorJasaPerjanjianSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!validateUploadedFile(file, true)) {
+    event.target.value = '';
+    return;
+  }
+  selectedEditorJasaPerjanjianFile = file;
+  existingEditorJasaPerjanjianUrl = null;
+  const wrap = document.getElementById('editorJasaPerjanjianPreviewWrap');
+  const nameEl = document.getElementById('editorJasaPerjanjianFileName');
+  if (wrap && nameEl) {
+    wrap.style.display = 'flex';
+    nameEl.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+  }
+}
+window.handleEditorJasaPerjanjianSelect = handleEditorJasaPerjanjianSelect;
+
+function clearEditorJasaPerjanjian(event) {
+  if (event) event.stopPropagation();
+  selectedEditorJasaPerjanjianFile = null;
+  existingEditorJasaPerjanjianUrl = null;
+  const inp = document.getElementById('editorJasaFilePerjanjianInput');
+  if (inp) inp.value = '';
+  const wrap = document.getElementById('editorJasaPerjanjianPreviewWrap');
+  if (wrap) wrap.style.display = 'none';
+}
+window.clearEditorJasaPerjanjian = clearEditorJasaPerjanjian;
+
+function previewEditorJasaPerjanjian() {
+  if (selectedEditorJasaPerjanjianFile) {
+    if (activePreviewObjectUrl) URL.revokeObjectURL(activePreviewObjectUrl);
+    activePreviewObjectUrl = URL.createObjectURL(selectedEditorJasaPerjanjianFile);
+    openFilePreviewModal(activePreviewObjectUrl, selectedEditorJasaPerjanjianFile.name);
+  } else if (existingEditorJasaPerjanjianUrl) {
+    openFilePreviewModal(existingEditorJasaPerjanjianUrl, existingEditorJasaPerjanjianUrl.split('/').pop());
+  }
+}
+window.previewEditorJasaPerjanjian = previewEditorJasaPerjanjian;
+
 /**
  * Navigasi ke Halaman Editor LPJ Terpisah
  */
 async function navigateToLpjEditor(proposalId) {
+  setAppHash(`lpj/${proposalId}`);
   if (typeof switchView === 'function') {
     switchView('formLpj');
   } else {
@@ -4171,6 +5040,7 @@ async function navigateToLpjEditor(proposalId) {
     if (v) v.classList.add('active');
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  renderLpjFloatingSidebar(proposalId);
 
   try {
     const res = await fetch(`/api/pengajuan/${proposalId}`);
@@ -4214,24 +5084,42 @@ async function navigateToLpjEditor(proposalId) {
       }
     });
 
-    // Tampilkan Referensi Rincian Item RAB Disetujui
+    // Tampilkan Referensi Rincian Item RAB Disetujui (Tabel Ringkas)
     const refBox = document.getElementById('editorLpjApprovedItemsRefBox');
     const refList = document.getElementById('editorLpjApprovedItemsList');
     if (refBox && refList) {
       if (p.items && p.items.length > 0) {
         refBox.style.display = 'block';
-        refList.innerHTML = p.items.map(it => {
-          const vol = it.volume_disetujui || it.volume_diajukan;
-          const sat = it.satuan_disetujui || it.satuan_diajukan;
-          const sub = it.subtotal_disetujui || it.subtotal_diajukan;
+        const rowsHtml = p.items.map((it, idx) => {
+          const nama = it.deskripsi_item || it.nama_item || '-';
+          const vol = it.volume_disetujui !== null && it.volume_disetujui !== undefined ? it.volume_disetujui : (it.volume_ajuan || 0);
+          const sat = it.satuan || '-';
+          const harga = it.harga_satuan_disetujui !== null && it.harga_satuan_disetujui !== undefined ? it.harga_satuan_disetujui : (it.harga_satuan_ajuan || 0);
+          const sub = it.subtotal_disetujui !== null && it.subtotal_disetujui !== undefined ? it.subtotal_disetujui : (it.subtotal_ajuan || 0);
           return `
-            <div class="lpj-ref-badge-item" title="${escapeHtml(it.spesifikasi || '')}">
-              <span>${escapeHtml(it.nama_item)}</span>
-              <span style="color:var(--text-muted);">(${vol} ${sat})</span>
-              <strong>${formatRupiah(sub)}</strong>
-            </div>
+            <tr>
+              <td class="excel-cell-no">${idx + 1}</td>
+              <td style="padding: 6px 10px; font-weight: 600; color: #0f172a;">${escapeHtml(nama)}</td>
+              <td style="padding: 6px 8px; text-align: center; white-space: nowrap;">${vol} ${escapeHtml(sat)}</td>
+              <td style="padding: 6px 10px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums;">${formatRupiah(harga)}</td>
+              <td class="excel-cell-subtotal" style="padding: 6px 10px !important;">${formatRupiah(sub)}</td>
+            </tr>
           `;
         }).join('');
+        refList.innerHTML = `
+          <table class="rab-excel-table" style="min-width: 540px; font-size: 0.8rem;">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">No</th>
+                <th>Uraian Barang / Jasa</th>
+                <th style="width: 105px; text-align: center;">Vol &amp; Satuan</th>
+                <th style="width: 125px; text-align: right;">Harga Satuan</th>
+                <th style="width: 130px; text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        `;
       } else {
         refBox.style.display = 'none';
       }
@@ -4272,23 +5160,17 @@ async function navigateToLpjEditor(proposalId) {
 
     // Isi Nilai Deskripsi & Resume jika sudah ada LPJ
     if (p.lpj) {
-      const elLat = document.getElementById('editorLpjLatarBelakang');
-      if (elLat) elLat.value = p.lpj.catatan_lpj || p.latar_belakang || '';
-      const elTuj = document.getElementById('editorLpjTujuan');
-      if (elTuj) elTuj.value = p.lpj.tujuan_kegiatan || p.tujuan_kegiatan || '';
+      setRichTextValue('editorLpjLatarBelakang', p.lpj.catatan_lpj || p.latar_belakang || '');
+      setRichTextValue('editorLpjTujuan', p.lpj.tujuan_kegiatan || p.tujuan_kegiatan || '');
       const elTem = document.getElementById('editorLpjTempat');
       if (elTem) elTem.value = p.lpj.tempat_pelaksanaan || '';
       const elPes = document.getElementById('editorLpjPeserta');
       if (elPes) elPes.value = p.lpj.jumlah_peserta || '';
 
-      const elRes = document.getElementById('editorLpjResumeHasil');
-      if (elRes) elRes.value = p.lpj.resume_hasil || '';
-      const elKen = document.getElementById('editorLpjKendala');
-      if (elKen) elKen.value = p.lpj.kendala || '';
-      const elSol = document.getElementById('editorLpjSolusi');
-      if (elSol) elSol.value = p.lpj.solusi_tindak_lanjut || '';
-      const elCat = document.getElementById('editorLpjCatatanTambahan');
-      if (elCat) elCat.value = p.lpj.catatan_lpj || '';
+      setRichTextValue('editorLpjResumeHasil', p.lpj.resume_hasil || '');
+      setRichTextValue('editorLpjKendala', p.lpj.kendala || '');
+      setRichTextValue('editorLpjSolusi', p.lpj.solusi_tindak_lanjut || '');
+      setRichTextValue('editorLpjCatatanTambahan', p.lpj.catatan_lpj || '');
 
       // Master PDF file
       if (p.lpj.file_nota_url) {
@@ -4330,23 +5212,17 @@ async function navigateToLpjEditor(proposalId) {
       }
     } else {
       // Usulan Baru Belum Ada LPJ
-      const elLat = document.getElementById('editorLpjLatarBelakang');
-      if (elLat) elLat.value = p.latar_belakang || '';
-      const elTuj = document.getElementById('editorLpjTujuan');
-      if (elTuj) elTuj.value = p.tujuan_kegiatan || '';
+      setRichTextValue('editorLpjLatarBelakang', p.latar_belakang || '');
+      setRichTextValue('editorLpjTujuan', p.tujuan_kegiatan || '');
       const elTem = document.getElementById('editorLpjTempat');
       if (elTem) elTem.value = '';
       const elPes = document.getElementById('editorLpjPeserta');
       if (elPes) elPes.value = '';
 
-      const elRes = document.getElementById('editorLpjResumeHasil');
-      if (elRes) elRes.value = '';
-      const elKen = document.getElementById('editorLpjKendala');
-      if (elKen) elKen.value = '';
-      const elSol = document.getElementById('editorLpjSolusi');
-      if (elSol) elSol.value = '';
-      const elCat = document.getElementById('editorLpjCatatanTambahan');
-      if (elCat) elCat.value = '';
+      setRichTextValue('editorLpjResumeHasil', '');
+      setRichTextValue('editorLpjKendala', '');
+      setRichTextValue('editorLpjSolusi', '');
+      setRichTextValue('editorLpjCatatanTambahan', '');
 
       clearEditorMasterFile();
 
@@ -4355,6 +5231,101 @@ async function navigateToLpjEditor(proposalId) {
 
       // Tambahkan default 1 baris foto dokumentasi
       addEditorFotoRow();
+    }
+
+    // Setup Template Laporan & Field Pengadaan Jasa / Pengadaan Barang
+    const lpjData = p.lpj || {};
+    const bidangUpper = String(p.bidang_kegiatan || '').toUpperCase();
+    let defaultTemplateByBidang = 'KEGIATAN';
+    if (bidangUpper === 'HUMAS') defaultTemplateByBidang = 'PENGADAAN_JASA';
+    else if (bidangUpper === 'SARPRAS') defaultTemplateByBidang = 'PENGADAAN_BARANG';
+    const detectedTemplate = lpjData.template_laporan || defaultTemplateByBidang;
+    const elTplSelect = document.getElementById('editorLpjTemplateSelect');
+    if (elTplSelect) elTplSelect.value = detectedTemplate;
+
+    const elJasaNoKode = document.getElementById('editorJasaNoKode');
+    if (elJasaNoKode) elJasaNoKode.value = lpjData.jasa_no_kode || '';
+    const elJasaRek = document.getElementById('editorJasaKodeRekening');
+    if (elJasaRek) elJasaRek.value = lpjData.jasa_kode_rekening || '';
+    const elJasaNom = document.getElementById('editorJasaNominal');
+    if (elJasaNom) {
+      const nomVal = lpjData.total_belanja_riil || p.total_dana_disetujui || 0;
+      elJasaNom.value = nomVal ? Number(nomVal).toLocaleString('id-ID') : '';
+    }
+    const elJasaPen = document.getElementById('editorJasaPenerima');
+    if (elJasaPen) elJasaPen.value = lpjData.jasa_penerima_nama || '';
+    const elJasaPemb = document.getElementById('editorJasaUntukPembayaran');
+    if (elJasaPemb) {
+      elJasaPemb.value = lpjData.jasa_untuk_pembayaran || `Dibayar Belanja Barang dan Jasa ${p.nama_kegiatan} Pada Dana Komite SMAN 1 Gianyar`;
+    }
+    setRichTextValue('editorJasaTeksPerjanjian', lpjData.jasa_teks_perjanjian || '');
+
+    selectedEditorJasaPerjanjianFile = null;
+    existingEditorJasaPerjanjianUrl = lpjData.jasa_file_perjanjian_url || null;
+    const jasaPerjWrap = document.getElementById('editorJasaPerjanjianPreviewWrap');
+    const jasaPerjName = document.getElementById('editorJasaPerjanjianFileName');
+    if (existingEditorJasaPerjanjianUrl && jasaPerjWrap && jasaPerjName) {
+      jasaPerjWrap.style.display = 'flex';
+      jasaPerjName.textContent = existingEditorJasaPerjanjianUrl.split('/').pop();
+    } else if (jasaPerjWrap) {
+      jasaPerjWrap.style.display = 'none';
+    }
+
+    // Setup Field Pengadaan Barang (Sarana)
+    let bMeta = {};
+    if (lpjData.barang_meta) {
+      try {
+        bMeta = typeof lpjData.barang_meta === 'string' ? JSON.parse(lpjData.barang_meta) : lpjData.barang_meta;
+      } catch (_) {}
+    }
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    setVal('editorBarangNomorSurat', bMeta.nomor_surat || '/SMA N 1 GIANYAR/DIKPORA');
+    setVal('editorBarangPpnPersen', bMeta.ppn_persen !== undefined ? bMeta.ppn_persen : 0);
+    setVal('editorBarangUntukPembayaran', bMeta.untuk_pembayaran || `Dibayar Belanja Barang dan Jasa ${p.nama_kegiatan}`);
+    setVal('editorBarangNamaToko', bMeta.nama_toko || '');
+    setVal('editorBarangNamaPenyedia', bMeta.nama_penyedia || '');
+    setVal('editorBarangJabatanPenyedia', bMeta.jabatan_penyedia || 'Pemilik');
+    setVal('editorBarangAlamatPenyedia', bMeta.alamat_penyedia || '');
+    setVal('editorBarangPemesanNama', bMeta.pemesan_nama || p.pemohon_nama || '');
+    setVal('editorBarangPemesanNip', bMeta.pemesan_nip || p.pemohon_nip || '');
+
+    const barangBody = document.getElementById('editorBarangItemsBody');
+    if (barangBody) {
+      barangBody.innerHTML = '';
+      if (Array.isArray(bMeta.items_barang) && bMeta.items_barang.length > 0) {
+        bMeta.items_barang.forEach(it => addEditorBarangRow(it));
+      } else if (Array.isArray(p.items) && p.items.length > 0) {
+        p.items.forEach(it => addEditorBarangRow({
+          nama_barang: it.deskripsi_item || it.nama_item || '',
+          spesifikasi: it.deskripsi_item || '',
+          volume: `${it.volume_disetujui ?? it.volume_ajuan ?? 1} ${it.satuan || 'Unit'}`,
+          harga_satuan: it.harga_satuan_disetujui ?? it.harga_satuan_ajuan ?? 0
+        }));
+      } else {
+        addEditorBarangRow();
+      }
+    }
+
+    // Inisialisasi Komponen Modular (12 Item)
+    let savedComponents = null;
+    if (lpjData.komponen_laporan) {
+      try {
+        const parsedComp = typeof lpjData.komponen_laporan === 'string'
+          ? JSON.parse(lpjData.komponen_laporan)
+          : lpjData.komponen_laporan;
+        if (Array.isArray(parsedComp) && parsedComp.length > 0) savedComponents = parsedComp;
+      } catch (_) {}
+    }
+    if (!savedComponents) {
+      savedComponents = getDefaultComponentsForBidang(p.bidang_kegiatan, detectedTemplate);
+    }
+    initLpjModalItems(savedComponents);
+    renderEditorKomponenSummary();
+    applyLpjComponentsLayout();
+
+    // Jika laporan baru (belum pernah disimpan sama sekali), tampilkan modal pemilihan komponen terlebih dahulu
+    if (!p.lpj) {
+      openModalKomponenLaporan();
     }
 
     // Setup tanggal laporan pengesahan
@@ -4468,6 +5439,76 @@ function confirmResetReceiptsFromRab() {
   }
 }
 
+let activePreviewObjectUrl = null;
+function openFilePreviewModal(url, title = 'Pratinjau Nota') {
+  const modal = document.getElementById('modalPreviewNota');
+  const titleEl = document.getElementById('previewNotaTitle');
+  const contentEl = document.getElementById('previewNotaContent');
+  const newTabBtn = document.getElementById('btnPreviewNotaNewTab');
+  if (!modal || !contentEl) return;
+
+  if (titleEl) titleEl.textContent = title || 'Pratinjau Nota';
+  if (newTabBtn) newTabBtn.href = url;
+
+  const isPdf = /\.pdf(\?|$)/i.test(url) || /\.pdf$/i.test(title || '');
+  if (isPdf) {
+    contentEl.innerHTML = `<iframe src="${escapeHtml(url)}" style="width: 100%; height: 68vh; border: none; border-radius: 6px; background: #fff;"></iframe>`;
+  } else {
+    contentEl.innerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(title)}" style="max-width: 100%; max-height: 68vh; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);">`;
+  }
+
+  modal.classList.add('active');
+}
+window.openFilePreviewModal = openFilePreviewModal;
+
+function closeFilePreviewModal() {
+  const modal = document.getElementById('modalPreviewNota');
+  const contentEl = document.getElementById('previewNotaContent');
+  if (modal) modal.classList.remove('active');
+  if (contentEl) contentEl.innerHTML = '';
+  if (activePreviewObjectUrl) {
+    URL.revokeObjectURL(activePreviewObjectUrl);
+    activePreviewObjectUrl = null;
+  }
+}
+window.closeFilePreviewModal = closeFilePreviewModal;
+
+function previewEditorReceiptFile(rowId) {
+  const row = editorReceiptRows.find(r => r.id === rowId);
+  if (!row) return;
+  if (row.file) {
+    if (activePreviewObjectUrl) URL.revokeObjectURL(activePreviewObjectUrl);
+    activePreviewObjectUrl = URL.createObjectURL(row.file);
+    openFilePreviewModal(activePreviewObjectUrl, row.file.name);
+  } else if (row.existing_file_url) {
+    const filename = row.existing_file_url.split('/').pop();
+    openFilePreviewModal(row.existing_file_url, filename);
+  }
+}
+window.previewEditorReceiptFile = previewEditorReceiptFile;
+
+function buildEditorReceiptFileCellHtml(rowId, rowItem) {
+  if (rowItem.existing_file_url) {
+    const filename = rowItem.existing_file_url.split('/').pop();
+    return `
+      <div class="lpj-excel-file-chip" id="editorReceiptPreviewChip_${rowId}">
+        <span class="file-name" title="${escapeHtml(filename)}">📎 ${escapeHtml(filename)}</span>
+        <div class="lpj-excel-file-actions">
+          <button type="button" class="btn-excel-file-btn view" onclick="event.stopPropagation(); previewEditorReceiptFile(${rowId})">Lihat</button>
+          <button type="button" class="btn-excel-file-btn del" onclick="clearEditorReceiptFile(event, ${rowId})" title="Hapus / ganti berkas nota">Ganti</button>
+        </div>
+      </div>
+    `;
+  }
+  return `
+    <button type="button" class="lpj-excel-file-picker" id="editorReceiptFilePicker_${rowId}" onclick="document.getElementById('editorReceiptFileInput_${rowId}').click()">
+      <i class="ti ti-camera" style="color: var(--primary); font-size: 0.95rem;"></i>
+      <span>Unggah Nota</span>
+    </button>
+    <div class="lpj-excel-file-chip" id="editorReceiptPreviewChip_${rowId}" style="display: none;"></div>
+  `;
+}
+
 function addEditorReceiptRow(data = null) {
   const rowId = nextEditorReceiptId++;
   const rowItem = {
@@ -4483,83 +5524,41 @@ function addEditorReceiptRow(data = null) {
   const container = document.getElementById('editorLpjNotaStack');
   if (!container) return;
 
-  const card = document.createElement('div');
-  card.className = 'lpj-receipt-card';
-  card.id = `editorReceiptCard_${rowId}`;
+  const row = document.createElement('tr');
+  row.className = 'lpj-excel-row';
+  row.id = `editorReceiptCard_${rowId}`;
 
   const rowNum = editorReceiptRows.length;
   const initialNominal = rowItem.nominal ? Number(rowItem.nominal).toLocaleString('id-ID') : '';
+  const fileStatusHtml = buildEditorReceiptFileCellHtml(rowId, rowItem);
 
-  let fileStatusHtml = '';
-  if (rowItem.existing_file_url) {
-    const filename = rowItem.existing_file_url.split('/').pop();
-    fileStatusHtml = `
-      <div class="lpj-receipt-preview-chip" id="editorReceiptPreviewChip_${rowId}">
-        <span style="font-size: 1rem;">📎</span>
-        <span class="file-name" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
-        <a href="${rowItem.existing_file_url}" target="_blank" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem;" onclick="event.stopPropagation()">Lihat</a>
-        <button type="button" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem; color: var(--rose);" onclick="clearEditorReceiptFile(event, ${rowId})">Ganti</button>
+  row.innerHTML = `
+    <td class="excel-cell-no">
+      <span id="editorReceiptBadgeNum_${rowId}">${rowNum}</span>
+    </td>
+    <td>
+      <input type="text" class="excel-input" id="editorReceiptToko_${rowId}" placeholder="Cth: Toko ATK / Katering" value="${escapeHtml(rowItem.nama_toko)}" oninput="updateEditorReceiptMeta(${rowId})">
+    </td>
+    <td>
+      <input type="text" class="excel-input" id="editorReceiptUraian_${rowId}" placeholder="Cth: 5 Rim Kertas A4 + Spidol" value="${escapeHtml(rowItem.uraian)}" oninput="updateEditorReceiptMeta(${rowId})">
+    </td>
+    <td>
+      <input type="text" inputmode="numeric" class="excel-input excel-input-right rupiah-input" id="editorReceiptNominal_${rowId}" placeholder="0" value="${initialNominal}" oninput="formatCurrencyInput(this); updateEditorReceiptNominal(${rowId})">
+    </td>
+    <td>
+      <input type="file" id="editorReceiptFileInput_${rowId}" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf" style="display: none;" onchange="handleEditorReceiptFileSelect(event, ${rowId})">
+      <div id="editorReceiptFileArea_${rowId}">
+        ${fileStatusHtml}
       </div>
-    `;
-  } else {
-    fileStatusHtml = `
-      <div class="lpj-receipt-file-picker" id="editorReceiptFilePicker_${rowId}" onclick="document.getElementById('editorReceiptFileInput_${rowId}').click()">
-        <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-          <i class="ti ti-camera" style="font-size: 0.95rem; color: var(--primary);"></i> Foto / PDF Nota
-        </span>
-        <span class="btn btn-outline-success btn-xs" style="padding: 2px 8px; font-size: 0.7rem; pointer-events: none;">Pilih File</span>
-      </div>
-      <div class="lpj-receipt-preview-chip" id="editorReceiptPreviewChip_${rowId}" style="display: none;"></div>
-    `;
-  }
-
-  card.innerHTML = `
-    <div class="lpj-receipt-card-header">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="lpj-receipt-badge" id="editorReceiptBadgeNum_${rowId}">
-          <i class="ti ti-receipt"></i> Bukti Nota #${rowNum}
-        </span>
-        <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-main);" id="editorReceiptSubtitle_${rowId}">
-          ${rowItem.nama_toko ? escapeHtml(rowItem.nama_toko) : 'Nota Pembelian / Jasa'}
-        </span>
-      </div>
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <button type="button" class="btn btn-outline-danger btn-xs" onclick="clearEditorReceiptFileOnly(${rowId})" title="Hapus berkas/scan nota fisik yang diunggah (item belanja tetap tersimpan)" id="btnClearEditorReceiptFile_${rowId}">
-          <i class="ti ti-trash"></i> Hapus Nota
-        </button>
-        <button type="button" class="btn btn-secondary btn-xs" onclick="removeEditorReceiptRow(${rowId})" title="Hapus baris item belanja ini dari daftar LPJ" ${editorReceiptRows.length <= 1 ? 'style="display:none;"' : ''} id="btnRemoveEditorReceipt_${rowId}">
-          <i class="ti ti-x"></i> Hapus Baris Item
-        </button>
-      </div>
-    </div>
-
-    <div class="lpj-receipt-grid">
-      <div>
-        <label class="form-label" style="font-size: 0.75rem; font-weight: 700; margin-bottom: 4px;">Nama Toko / Rekanan / Penyedia *</label>
-        <input type="text" class="form-input form-input-sm" id="editorReceiptToko_${rowId}" placeholder="Cth: Toko ATK Sahabat, RM Sederhana" value="${escapeHtml(rowItem.nama_toko)}" oninput="updateEditorReceiptMeta(${rowId})">
-      </div>
-      <div>
-        <label class="form-label" style="font-size: 0.75rem; font-weight: 700; margin-bottom: 4px;">Uraian Barang / Jasa pada Nota Ini</label>
-        <input type="text" class="form-input form-input-sm" id="editorReceiptUraian_${rowId}" placeholder="Cth: 5 Rim Kertas A4 + 2 Lusin Spidol Snowman" value="${escapeHtml(rowItem.uraian)}" oninput="updateEditorReceiptMeta(${rowId})">
-      </div>
-    </div>
-
-    <div class="lpj-receipt-grid-bottom">
-      <div>
-        <label class="form-label" style="font-size: 0.75rem; font-weight: 700; margin-bottom: 4px;">Nominal Realisasi Fisik (Rp) *</label>
-        <input type="text" inputmode="numeric" class="form-input form-input-sm rupiah-input" id="editorReceiptNominal_${rowId}" placeholder="Cth: 250.000" value="${initialNominal}" oninput="formatCurrencyInput(this); updateEditorReceiptNominal(${rowId})">
-      </div>
-      <div>
-        <label class="form-label" style="font-size: 0.75rem; font-weight: 700; margin-bottom: 4px;">Unggah Foto / Scan Nota Fisik</label>
-        <input type="file" id="editorReceiptFileInput_${rowId}" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf" style="display: none;" onchange="handleEditorReceiptFileSelect(event, ${rowId})">
-        <div id="editorReceiptFileArea_${rowId}">
-          ${fileStatusHtml}
-        </div>
-      </div>
-    </div>
+    </td>
+    <td class="excel-cell-action">
+      <button type="button" class="btn-excel-remove" onclick="removeEditorReceiptRow(${rowId})" title="Hapus baris item belanja ini" ${editorReceiptRows.length <= 1 ? 'style="display:none;"' : ''} id="btnRemoveEditorReceipt_${rowId}">
+        <i class="ti ti-trash"></i>
+      </button>
+    </td>
   `;
 
-  container.appendChild(card);
+  container.appendChild(row);
   updateEditorReceiptRemoveButtons();
   recalculateEditorMultiTotals();
 }
@@ -4575,7 +5574,7 @@ function removeEditorReceiptRow(rowId) {
 
   editorReceiptRows.forEach((r, idx) => {
     const badge = document.getElementById(`editorReceiptBadgeNum_${r.id}`);
-    if (badge) badge.innerHTML = `<i class="ti ti-receipt"></i> Bukti Nota #${idx + 1}`;
+    if (badge) badge.textContent = idx + 1;
   });
 
   updateEditorReceiptRemoveButtons();
@@ -4597,15 +5596,7 @@ function clearEditorReceiptFileOnly(rowId) {
 
   const area = document.getElementById(`editorReceiptFileArea_${rowId}`);
   if (area) {
-    area.innerHTML = `
-      <div class="lpj-receipt-file-picker" id="editorReceiptFilePicker_${rowId}" onclick="document.getElementById('editorReceiptFileInput_${rowId}').click()">
-        <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-          <i class="ti ti-camera" style="font-size: 0.95rem; color: var(--primary);"></i> Foto / PDF Nota
-        </span>
-        <span class="btn btn-outline-success btn-xs" style="padding: 2px 8px; font-size: 0.7rem; pointer-events: none;">Pilih File</span>
-      </div>
-      <div class="lpj-receipt-preview-chip" id="editorReceiptPreviewChip_${rowId}" style="display: none;"></div>
-    `;
+    area.innerHTML = buildEditorReceiptFileCellHtml(rowId, row);
   }
 
   if (hadFile) {
@@ -4665,11 +5656,12 @@ function handleEditorReceiptFileSelect(event, rowId) {
   const area = document.getElementById(`editorReceiptFileArea_${rowId}`);
   if (area) {
     area.innerHTML = `
-      <div class="lpj-receipt-preview-chip" id="editorReceiptPreviewChip_${rowId}">
-        <span style="font-size: 1rem;">📎</span>
-        <span class="file-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
-        <span style="font-size:0.68rem; color:var(--text-muted);">(${Math.round(file.size / 1024)} KB)</span>
-        <button type="button" class="btn btn-secondary btn-xs" style="padding: 2px 6px; font-size: 0.68rem; color: var(--rose); margin-left:auto;" onclick="clearEditorReceiptFile(event, ${rowId})">✕ Hapus</button>
+      <div class="lpj-excel-file-chip" id="editorReceiptPreviewChip_${rowId}">
+        <span class="file-name" title="${escapeHtml(file.name)}">📎 ${escapeHtml(file.name)} (${Math.round(file.size / 1024)} KB)</span>
+        <div class="lpj-excel-file-actions">
+          <button type="button" class="btn-excel-file-btn view" onclick="event.stopPropagation(); previewEditorReceiptFile(${rowId})">Lihat</button>
+          <button type="button" class="btn-excel-file-btn del" onclick="clearEditorReceiptFile(event, ${rowId})" title="Hapus berkas nota">Hapus</button>
+        </div>
       </div>
     `;
   }
@@ -4927,17 +5919,38 @@ async function executeSaveLpj({ isDraft = false } = {}) {
     if (nominalInput) r.nominal = parseRupiahInput(nominalInput.value);
   });
 
-  const totalBelanja = editorReceiptRows.reduce((sum, r) => sum + (Number(r.nominal) || 0), 0);
+  const selectedComponents = getSelectedOrderedLpjComponents();
+  const activeCompSet = new Set(selectedComponents);
+  const templateLaporan = document.getElementById('editorLpjTemplateSelect')?.value || 'KEGIATAN';
+  const isJasaActive = activeCompSet.has('kwitansi') || activeCompSet.has('perjanjian');
+  const isBarangActive = activeCompSet.has('nota_pesanan') || activeCompSet.has('bast') || activeCompSet.has('daftar_barang');
+  const isNotaActive = activeCompSet.has('rincian_belanja') || activeCompSet.has('nota_toko');
+
+  const jasaNominalVal = parseRupiahInput(document.getElementById('editorJasaNominal')?.value || '0');
+  const barangTotalVal = isBarangActive ? recalculateEditorBarangTotals() : 0;
+  const totalBelanjaNota = editorReceiptRows.reduce((sum, r) => sum + (Number(r.nominal) || 0), 0);
+
+  let totalBelanja = 0;
+  if (isNotaActive && totalBelanjaNota > 0) {
+    totalBelanja = totalBelanjaNota;
+  } else if (isBarangActive && barangTotalVal > 0) {
+    totalBelanja = barangTotalVal;
+  } else if (isJasaActive && jasaNominalVal > 0) {
+    totalBelanja = jasaNominalVal;
+  } else {
+    totalBelanja = totalBelanjaNota || barangTotalVal || jasaNominalVal || 0;
+  }
+
   if (!isDraft && totalBelanja <= 0) {
     if (typeof Swal !== 'undefined') {
       Swal.fire({
         icon: 'warning',
         title: 'Nominal Belanja Kosong',
-        text: 'Harap masukkan nominal belanja riil pada minimal satu bukti nota sebelum menyerahkan ke bendahara.',
+        text: 'Harap masukkan nominal belanja pada Kwitansi, Rincian Nota, atau Daftar Barang sebelum menyerahkan ke bendahara.',
         confirmButtonColor: '#059669'
       });
     } else {
-      alert('Harap masukkan nominal belanja riil pada minimal satu bukti nota sebelum menyerahkan ke bendahara.');
+      alert('Harap masukkan nominal belanja sebelum menyerahkan ke bendahara.');
     }
     return;
   }
@@ -4951,6 +5964,25 @@ async function executeSaveLpj({ isDraft = false } = {}) {
   const formData = new FormData();
   formData.append('is_draft', isDraft ? 'true' : 'false');
   formData.append('total_belanja_riil', totalBelanja);
+  formData.append('template_laporan', templateLaporan);
+  formData.append('komponen_laporan', JSON.stringify(selectedComponents));
+
+  if (isBarangActive) {
+    formData.append('barang_meta', JSON.stringify(collectEditorBarangMeta()));
+  }
+
+  if (isJasaActive) {
+    formData.append('jasa_no_kode', (document.getElementById('editorJasaNoKode')?.value || '').trim());
+    formData.append('jasa_kode_rekening', (document.getElementById('editorJasaKodeRekening')?.value || '').trim());
+    formData.append('jasa_untuk_pembayaran', (document.getElementById('editorJasaUntukPembayaran')?.value || '').trim());
+    formData.append('jasa_penerima_nama', (document.getElementById('editorJasaPenerima')?.value || '').trim());
+    formData.append('jasa_teks_perjanjian', getRichTextValue('editorJasaTeksPerjanjian'));
+    if (selectedEditorJasaPerjanjianFile) {
+      formData.append('file_perjanjian', selectedEditorJasaPerjanjianFile);
+    } else if (existingEditorJasaPerjanjianUrl) {
+      formData.append('existing_perjanjian_url', existingEditorJasaPerjanjianUrl);
+    }
+  }
 
   const tglInput = document.getElementById('editorLpjTanggalLaporan');
   const tanggalLaporan = tglInput ? tglInput.value : '';
@@ -4964,15 +5996,16 @@ async function executeSaveLpj({ isDraft = false } = {}) {
   }
 
   // Field Laporan Deskripsi & Pelaksanaan
-  const latarBelakang = (document.getElementById('editorLpjLatarBelakang')?.value || '').trim();
-  const tujuan = (document.getElementById('editorLpjTujuan')?.value || '').trim();
+  syncAllRichTextEditors();
+  const latarBelakang = getRichTextValue('editorLpjLatarBelakang');
+  const tujuan = getRichTextValue('editorLpjTujuan');
   const tempat = (document.getElementById('editorLpjTempat')?.value || '').trim();
   const peserta = (document.getElementById('editorLpjPeserta')?.value || '').trim();
 
-  const resumeHasil = (document.getElementById('editorLpjResumeHasil')?.value || '').trim();
-  const kendala = (document.getElementById('editorLpjKendala')?.value || '').trim();
-  const solusi = (document.getElementById('editorLpjSolusi')?.value || '').trim();
-  const catatanTambahan = (document.getElementById('editorLpjCatatanTambahan')?.value || '').trim();
+  const resumeHasil = getRichTextValue('editorLpjResumeHasil');
+  const kendala = getRichTextValue('editorLpjKendala');
+  const solusi = getRichTextValue('editorLpjSolusi');
+  const catatanTambahan = getRichTextValue('editorLpjCatatanTambahan');
 
   formData.append('catatan_lpj', latarBelakang || catatanTambahan);
   formData.append('tujuan_kegiatan', tujuan);
@@ -5067,11 +6100,8 @@ async function executeSaveLpj({ isDraft = false } = {}) {
           html: `
             <p>${infoSub}</p>
             <div style="margin-top: 15px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-              <a href="/cetak-lpj/${id}" target="_blank" class="btn btn-outline-success" style="font-size: 0.82rem; padding: 6px 12px; text-decoration: none;">
-                🖨️ Cetak Lap. Kegiatan
-              </a>
-              <a href="/cetak-lpj-bundel/${id}" target="_blank" class="btn btn-primary" style="font-size: 0.82rem; padding: 6px 12px; text-decoration: none;">
-                📑 Cetak Lap. Keuangan
+              <a href="/cetak-lpj-bundel/${id}" target="_blank" class="btn btn-primary" style="font-size: 0.82rem; padding: 6px 14px; text-decoration: none;">
+                📑 Cetak Laporan Lengkap (LPJ)
               </a>
             </div>
           `,
@@ -5500,8 +6530,7 @@ function renderLpjView() {
     }
 
     ddItems += '<div class="aksi-dd-sep"></div>';
-    ddItems += ddItem('', 'ti-file-certificate', 'Cetak Lap. Kegiatan', { href: `/cetak-lpj/${p.akses_token || p.id}`, cls: 'aksi-dd-green', title: 'Laporan Kegiatan (Narasi, Daftar Hadir, Foto)' });
-    ddItems += ddItem('', 'ti-printer', 'Cetak Lap. Keuangan', { href: `/cetak-lpj-bundel/${p.akses_token || p.id}`, cls: 'aksi-dd-blue', title: 'Laporan Keuangan (Kwitansi, LPJ Belanja, Nota)' });
+    ddItems += ddItem('', 'ti-printer', 'Cetak Laporan (LPJ)', { href: `/cetak-lpj-bundel/${p.akses_token || p.id}`, cls: 'aksi-dd-blue', title: 'Cetak Bundel Lengkap Laporan Kegiatan & Keuangan' });
 
     if (typeof canUserDelete === 'function' && canUserDelete()) {
       ddItems += '<div class="aksi-dd-sep"></div>';

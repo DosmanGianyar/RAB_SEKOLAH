@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -9,9 +9,10 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/logo_sekolah.png">
   <link rel="apple-touch-icon" href="/img/logo_sekolah.png">
-  <!-- Tabler Core & Tabler Icons Assets -->
+  <!-- Tabler Core, Tabler Icons & Summernote Rich Text Editor -->
   <link rel="stylesheet" href="/libs/tabler/css/tabler.min.css">
   <link rel="stylesheet" href="/libs/tabler-icons/tabler-icons.min.css">
+  <link rel="stylesheet" href="/libs/summernote/summernote-lite.min.css">
   <link rel="stylesheet" href="/css/style.css?v=3.0.0">
 </head>
 <body>
@@ -165,21 +166,21 @@
 
         <!-- Desktop Navigation Tabs (Visible on Laptop & PC) -->
         <nav class="desktop-nav-tabs">
-          <button class="desktop-tab-btn" id="tabDeskDashboard" onclick="switchView('dashboard')">
+          <button class="desktop-tab-btn" id="tabDeskDashboard" onclick="switchView('dashboard')" style="white-space: nowrap;">
             <i class="ti ti-layout-grid" style="font-size: 1.15rem; margin-right: 6px;"></i>
             Pagu Anggaran
           </button>
-          <button class="desktop-tab-btn" id="tabDeskAjukan" onclick="switchView('ajukan')">
+          <button class="desktop-tab-btn" id="tabDeskAjukan" onclick="switchView('ajukan')" style="white-space: nowrap;">
             <i class="ti ti-notes" style="font-size: 1.15rem; margin-right: 6px;"></i>
-            Pengajuan RAB
+            Pengajuan
           </button>
-          <button class="desktop-tab-btn" id="tabDeskVerifikasi" onclick="switchView('verifikasi')">
+          <button class="desktop-tab-btn" id="tabDeskVerifikasi" onclick="switchView('verifikasi')" style="white-space: nowrap;">
             <i class="ti ti-checklist" style="font-size: 1.15rem; margin-right: 6px;"></i>
-            Persetujuan & Disposisi
+            Persetujuan
           </button>
-          <button class="desktop-tab-btn" id="tabDeskLaporan" onclick="switchView('laporan')">
+          <button class="desktop-tab-btn" id="tabDeskLaporan" onclick="switchView('laporan')" style="white-space: nowrap;">
             <i class="ti ti-file-analytics" style="font-size: 1.15rem; margin-right: 6px;"></i>
-            Laporan & LPJ
+            Laporan
           </button>
         </nav>
 
@@ -720,40 +721,36 @@
     <!-- VIEW 2: PENGAJUAN RAB & RIWAYAT USULAN     -->
     <!-- ========================================== -->
     <div class="app-view" id="viewAjukan">
-      <!-- Sub-Nav Switcher: Form Usulan Baru vs Riwayat Proposal -->
-      <div class="subnav-switcher-bar">
-        <button type="button" class="subnav-pill-btn active" id="btnSubnavFormRab" onclick="switchRabSubTab('form')">
-          <i class="ti ti-plus"></i> Form Pengajuan Baru
-        </button>
-        <button type="button" class="subnav-pill-btn" id="btnSubnavRiwayatRab" onclick="switchRabSubTab('riwayat')">
-          <i class="ti ti-history"></i> Riwayat Proposal
-          <span class="subnav-counter-pill" id="proposalCountBadge">0</span>
-        </button>
-      </div>
-
       <!-- PANE A: FORM AJUKAN RAB BARU -->
       <div id="subTabRabForm" class="subtab-pane">
         <div class="form-card">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <div>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+            <div style="flex: 1; min-width: 220px;">
               <div class="phase-pill" style="margin-bottom: 6px;">FASE 2: Pengajuan Guru</div>
               <h2 class="phase-title" style="font-size: 1.35rem;">Formulir Usulan Kegiatan &amp; RAB</h2>
               <p class="phase-desc">Isi rincian kegiatan dan susun tabel rincian belanja barang/jasa di bawah ini.</p>
             </div>
-            <button class="btn btn-secondary btn-sm" onclick="switchRabSubTab('riwayat')">
-              <i class="ti ti-history"></i> Lihat Riwayat Usulan
+            <button type="button" class="btn btn-secondary btn-sm" onclick="switchRabSubTab('riwayat')" style="white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="ti ti-history"></i>
+              <span>Lihat Riwayat Usulan</span>
+            </button>
+          </div>
+
+          <div id="rabDraftBanner" style="display: none; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.82rem;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <i class="ti ti-file-pencil" style="font-size: 1.1rem; color: #d97706;"></i>
+              <span id="rabDraftBannerText">Melanjutkan draft usulan RAB tersimpan.</span>
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-xs" onclick="clearProposalDraft(true)">
+              <i class="ti ti-trash"></i> Hapus Draft &amp; Mulai Baru
             </button>
           </div>
 
           <form id="formPengajuanRab">
-            <!-- Form Header: Informasi Kegiatan -->
-            <div class="form-grid-2">
+            <!-- Form Header: Informasi Kegiatan (Susunan 1 Kolom Menurun dengan Pemisah Jelas) -->
+            <div class="rab-form-info-stack">
               <div class="form-group">
                 <label class="form-label">Pilih Pos Anggaran yang Dibebani (RKAS 2026) *</label>
-                <div class="search-input-wrap" style="margin-bottom: 6px;">
-                  <i class="ti ti-search search-icon"></i>
-                  <input type="text" id="filterPosDropdownInput" class="form-input search-input" style="font-size: 0.82rem; padding-top: 7px; padding-bottom: 7px; padding-left: 44px !important; border-color: var(--primary);" placeholder="Ketik nama kegiatan (cth: DBL, Pramuka, PMR, Ujian, ATK)..." oninput="handleFilterPosDropdown(this.value)">
-                </div>
                 <select class="form-select" id="selectPosAnggaran" required onchange="handlePosSelected()">
                   <option value="">-- Pilih Pos Anggaran RKAS --</option>
                   <!-- Populated via JS -->
@@ -764,29 +761,28 @@
                 <label class="form-label">Nama Kegiatan *</label>
                 <input type="text" class="form-input" id="inputNamaKegiatan" placeholder="Cth: Pelatihan Dasar Kepemimpinan Siswa (LDKS)" required>
               </div>
-            </div>
 
-            <div class="form-group">
-              <label class="form-label">Bidang / Penanggung Jawab Kegiatan (Wakasek) *</label>
-              <select class="form-select" id="selectBidangKegiatan" required>
-                <option value="KESISWAAN" selected>Kesiswaan</option>
-                <option value="KURIKULUM">Kurikulum</option>
-                <option value="SARPRAS">Sarana &amp; Prasarana</option>
-                <option value="HUMAS">Hubungan Masyarakat (Humas)</option>
-              </select>
-              <div style="font-size:0.74rem; color:var(--text-muted); margin-top:3px;">Menentukan Wakasek penanda tangan pada Laporan Kegiatan &amp; Laporan Keuangan.</div>
-            </div>
+              <div class="form-group">
+                <label class="form-label">Bidang / Penanggung Jawab Kegiatan (Wakasek) *</label>
+                <select class="form-select" id="selectBidangKegiatan" required>
+                  <option value="KESISWAAN" selected>Kesiswaan</option>
+                  <option value="KURIKULUM">Kurikulum</option>
+                  <option value="SARPRAS">Sarana &amp; Prasarana</option>
+                  <option value="HUMAS">Hubungan Masyarakat (Humas)</option>
+                </select>
+                <div style="font-size:0.74rem; color:var(--text-muted); margin-top:4px;">Menentukan Wakasek penanda tangan pada Laporan Kegiatan &amp; Laporan Keuangan.</div>
+              </div>
 
-            <div class="form-group">
-              <label class="form-label">Latar Belakang / Deskripsi Singkat Kegiatan</label>
-              <textarea class="form-textarea" id="inputLatarBelakang" rows="2" placeholder="Jelaskan secara ringkas maksud dan tujuan kegiatan ini..."></textarea>
-            </div>
+              <div class="form-group">
+                <label class="form-label">Latar Belakang / Deskripsi Singkat Kegiatan</label>
+                <textarea class="form-textarea rich-text-editor" id="inputLatarBelakang" rows="2" placeholder="Jelaskan secara ringkas maksud dan tujuan kegiatan ini..."></textarea>
+              </div>
 
-            <div class="form-grid-2">
               <div class="form-group">
                 <label class="form-label">Tanggal Mulai Kegiatan *</label>
                 <input type="date" class="form-input" id="inputTglMulai" required>
               </div>
+
               <div class="form-group">
                 <label class="form-label">Tanggal Selesai Kegiatan *</label>
                 <input type="date" class="form-input" id="inputTglSelesai" required>
@@ -804,18 +800,34 @@
                   Tambahkan baris belanja barang, konsumsi, transportasi, atau honorarium.
                 </div>
               </div>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="addItemRow()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                + Tambah Baris
-              </button>
             </div>
 
-            <!-- Container Kartu Baris Belanja Dinamis -->
-            <div class="rab-items-stack" id="rabItemsContainer">
-              <!-- Dynamic rows injected via JS -->
+            <!-- Container Tabel Spreadsheet Baris Belanja Dinamis (Model Excel) -->
+            <div class="rab-excel-box">
+              <div class="rab-excel-wrapper" style="border: none; border-radius: 0; box-shadow: none;">
+                <table class="rab-excel-table" id="rabExcelTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 44px; text-align: center;">No</th>
+                      <th style="width: 175px;">Kategori Belanja</th>
+                      <th>Deskripsi / Uraian Item Belanja *</th>
+                      <th style="width: 82px; text-align: center;">Vol *</th>
+                      <th style="width: 105px;">Satuan *</th>
+                      <th style="width: 145px; text-align: right;">Harga Satuan (Rp) *</th>
+                      <th style="width: 150px; text-align: right;">Subtotal (Rp)</th>
+                      <th style="width: 48px; text-align: center;">Hapus</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rabItemsContainer">
+                    <!-- Dynamic rows injected via JS -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="rab-excel-footer-bar">
+                <button type="button" class="btn-excel-add-row" onclick="addItemRow()">
+                  <i class="ti ti-plus"></i> Tambah Baris Item Belanja
+                </button>
+              </div>
             </div>
 
             <!-- Live Budget Validation Alert (Hijau jika aman, Merah jika overbudget) -->
@@ -836,8 +848,11 @@
                 <div class="grand-total-label">Total Estimasi Anggaran Diajukan:</div>
                 <div class="grand-total-value" id="displayGrandTotal">Rp 0</div>
               </div>
-              <div style="display: flex; gap: 10px;">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <button type="button" class="btn btn-secondary" onclick="switchRabSubTab('riwayat')">Batal</button>
+                <button type="button" class="btn btn-outline-primary" onclick="saveProposalDraft()" id="btnSaveDraftProposal" title="Simpan sementara agar data tidak hilang jika belum selesai">
+                  <i class="ti ti-device-floppy"></i> Simpan Draft
+                </button>
                 <button type="submit" class="btn btn-primary" id="btnSubmitProposal">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
@@ -852,8 +867,8 @@
 
       <!-- PANE B: RIWAYAT USULAN & STATUS PROPOSAL -->
       <div id="subTabRabRiwayat" class="subtab-pane" style="display: none;">
-        <div class="section-header">
-          <div>
+        <div class="section-header" style="flex-wrap: wrap; gap: 12px;">
+          <div style="flex: 1; min-width: 240px;">
             <h2 class="section-title">
               <i class="ti ti-history" style="color: var(--primary); margin-right: 4px;"></i>
               <span id="riwayatViewTitle">Riwayat Usulan &amp; Status RAB</span>
@@ -862,38 +877,18 @@
               Pantau status verifikasi bendahara dan persetujuan Kepala Sekolah secara real-time.
             </div>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="switchRabSubTab('form')">
-            <i class="ti ti-plus" style="font-size: 1rem; margin-right: 4px;"></i> Buat Usulan Baru
-          </button>
-        </div>
-
-        <!-- Bilah Tab Status Berjenjang untuk Bendahara & Guru -->
-        <div class="proposal-status-tabs" id="proposalStatusTabs">
-          <button type="button" class="status-tab-btn active" data-filter="ALL" onclick="filterProposalTab('ALL')">
-            <i class="ti ti-folders"></i>
-            <span>Semua Usulan</span>
-            <span class="tab-badge-pill" id="badgeCountAll">0</span>
-          </button>
-          <button type="button" class="status-tab-btn" data-filter="MENUNGGU_REVIEW" onclick="filterProposalTab('MENUNGGU_REVIEW')">
-            <i class="ti ti-clock-hour-4"></i>
-            <span>Menunggu Review</span>
-            <span class="tab-badge-pill badge-warning" id="badgeCountReview">0</span>
-          </button>
-          <button type="button" class="status-tab-btn" data-filter="SIAP_CAIR" onclick="filterProposalTab('SIAP_CAIR')">
-            <i class="ti ti-cash"></i>
-            <span>Menunggu Dicairkan</span>
-            <span class="tab-badge-pill badge-success" id="badgeCountSiapCair">0</span>
-          </button>
-          <button type="button" class="status-tab-btn" data-filter="DICAIRKAN" onclick="filterProposalTab('DICAIRKAN')">
-            <i class="ti ti-check-double"></i>
-            <span>Sudah Dicairkan</span>
-            <span class="tab-badge-pill badge-info" id="badgeCountDicairkan">0</span>
-          </button>
-          <button type="button" class="status-tab-btn" data-filter="SELESAI" onclick="filterProposalTab('SELESAI')">
-            <i class="ti ti-circle-check"></i>
-            <span>LPJ Selesai</span>
-            <span class="tab-badge-pill" id="badgeCountSelesai">0</span>
-          </button>
+          <div class="proposal-header-actions" id="proposalStatusTabs">
+            <select class="form-select proposal-filter-select" id="selectProposalStatusFilter" onchange="filterProposalTab(this.value)" title="Filter berdasarkan status usulan">
+              <option value="ALL">Semua Usulan (0)</option>
+              <option value="MENUNGGU_REVIEW">Menunggu Review (0)</option>
+              <option value="SIAP_CAIR">Menunggu Dicairkan (0)</option>
+              <option value="DICAIRKAN">Sudah Dicairkan (0)</option>
+              <option value="SELESAI">LPJ Selesai (0)</option>
+            </select>
+            <button type="button" class="btn btn-primary btn-sm" onclick="switchRabSubTab('form')" style="white-space: nowrap; flex-shrink: 0;">
+              <i class="ti ti-plus" style="font-size: 1rem; margin-right: 4px;"></i> Buat Usulan Baru
+            </button>
+          </div>
         </div>
 
         <div class="proposals-list" id="proposalsListContainer">
@@ -988,13 +983,9 @@
         </div>
       </div>
 
-      <!-- 4. Bilah Filter & Pencarian Laporan -->
+      <!-- 4. Bilah Filter Status Laporan -->
       <div class="table-controls-card" style="margin-bottom: 14px;">
-        <div class="table-controls-row">
-          <div class="search-input-wrap">
-            <i class="ti ti-search search-icon"></i>
-            <input type="text" id="inputSearchLpj" class="form-input search-input" placeholder="Cari kegiatan, nomor surat, pos anggaran, atau nama guru..." oninput="renderLpjView()">
-          </div>
+        <div class="table-controls-row" style="justify-content: flex-end;">
           <div class="filter-controls-group">
             <select class="form-select filter-select" id="selectStatusLpjFilter" onchange="renderLpjView()">
               <option value="ALL">Semua Status LPJ</option>
@@ -1066,11 +1057,8 @@
           <span class="invoice-badge-tag" id="editorLpjNomorSurat">Nomor Surat</span>
         </div>
         <div class="header-right-actions">
-          <a href="#" target="_blank" class="btn btn-secondary btn-sm" id="btnEditorCetakLpj" title="Pratinjau &amp; Cetak Lembar Laporan Kegiatan">
-            <i class="ti ti-file-certificate" style="color: #059669;"></i> Cetak Lap. Kegiatan
-          </a>
-          <a href="#" target="_blank" class="btn btn-outline-primary btn-sm" id="btnEditorCetakLpjBundel" title="Pratinjau &amp; Cetak Laporan Keuangan">
-            <i class="ti ti-printer" style="color: #2563eb;"></i> Cetak Lap. Keuangan
+          <a href="#" target="_blank" class="btn btn-outline-primary btn-sm" id="btnEditorCetakLpjBundel" title="Pratinjau &amp; Cetak Bundel Laporan Kegiatan dan Keuangan">
+            <i class="ti ti-printer" style="color: #2563eb;"></i> Cetak Laporan (LPJ)
           </a>
           <button type="button" class="btn btn-secondary btn-sm" onclick="saveLpjAsDraft(event)" id="btnEditorDraftLpjTop" title="Simpan sebagai draft sementara (belum diteruskan ke Bendahara)">
             <i class="ti ti-device-floppy"></i> Simpan Draft
@@ -1108,12 +1096,29 @@
               <span style="font-family: 'Outfit', sans-serif; font-size: 1.55rem; font-weight: 800; color: #047857;" id="editorLpjTotalDanaCairDisplay">Rp 0</span>
             </div>
 
+            <!-- Komponen & Urutan Laporan Modular -->
+            <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+                <label class="form-label" style="font-weight: 800; color: #0f172a; margin-bottom: 0; display: flex; align-items: center; gap: 6px;">
+                  <i class="ti ti-list-check" style="color: var(--primary);"></i>
+                  Komponen &amp; Urutan Halaman Laporan (Modular)
+                </label>
+                <button type="button" class="btn btn-primary btn-xs" onclick="openModalKomponenLaporan(false)" style="font-weight: 700;">
+                  <i class="ti ti-adjustments-horizontal"></i> Atur Komponen &amp; Urutan
+                </button>
+              </div>
+              <div id="editorLpjKomponenSummary" class="lpj-komponen-summary-pills">
+                <!-- Diisi oleh JS -->
+              </div>
+              <input type="hidden" id="editorLpjTemplateSelect" value="KEGIATAN">
+            </div>
+
             <!-- Referensi Item Rincian RAB yang Telah Disetujui -->
             <div id="editorLpjApprovedItemsRefBox" style="padding-top: 10px; border-top: 1px dashed #cbd5e1;">
-              <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+              <div style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
                 Referensi Rincian Barang &amp; Jasa yang Disetujui (RAB Awal):
               </div>
-              <div id="editorLpjApprovedItemsList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+              <div id="editorLpjApprovedItemsList" class="rab-excel-wrapper"></div>
             </div>
           </div>
 
@@ -1145,15 +1150,161 @@
             </div>
           </div>
 
+          <!-- KARTU KWITANSI RESMI & PERJANJIAN KERJA SAMA -->
+          <div class="lpj-editor-card" id="editorLpjPengadaanJasaCard" style="display: none; border-left: 4px solid #059669;">
+            <div class="lpj-editor-card-header">
+              <span class="lpj-section-tag"><i class="ti ti-file-invoice"></i> Data Kwitansi Resmi &amp; Perjanjian Kerja Sama</span>
+              <span style="font-size: 0.74rem; color: var(--text-muted);">Kop Surat Aksara Bali &bull; TTD Wakasek Otomatis Sesuai Bidang</span>
+            </div>
+
+            <div data-lpj-part="kwitansi">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                  <label class="form-label">No. Kode (Opsional)</label>
+                  <input type="text" class="form-input" id="editorJasaNoKode" placeholder="Cth: 01 / -">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Kode Rekening</label>
+                  <input type="text" class="form-input" id="editorJasaKodeRekening" placeholder="Cth: 03.03.09.04">
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                  <label class="form-label">Nominal Pembayaran pada Kwitansi (Rp)</label>
+                  <input type="text" inputmode="numeric" class="form-input rupiah-input" id="editorJasaNominal" placeholder="Cth: 22.960.000" oninput="formatCurrencyInput(this)">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nama Yang Menerima (Penyedia / Mitra / Penerima)</label>
+                  <input type="text" class="form-input" id="editorJasaPenerima" placeholder="Kosongkan jika menggunakan nama Pembina / ttd manual">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Untuk Pembayaran (Keterangan pada Kwitansi)</label>
+                <textarea class="form-textarea" id="editorJasaUntukPembayaran" rows="2" placeholder="Cth: Dibayar Belanja Barang dan Jasa..."></textarea>
+              </div>
+            </div>
+
+            <div class="form-group" data-lpj-part="perjanjian" style="padding-top: 12px; border-top: 1px dashed #cbd5e1;">
+              <label class="form-label" style="font-weight: 700;">Surat Perjanjian Kerja Sama / Kontrak</label>
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;">
+                Unggah berkas scan/PDF Surat Perjanjian yang sudah ditandatangani, <strong>atau</strong> ketik/tempel naskah perjanjian di editor bawah ini.
+              </p>
+              <div class="file-upload-area" onclick="document.getElementById('editorJasaFilePerjanjianInput').click()" style="padding: 12px; border: 1.5px dashed #059669; background: #f0fdf4; border-radius: 8px; cursor: pointer; text-align: center; margin-bottom: 10px;">
+                <input type="file" id="editorJasaFilePerjanjianInput" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" style="display: none;" onchange="handleEditorJasaPerjanjianSelect(event)">
+                <div style="font-weight: 700; font-size: 0.82rem; color: #065f46;">
+                  📄 Klik untuk Mengunggah Scan/PDF Surat Perjanjian Kerja Sama
+                </div>
+              </div>
+              <div id="editorJasaPerjanjianPreviewWrap" style="display: none; align-items: center; gap: 8px; margin-bottom: 10px; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #a7f3d0;">
+                <span style="font-size: 1.1rem;">📑</span>
+                <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; font-weight: 600;" id="editorJasaPerjanjianFileName">perjanjian.pdf</div>
+                <button type="button" class="btn btn-outline-primary btn-xs" onclick="previewEditorJasaPerjanjian()">Lihat</button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="clearEditorJasaPerjanjian(event)">Hapus</button>
+              </div>
+              <textarea class="form-textarea rich-text-editor" id="editorJasaTeksPerjanjian" rows="4" placeholder="Opsional: Ketik teks Surat Perjanjian Kerja Sama di sini jika tidak mengunggah file scan PDF/gambar..."></textarea>
+            </div>
+          </div>
+
+          <!-- KARTU KHUSUS TEMPLATE PENGADAAN BARANG (WAKASEK SARANA) -->
+          <div class="lpj-editor-card" id="editorLpjPengadaanBarangCard" style="display: none; border-left: 4px solid #0284c7;">
+            <div class="lpj-editor-card-header">
+              <span class="lpj-section-tag" style="background: #e0f2fe; color: #0369a1;"><i class="ti ti-package"></i> Formulir Laporan Pengadaan Barang (Sarana)</span>
+              <span style="font-size: 0.74rem; color: var(--text-muted);">8 Halaman Resmi (Cover, Kwitansi, Nota Pesanan, BAST, Daftar Barang, Foto, Nota &amp; Slip)</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+              <div class="form-group">
+                <label class="form-label">Nomor Surat (Nota Pesanan &amp; BAST)</label>
+                <input type="text" class="form-input" id="editorBarangNomorSurat" placeholder="Cth: /SMA N 1 GIANYAR/DIKPORA">
+              </div>
+              <div class="form-group">
+                <label class="form-label">PPN (%)</label>
+                <input type="number" class="form-input" id="editorBarangPpnPersen" min="0" max="100" step="1" value="0" oninput="recalculateEditorBarangTotals()">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Untuk Pembayaran (Keterangan pada Kwitansi) *</label>
+              <input type="text" class="form-input" id="editorBarangUntukPembayaran" placeholder="Cth: Dibayar Belanja Barang dan Jasa Pembelian Bor Set Bosch Baterai beserta tool box organiser">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group">
+                <label class="form-label">Nama Toko / Perusahaan Penyedia (Pihak Kedua) *</label>
+                <input type="text" class="form-input" id="editorBarangNamaToko" placeholder="Cth: Manik Mas Mesari">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nama Pemilik / Penyedia Barang *</label>
+                <input type="text" class="form-input" id="editorBarangNamaPenyedia" placeholder="Cth: I Komang Parwata">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+              <div class="form-group">
+                <label class="form-label">Jabatan Penyedia</label>
+                <input type="text" class="form-input" id="editorBarangJabatanPenyedia" value="Pemilik" placeholder="Cth: Pemilik / Direktur">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Alamat Toko / Penyedia</label>
+                <input type="text" class="form-input" id="editorBarangAlamatPenyedia" placeholder="Cth: Bangli / Gianyar">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group">
+                <label class="form-label">Nama Yang Memesan (Nota Pesanan)</label>
+                <input type="text" class="form-input" id="editorBarangPemesanNama" placeholder="Cth: I Wayan Dana Yasa">
+              </div>
+              <div class="form-group">
+                <label class="form-label">NIP Yang Memesan</label>
+                <input type="text" class="form-input" id="editorBarangPemesanNip" placeholder="Cth: 199004282025211007">
+              </div>
+            </div>
+
+            <div style="margin-top: 8px;">
+              <label class="form-label" style="font-weight: 700;">Daftar Rincian Barang (Untuk Nota Pesanan &amp; Serah Terima Barang)</label>
+              <div class="rab-excel-box">
+                <div class="rab-excel-wrapper" style="border: none; border-radius: 0; box-shadow: none;">
+                  <table class="rab-excel-table" id="editorBarangItemsTable">
+                    <thead>
+                      <tr>
+                        <th style="width: 42px; text-align: center;">No</th>
+                        <th>Nama Barang *</th>
+                        <th>Spesifikasi Teknis</th>
+                        <th style="width: 110px; text-align: center;">Volume *</th>
+                        <th style="width: 145px; text-align: right;">Harga Satuan (Rp) *</th>
+                        <th style="width: 145px; text-align: right;">Jumlah Harga (Rp)</th>
+                        <th style="width: 48px; text-align: center;">Hapus</th>
+                      </tr>
+                    </thead>
+                    <tbody id="editorBarangItemsBody">
+                      <!-- Injected via JS -->
+                    </tbody>
+                  </table>
+                </div>
+                <div class="rab-excel-footer-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                  <button type="button" class="btn-excel-add-row" onclick="addEditorBarangRow()">
+                    <i class="ti ti-plus"></i> Tambah Baris Barang
+                  </button>
+                  <div style="font-size: 0.85rem; font-weight: 800; color: #0f172a;">
+                    Total Pengadaan: <span id="editorBarangTotalDisplay" style="color: #059669;">Rp 0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- KARTU 2: Deskripsi & Pelaksanaan Kegiatan (DI ATAS NOTA) -->
-          <div class="lpj-editor-card">
+          <div class="lpj-editor-card lpj-only-kegiatan" id="editorLpjNarasiCard">
             <div class="lpj-editor-card-header">
               <span class="lpj-section-tag"><i class="ti ti-notes"></i> Bagian I: Deskripsi &amp; Pelaksanaan Kegiatan</span>
             </div>
 
             <div class="form-group">
               <label class="form-label" style="font-weight: 700;">Dasar &amp; Latar Belakang Pelaksanaan Kegiatan</label>
-              <textarea class="form-textarea" id="editorLpjLatarBelakang" rows="3" placeholder="Jelaskan dasar pelaksanaan kegiatan, program kerja sekolah, atau landasan kegiatan ini..."></textarea>
+              <textarea class="form-textarea rich-text-editor" id="editorLpjLatarBelakang" rows="3" placeholder="Jelaskan dasar pelaksanaan kegiatan, program kerja sekolah, atau landasan kegiatan ini..."></textarea>
               <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
                 Dapat disalin otomatis dari latar belakang proposal usulan awal atau diperbarui sesuai kondisi riil.
               </div>
@@ -1161,7 +1312,7 @@
 
             <div class="form-group">
               <label class="form-label" style="font-weight: 700;">Tujuan &amp; Sasaran Ketercapaian Kegiatan *</label>
-              <textarea class="form-textarea" id="editorLpjTujuan" rows="2" placeholder="Cth: Meningkatkan kreativitas siswa dalam bidang seni, mempererat rasa kebersamaan..." required></textarea>
+              <textarea class="form-textarea rich-text-editor" id="editorLpjTujuan" rows="2" placeholder="Cth: Meningkatkan kreativitas siswa dalam bidang seni, mempererat rasa kebersamaan..."></textarea>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
@@ -1177,7 +1328,7 @@
           </div>
 
           <!-- KARTU 3: Realisasi Belanja & Bukti Multi-Nota Fisik -->
-          <div class="lpj-editor-card">
+          <div class="lpj-editor-card lpj-nota-card" id="editorLpjNotaCard">
             <div class="lpj-editor-card-header">
               <div>
                 <span class="lpj-section-tag"><i class="ti ti-receipt"></i> Bagian II: Realisasi Belanja &amp; Bukti Nota Fisik</span>
@@ -1196,16 +1347,31 @@
               </div>
             </div>
 
-            <!-- Dynamic Multi-Receipt Stack -->
-            <div id="editorLpjNotaStack">
-              <!-- Populated via JS -->
+            <!-- Dynamic Multi-Receipt Spreadsheet (Model Excel) -->
+            <div class="rab-excel-box">
+              <div class="rab-excel-wrapper" style="border: none; border-radius: 0; box-shadow: none;">
+                <table class="rab-excel-table" id="editorLpjNotaTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 42px; text-align: center;">No</th>
+                      <th style="width: 205px;">Nama Toko / Rekanan *</th>
+                      <th>Uraian Barang / Jasa pada Nota</th>
+                      <th style="width: 145px; text-align: right;">Nominal Riil (Rp) *</th>
+                      <th style="width: 225px;">Bukti Foto / Scan Nota</th>
+                      <th style="width: 48px; text-align: center;">Hapus</th>
+                    </tr>
+                  </thead>
+                  <tbody id="editorLpjNotaStack">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="rab-excel-footer-bar">
+                <button type="button" class="btn-excel-add-row" onclick="addEditorReceiptRow()">
+                  <i class="ti ti-plus"></i> Tambah Baris Nota Belanja
+                </button>
+              </div>
             </div>
-
-            <!-- Tombol Tambah Nota di Bawah Daftar -->
-            <button type="button" class="btn-lpj-add-block" onclick="addEditorReceiptRow()">
-              <i class="ti ti-circle-plus"></i>
-              <span>+ Tambah Bukti Nota / Kuitansi Lainnya</span>
-            </button>
 
             <!-- Total Belanja Riil Summary Bar -->
             <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 14px 18px; margin: 14px 0;">
@@ -1257,30 +1423,29 @@
           </div>
 
           <!-- KARTU 4: Resume Pelaksanaan & Evaluasi (DI BAWAH NOTA) -->
-          <div class="lpj-editor-card">
+          <div class="lpj-editor-card lpj-only-kegiatan" id="editorLpjResumeCard">
             <div class="lpj-editor-card-header">
               <span class="lpj-section-tag"><i class="ti ti-chart-arrows"></i> Bagian III: Resume Hasil Pelaksanaan &amp; Evaluasi</span>
             </div>
 
             <div class="form-group">
               <label class="form-label" style="font-weight: 700;">Ringkasan Capaian / Resume Hasil Kegiatan *</label>
-              <textarea class="form-textarea" id="editorLpjResumeHasil" rows="3" placeholder="Tuliskan ringkasan singkat hasil kegiatan, respon peserta, dan tingkat ketercapaian tujuan..." required></textarea>
+              <textarea class="form-textarea rich-text-editor" id="editorLpjResumeHasil" rows="3" placeholder="Tuliskan ringkasan singkat hasil kegiatan, respon peserta, dan tingkat ketercapaian tujuan..."></textarea>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Kendala / Hambatan yang Dihadapi (Opsional)</label>
-                <textarea class="form-textarea" id="editorLpjKendala" rows="2" placeholder="Cth: Terjadi kendala cuaca hujan saat sesi pembukaan..."></textarea>
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Solusi &amp; Tindak Lanjut / Saran (Opsional)</label>
-                <textarea class="form-textarea" id="editorLpjSolusi" rows="2" placeholder="Cth: Ke depan dianjurkan menyiapkan tenda cadangan..."></textarea>
-              </div>
+            <div class="form-group">
+              <label class="form-label">Kendala / Hambatan yang Dihadapi (Opsional)</label>
+              <textarea class="form-textarea rich-text-editor" id="editorLpjKendala" rows="2" placeholder="Cth: Terjadi kendala cuaca hujan saat sesi pembukaan..."></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Solusi &amp; Tindak Lanjut / Saran (Opsional)</label>
+              <textarea class="form-textarea rich-text-editor" id="editorLpjSolusi" rows="2" placeholder="Cth: Ke depan dianjurkan menyiapkan tenda cadangan..."></textarea>
             </div>
           </div>
 
           <!-- KARTU 4B: Lampiran Berkas PDF Daftar Hadir Kegiatan (Sesuai Format Fisik Siswa) -->
-          <div class="lpj-editor-card">
+          <div class="lpj-editor-card lpj-only-kegiatan" id="editorLpjDaftarHadirCard">
             <div class="lpj-editor-card-header">
               <div>
                 <span class="lpj-section-tag"><i class="ti ti-file-text"></i> Bagian IV: Lampiran Daftar Hadir Kegiatan (PDF)</span>
@@ -1307,7 +1472,7 @@
           </div>
 
           <!-- KARTU 5: Dokumentasi Foto-Foto Kegiatan & Bukti Fisik -->
-          <div class="lpj-editor-card">
+          <div class="lpj-editor-card" id="editorLpjFotoCard">
             <div class="lpj-editor-card-header">
               <div>
                 <span class="lpj-section-tag"><i class="ti ti-camera"></i> Bagian V: Dokumentasi Foto Kegiatan</span>
@@ -1334,10 +1499,10 @@
           </div>
 
           <!-- KARTU 6: Catatan Tambahan -->
-          <div class="lpj-editor-card">
+          <div class="lpj-editor-card lpj-only-kegiatan" id="editorLpjCatatanCard">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" style="font-weight: 700;">Catatan Tambahan untuk Bendahara (Opsional)</label>
-              <textarea class="form-textarea" id="editorLpjCatatanTambahan" rows="2" placeholder="Cth: Bukti fisik kuitansi asli dan sisa dana tunai telah diserahkan langsung ke ruang Tata Usaha..."></textarea>
+              <textarea class="form-textarea rich-text-editor" id="editorLpjCatatanTambahan" rows="2" placeholder="Cth: Bukti fisik kuitansi asli dan sisa dana tunai telah diserahkan langsung ke ruang Tata Usaha..."></textarea>
             </div>
           </div>
 
@@ -1364,11 +1529,8 @@
               ← Batal &amp; Kembali
             </button>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-              <a href="#" target="_blank" class="btn btn-secondary btn-sm" id="btnEditorCetakLpjBottom" title="Pratinjau Lembar Cetak Laporan Kegiatan">
-                <i class="ti ti-file-certificate" style="color: #059669;"></i> Cetak Lap. Kegiatan
-              </a>
-              <a href="#" target="_blank" class="btn btn-outline-primary btn-sm" id="btnEditorCetakLpjBundelBottom" title="Cetak Laporan Keuangan (Kwitansi Komite, Rincian Belanja, Slip, Nota Fisik)">
-                <i class="ti ti-printer" style="color: #2563eb;"></i> Cetak Lap. Keuangan
+              <a href="#" target="_blank" class="btn btn-outline-primary btn-sm" id="btnEditorCetakLpjBundelBottom" title="Pratinjau &amp; Cetak Bundel Laporan Kegiatan dan Keuangan">
+                <i class="ti ti-printer" style="color: #2563eb;"></i> Cetak Laporan (LPJ)
               </a>
               <button type="button" class="btn btn-secondary btn-sm" onclick="saveLpjAsDraft(event)" id="btnEditorDraftLpjBottom" title="Simpan sebagai draft sementara (belum diserahkan ke Bendahara)">
                 <i class="ti ti-device-floppy"></i> Simpan Draft
@@ -1380,6 +1542,30 @@
           </div>
         </form>
       </div>
+
+      <!-- Floating Quick-Switcher Sidebar untuk berpindah antar Laporan LPJ -->
+      <aside class="lpj-floating-sidebar" id="lpjFloatingSidebar" aria-label="Daftar Laporan LPJ">
+        <div class="lpj-float-header">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <i class="ti ti-files" style="color: var(--primary); font-size: 1rem;"></i>
+            <span class="lpj-float-title">Daftar Laporan</span>
+            <span class="badge-counter" id="lpjFloatCountBadge">0</span>
+          </div>
+          <button type="button" class="lpj-float-close-btn" onclick="toggleLpjFloatingSidebar(false)" title="Sembunyikan daftar laporan">
+            <i class="ti ti-minus"></i>
+          </button>
+        </div>
+        <div class="lpj-float-subtitle">Klik kegiatan di bawah untuk berpindah cepat:</div>
+        <div class="lpj-float-list" id="lpjFloatingSidebarList">
+          <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">Memuat daftar laporan...</div>
+        </div>
+      </aside>
+
+      <button type="button" class="lpj-floating-toggle-pill" id="lpjFloatingToggleBtn" onclick="toggleLpjFloatingSidebar(true)" style="display: none;" title="Buka daftar laporan yang sedang dibuat">
+        <i class="ti ti-files"></i>
+        <span>Daftar Laporan</span>
+        <span class="badge-counter" id="lpjFloatToggleCount">0</span>
+      </button>
     </div>
 
     <!-- ============================================================== -->
@@ -1526,111 +1712,30 @@
 
   </main>
 
-  <!-- ===================================================================== -->
-  <!-- INSTITUTIONAL APP FOOTER                                              -->
-  <!-- ===================================================================== -->
-  <footer class="app-footer">
-    <div class="container">
-      <div class="footer-top">
-        <div class="footer-brand-col">
-          <div class="footer-brand-header">
-            <img src="/img/logo_sekolah.png" alt="Logo SMAN 1 Gianyar" class="footer-logo">
-            <div>
-              <div class="footer-school-name">SI-ARTHA DOSMAN</div>
-              <div class="footer-school-tagline">SMA NEGERI 1 GIANYAR • KABUPATEN GIANYAR</div>
-            </div>
-          </div>
-          <p class="footer-desc">
-            Sistem tata kelola anggaran berbasis transparansi, tertib administrasi, dan akuntabilitas publik lingkungan SMA Negeri 1 Gianyar.
-          </p>
-
-          <!-- Penjelasan Nama, Akronim & Filosofi Bali -->
-          <div class="footer-acronym-box">
-            <div class="footer-acronym-title">
-              <i class="ti ti-info-circle"></i> Filosofi &amp; Penamaan Aplikasi
-            </div>
-            <p class="footer-acronym-desc">
-              <strong>Kepanjangan:</strong> <em>Sistem Informasi Anggaran &amp; Realisasi Terpadu Hemat Akuntabel — SMAN 1 Gianyar</em>
-            </p>
-            <p class="footer-acronym-desc">
-              <strong>Makna Bali / Sanskerta:</strong> Kata <em>Artha</em> bermakna harta, dana, atau bekal kebajikan yang dikelola secara bijak, tertib, dan bermanfaat bagi kemajuan pendidikan dan pemuliaan warga sekolah.
-            </p>
-            <p class="footer-acronym-desc" style="color: #64748b; font-size: 0.73rem;">
-              <strong>Kesan:</strong> Resmi, modern, berwibawa di lingkungan Dinas Pendidikan Provinsi Bali.
-            </p>
-          </div>
-        </div>
-
-        <div class="footer-info-col">
-          <div class="footer-col-title">Informasi & Kontak</div>
-          <ul class="footer-info-list">
-            <li>
-              <i class="ti ti-map-pin"></i>
-              <span>Jl. Ratna No. 1, Gianyar, Bali 80511</span>
-            </li>
-            <li>
-              <i class="ti ti-phone"></i>
-              <span>(0361) 943034</span>
-            </li>
-            <li>
-              <i class="ti ti-mail"></i>
-              <span>info@sman1gianyar.sch.id</span>
-            </li>
-            <li>
-              <i class="ti ti-world"></i>
-              <span>www.sman1gianyar.sch.id</span>
-            </li>
-          </ul>
-        </div>
-
-        <div class="footer-meta-col">
-          <div class="footer-col-title">Status Sistem</div>
-          <div class="footer-status-pill">
-            <span class="status-indicator-dot online"></span>
-            <span>SI-ARTHA DOSMAN • Aktif</span>
-          </div>
-          <div class="footer-meta-item">
-            <span class="meta-label">Tahun Ajaran</span>
-            <span class="meta-val">2026/2027</span>
-          </div>
-          <div class="footer-meta-item">
-            <span class="meta-label">Versi Aplikasi</span>
-            <span class="meta-val">v2.1.0 Institutional</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="footer-bottom">
-        <div class="footer-copyright">
-          &copy; 2026 SMA Negeri 1 Gianyar (DOSMAN). Seluruh Hak Cipta Dilindungi Undang-Undang.
-        </div>
-        <div class="footer-bottom-links">
-          <span>Pemerintah Provinsi Bali</span>
-          <span class="footer-sep">•</span>
-          <span>Dinas Pendidikan Kepemudaan dan Olahraga</span>
-          <span class="footer-sep">•</span>
-          <span>Komite Sekolah</span>
-        </div>
-      </div>
-    </div>
-  </footer>
+  <!-- Footer halaman dihilangkan sesuai permintaan pengguna -->
 
   <!-- Mobile Bottom Navigation Bar (Teacher Friendly - Tepat 4 Tombol) -->
   <nav class="mobile-nav-bar">
     <a href="javascript:void(0)" class="nav-item" id="navHome" onclick="switchView('dashboard')">
-      <i class="ti ti-layout-grid" style="font-size: 1.35rem;"></i>
-      <span>Pagu Anggaran</span>
+      <i class="ti ti-layout-grid" style="font-size: 1.3rem;"></i>
+      <span>Pagu</span>
     </a>
     <a href="javascript:void(0)" class="nav-item" id="navAjukan" onclick="switchView('ajukan')">
-      <i class="ti ti-notes" style="font-size: 1.35rem;"></i>
+      <i class="ti ti-notes" style="font-size: 1.3rem;"></i>
       <span>Pengajuan</span>
     </a>
+    <a href="javascript:void(0)" class="nav-item nav-item-center-home" id="navIndexHome" onclick="switchView('home')" title="Beranda Utama">
+      <div class="nav-home-circle">
+        <i class="ti ti-home"></i>
+      </div>
+      <span>Beranda</span>
+    </a>
     <a href="javascript:void(0)" class="nav-item" id="navVerifikasi" onclick="switchView('verifikasi')">
-      <i class="ti ti-checklist" style="font-size: 1.35rem;"></i>
+      <i class="ti ti-checklist" style="font-size: 1.3rem;"></i>
       <span>Persetujuan</span>
     </a>
     <a href="javascript:void(0)" class="nav-item" id="navLaporan" onclick="switchView('laporan')">
-      <i class="ti ti-file-analytics" style="font-size: 1.35rem;"></i>
+      <i class="ti ti-file-analytics" style="font-size: 1.3rem;"></i>
       <span>Laporan</span>
     </a>
   </nav>
@@ -2277,7 +2382,7 @@
 
           <div class="form-group">
             <label class="form-label">Keterangan Tambahan</label>
-            <textarea class="form-textarea" id="inputKeterangan" rows="2" placeholder="Catatan atau tujuan peruntukan belanja pos ini..."></textarea>
+            <textarea class="form-textarea rich-text-editor" id="inputKeterangan" rows="2" placeholder="Catatan atau tujuan peruntukan belanja pos ini..."></textarea>
           </div>
         </div>
         <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
@@ -2556,12 +2661,71 @@
     </div>
   </div>
 
+  <!-- Modal 4: Pratinjau Berkas / Foto Nota -->
+  <div class="modal-overlay" id="modalPreviewNota" onclick="if (event.target === this) closeFilePreviewModal()">
+    <div class="modal-box" style="max-width: 820px; width: 95%;">
+      <div class="modal-header">
+        <div class="modal-title" style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
+          <i class="ti ti-receipt" style="color: var(--primary);"></i>
+          <span id="previewNotaTitle" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Pratinjau Nota</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon-only btn-sm" onclick="closeFilePreviewModal()">✕</button>
+      </div>
+      <div class="modal-body" id="previewNotaContent" style="background: #f1f5f9; padding: 14px; text-align: center; max-height: 74vh; overflow: auto; border-radius: 8px;">
+        <!-- Preview injected via JS -->
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+        <a href="#" target="_blank" class="btn btn-outline-secondary btn-sm" id="btnPreviewNotaNewTab">
+          <i class="ti ti-external-link"></i> Buka di Tab Baru
+        </a>
+        <button type="button" class="btn btn-primary btn-sm" onclick="closeFilePreviewModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Atur Komponen & Urutan Laporan (12 Item Modular) -->
+  <div class="modal-overlay" id="modalKomponenLaporan" onclick="if (event.target === this) closeModalKomponenLaporan()">
+    <div class="modal-box" style="max-width: 680px; width: 95%;">
+      <div class="modal-header">
+        <div class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <i class="ti ti-list-check" style="color: var(--primary);"></i>
+          <span>Pilih Komponen &amp; Urutan Laporan</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon-only btn-sm" onclick="closeModalKomponenLaporan()">✕</button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding: 16px 20px;">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: #166534; margin-bottom: 12px;">
+          Centang lampiran yang dibutuhkan pada laporan ini, lalu gunakan tombol <strong>↑ / ↓</strong> untuk mengatur urutan halaman cetak. <strong>Cover Resmi</strong> selalu terkunci di urutan paling depan (#1).
+        </div>
+
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+          <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); align-self: center; margin-right: 4px;">Preset Cepat:</span>
+          <button type="button" class="btn btn-outline-primary btn-xs" onclick="applyLpjPreset('KEGIATAN')">Kegiatan Siswa / Kurikulum</button>
+          <button type="button" class="btn btn-outline-primary btn-xs" onclick="applyLpjPreset('PENGADAAN_JASA')">Pengadaan Jasa (Humas)</button>
+          <button type="button" class="btn btn-outline-primary btn-xs" onclick="applyLpjPreset('PENGADAAN_BARANG')">Pengadaan Barang (Sarana)</button>
+        </div>
+
+        <div id="komponenLaporanChecklist" class="komponen-checklist-container">
+          <!-- Diisi oleh JS -->
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeModalKomponenLaporan()">Tutup</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="applyLpjComponentsSelection()">
+          <i class="ti ti-check"></i> Terapkan &amp; Lanjut Isi Form
+        </button>
+      </div>
+    </div>
+  </div>
+
   </div> <!-- /#appAuthenticatedShell -->
 
-  <!-- Tabler Core JS, SweetAlert2 & Chart.js -->
+  <!-- Tabler Core JS, SweetAlert2, Chart.js, jQuery & Summernote -->
   <script src="/libs/tabler/js/tabler.min.js"></script>
   <script src="/libs/sweetalert2/sweetalert2.all.min.js"></script>
   <script src="/libs/chartjs/chart.umd.min.js"></script>
+  <script src="/libs/summernote/jquery.min.js"></script>
+  <script src="/libs/summernote/summernote-lite.min.js"></script>
   <script src="/js/app.js?v=3.0.0"></script>
 </body>
 </html>
