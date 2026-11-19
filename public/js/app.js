@@ -1444,7 +1444,7 @@ async function handleLogout() {
   if (typeof Swal !== 'undefined') {
     const result = await Swal.fire({
       title: 'Keluar dari Sistem?',
-      text: 'Apakah Anda yakin ingin mengakhiri sesi SI-ARTHA DOSMAN?',
+      text: 'Apakah Anda yakin ingin mengakhiri sesi si-DD (Aplikasi Dana Dosman)?',
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#059669',
@@ -1454,7 +1454,7 @@ async function handleLogout() {
     });
     if (!result.isConfirmed) return;
   } else {
-    if (!confirm('Apakah Anda yakin ingin keluar dari sistem SI-ARTHA DOSMAN?')) {
+    if (!confirm('Apakah Anda yakin ingin keluar dari sistem si-DD (Aplikasi Dana Dosman)?')) {
       return;
     }
   }

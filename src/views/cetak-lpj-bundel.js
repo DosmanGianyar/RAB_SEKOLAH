@@ -1459,7 +1459,7 @@ function renderCetakLpjBundel({ proposal, qrDataUrl = '', hostUrl = '' }) {
         </div>
       </div>
 
-      <div class="page-footer-note">Sistem Informasi Anggaran SI-ARTHA — SMA Negeri 1 Gianyar</div>
+      <div class="page-footer-note">si-DD (Aplikasi Dana Dosman) — SMA Negeri 1 Gianyar</div>
     </div>
 
     <!-- ============================================================= -->

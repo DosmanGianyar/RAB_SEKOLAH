@@ -1,7 +1,7 @@
 const { getPenandatanganMap, formatNipCetak } = require('../db');
 // ==========================================================================
 // Generator Lembar Cetak / Ekspor PDF Buku Besar RKAS Resmi (A4 Landscape)
-// SMA NEGERI 1 GIANYAR (DOSMAN) — SISTEM SI-ARTHA DOSMAN
+// SMA NEGERI 1 GIANYAR (DOSMAN) — SISTEM si-DD (Aplikasi Dana Dosman)
 // ==========================================================================
 
 const { renderKopSurat, getKopSuratCss } = require('./kop-surat');
